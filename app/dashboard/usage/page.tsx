@@ -5,20 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export default function UsagePage() {
-  const { subscription, usage, plan, isLoading } = useSubscription()
-  const router = useRouter()
+  const { subscription, usage, plan, isLoading, refresh } = useSubscription()
   const [refreshing, setRefreshing] = useState(false)
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true)
-    router.refresh()
-    setTimeout(() => {
-      window.location.reload()
-    }, 500)
+    await refresh()
+    setRefreshing(false)
   }
 
   if (isLoading) {
@@ -52,6 +48,11 @@ export default function UsagePage() {
           <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
+          {subscription?.plan === "pro" && (
+            <Button variant="outline" asChild>
+              <Link href="/api/portal">Manage Subscription</Link>
+            </Button>
+          )}
           {subscription?.plan === "free" && (
             <Button asChild>
               <Link href="/dashboard/pricing">Upgrade to Pro</Link>
@@ -61,13 +62,25 @@ export default function UsagePage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Current Plan: {subscription?.plan === "pro" ? "Pro" : "Free"}</CardTitle>
-          <CardDescription>
-            {subscription?.plan === "pro" 
-              ? "You have unlimited access to all features" 
-              : "Upgrade to Pro for unlimited usage"}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>Current Plan: {subscription?.plan === "pro" ? "Pro" : "Free"}</CardTitle>
+            <CardDescription>
+              {subscription?.plan === "pro" 
+                ? "You have unlimited access to all features" 
+                : "Upgrade to Pro for unlimited usage"}
+            </CardDescription>
+            {subscription?.current_period_end && subscription?.plan === "pro" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Renews on {new Date(subscription.current_period_end).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+          {subscription?.plan === "pro" && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/api/portal">Manage</Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Invoices */}
