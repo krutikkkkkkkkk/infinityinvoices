@@ -27,6 +27,8 @@ const navItems = [
   { href: "/dashboard/quotations", label: "Quotations" },
   { href: "/dashboard/clients", label: "Clients" },
   { href: "/dashboard/products", label: "Products" },
+  { href: "/dashboard/usage", label: "Usage" },
+  { href: "/dashboard/pricing", label: "Pricing" },
 ]
 
 export function DashboardHeader({ user }: { user: User }) {
