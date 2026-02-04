@@ -5,20 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export default function UsagePage() {
-  const { subscription, usage, plan, isLoading } = useSubscription()
-  const router = useRouter()
+  const { subscription, usage, plan, isLoading, refresh } = useSubscription()
   const [refreshing, setRefreshing] = useState(false)
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true)
-    router.refresh()
-    setTimeout(() => {
-      window.location.reload()
-    }, 500)
+    await refresh()
+    setRefreshing(false)
   }
 
   if (isLoading) {

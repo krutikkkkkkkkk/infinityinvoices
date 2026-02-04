@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import useSWR from "swr"
 import { createClient } from "@/lib/supabase/client"
 import { getPlan, getFreePlan, type Plan } from "@/lib/plans"
 
@@ -16,46 +16,57 @@ interface Usage {
   emails_sent: number
 }
 
-export function useSubscription() {
-  const [subscription, setSubscription] = useState<Subscription | null>(null)
-  const [usage, setUsage] = useState<Usage | null>(null)
-  const [loading, setLoading] = useState(true)
+interface SubscriptionData {
+  subscription: Subscription
+  usage: Usage
+}
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+const fetchSubscriptionData = async (): Promise<SubscriptionData> => {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-      if (!user) {
-        setLoading(false)
-        return
-      }
-
-      // Fetch subscription
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("user_id", user.id)
-        .single()
-
-      setSubscription(sub || { plan: "free", status: "active" })
-
-      // Fetch usage for current month
-      const monthYear = new Date().toISOString().slice(0, 7)
-      const { data: usageData } = await supabase
-        .from("usage_tracking")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("month_year", monthYear)
-        .single()
-
-      setUsage(usageData || { invoices_created: 0, quotations_created: 0, emails_sent: 0 })
-      setLoading(false)
+  if (!user) {
+    return {
+      subscription: { plan: "free", status: "active" },
+      usage: { invoices_created: 0, quotations_created: 0, emails_sent: 0 }
     }
+  }
 
-    fetchData()
-  }, [])
+  // Fetch subscription
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("user_id", user.id)
+    .single()
 
+  // Fetch usage for current month
+  const monthYear = new Date().toISOString().slice(0, 7)
+  const { data: usageData } = await supabase
+    .from("usage_tracking")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("month_year", monthYear)
+    .single()
+
+  return {
+    subscription: sub || { plan: "free", status: "active" },
+    usage: usageData || { invoices_created: 0, quotations_created: 0, emails_sent: 0 }
+  }
+}
+
+export function useSubscription() {
+  const { data, error, isLoading, mutate } = useSWR<SubscriptionData>(
+    "subscription-data",
+    fetchSubscriptionData,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000, // 1 minute deduplication
+    }
+  )
+
+  const subscription = data?.subscription || null
+  const usage = data?.usage || null
   const plan: Plan = getPlan(subscription?.plan || "free") || getFreePlan()
 
   const canCreateInvoice = () => {
@@ -79,11 +90,12 @@ export function useSubscription() {
     subscription,
     usage,
     plan,
-    loading,
-    isLoading: loading,
+    loading: isLoading,
+    isLoading,
     isPro,
     canCreateInvoice,
     canCreateQuotation,
     canSendEmail,
+    refresh: mutate,
   }
 }
