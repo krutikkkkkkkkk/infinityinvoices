@@ -22,7 +22,7 @@ export async function createDocument(formData: DocumentFormData) {
   const { allowed, limit } = await checkAndIncrementUsage(usageType)
   
   if (!allowed) {
-    throw new Error(`You've reached your monthly limit of ${limit} ${usageType}s. Upgrade to Pro for unlimited ${usageType}s.`)
+    throw new Error(`USAGE_LIMIT_EXCEEDED:You've reached your monthly limit of ${limit} ${usageType}s. Upgrade to Pro for unlimited ${usageType}s.`)
   }
 
   // Calculate totals
@@ -256,7 +256,27 @@ export async function duplicateDocument(id: string) {
     throw new Error("Not authenticated")
   }
 
-  // Get the original document
+  // Get the original document first to check type
+  const { data: originalDoc } = await supabase
+    .from("documents")
+    .select("type")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single()
+
+  if (!originalDoc) {
+    throw new Error("Document not found")
+  }
+
+  // Check usage limits before duplicating
+  const usageType = originalDoc.type === "invoice" ? "invoice" : "quotation"
+  const { allowed, limit } = await checkAndIncrementUsage(usageType)
+  
+  if (!allowed) {
+    throw new Error(`USAGE_LIMIT_EXCEEDED:You've reached your monthly limit of ${limit} ${usageType}s. Upgrade to Pro for unlimited ${usageType}s.`)
+  }
+
+  // Get the original document with line items
   const { data: original, error: fetchError } = await supabase
     .from("documents")
     .select("*, line_items(*)")
@@ -369,6 +389,13 @@ export async function convertToInvoice(id: string) {
 
   if (!user) {
     throw new Error("Not authenticated")
+  }
+
+  // Check usage limits before converting
+  const { allowed, limit } = await checkAndIncrementUsage("invoice")
+  
+  if (!allowed) {
+    throw new Error(`USAGE_LIMIT_EXCEEDED:You've reached your monthly limit of ${limit} invoices. Upgrade to Pro for unlimited invoices.`)
   }
 
   // Get the quotation

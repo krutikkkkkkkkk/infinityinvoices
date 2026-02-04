@@ -92,6 +92,8 @@ export function DocumentActions({ document }: DocumentActionsProps) {
   const [linkCopied, setLinkCopied] = useState(false)
   const [isSendingReminder, setIsSendingReminder] = useState(false)
   const [reminderStatus, setReminderStatus] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [showUsageLimitDialog, setShowUsageLimitDialog] = useState(false)
+  const [usageLimitMessage, setUsageLimitMessage] = useState("")
 
   const handleSendReminder = async () => {
     setIsSendingReminder(true)
@@ -284,13 +286,29 @@ export function DocumentActions({ document }: DocumentActionsProps) {
 
   const handleDuplicate = () => {
     startTransition(async () => {
-      await duplicateDocument(document.id)
+      try {
+        await duplicateDocument(document.id)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to duplicate"
+        if (message.startsWith("USAGE_LIMIT_EXCEEDED:")) {
+          setUsageLimitMessage(message.replace("USAGE_LIMIT_EXCEEDED:", ""))
+          setShowUsageLimitDialog(true)
+        }
+      }
     })
   }
 
   const handleConvertToInvoice = () => {
     startTransition(async () => {
-      await convertToInvoice(document.id)
+      try {
+        await convertToInvoice(document.id)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to convert"
+        if (message.startsWith("USAGE_LIMIT_EXCEEDED:")) {
+          setUsageLimitMessage(message.replace("USAGE_LIMIT_EXCEEDED:", ""))
+          setShowUsageLimitDialog(true)
+        }
+      }
     })
   }
 
@@ -514,6 +532,24 @@ export function DocumentActions({ document }: DocumentActionsProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Usage Limit Dialog */}
+      <AlertDialog open={showUsageLimitDialog} onOpenChange={setShowUsageLimitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usage Limit Reached</AlertDialogTitle>
+            <AlertDialogDescription>
+              {usageLimitMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Link href="/dashboard/pricing">Upgrade to Pro</Link>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
