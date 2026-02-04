@@ -15,7 +15,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Badge } from '@/components/ui/badge'
 
 function GoogleIcon() {
   return (
@@ -55,12 +56,19 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isGitHubLoading, setIsGitHubLoading] = useState(false)
+  const [lastUsedMethod, setLastUsedMethod] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    const lastUsed = localStorage.getItem('lastLoginMethod')
+    if (lastUsed) setLastUsedMethod(lastUsed)
+  }, [])
 
   const handleGitHubLogin = async () => {
     const supabase = createClient()
     setIsGitHubLoading(true)
     setError(null)
+    localStorage.setItem('lastLoginMethod', 'github')
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -80,6 +88,7 @@ export default function Page() {
     const supabase = createClient()
     setIsGoogleLoading(true)
     setError(null)
+    localStorage.setItem('lastLoginMethod', 'google')
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -102,6 +111,7 @@ export default function Page() {
     setError(null)
 
     try {
+      localStorage.setItem('lastLoginMethod', 'email')
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -164,9 +174,16 @@ export default function Page() {
                     />
                   </div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
-                  <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
-                    {isLoading ? 'Logging in...' : 'Login'}
-                  </Button>
+                  <div className="relative">
+                    <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+                      {isLoading ? 'Logging in...' : 'Login'}
+                    </Button>
+                    {lastUsedMethod === 'email' && (
+                      <Badge variant="secondary" className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5">
+                        Last used
+                      </Badge>
+                    )}
+                  </div>
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t" />
@@ -176,36 +193,52 @@ export default function Page() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleGoogleLogin}
-                      disabled={isLoading || isGoogleLoading || isGitHubLoading}
-                    >
-                      {isGoogleLoading ? (
-                        '...'
-                      ) : (
-                        <>
-                          <GoogleIcon />
-                          Google
-                        </>
+                    <div className="relative">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleGoogleLogin}
+                        disabled={isLoading || isGoogleLoading || isGitHubLoading}
+                      >
+                        {isGoogleLoading ? (
+                          '...'
+                        ) : (
+                          <>
+                            <GoogleIcon />
+                            Google
+                          </>
+                        )}
+                      </Button>
+                      {lastUsedMethod === 'google' && (
+                        <Badge variant="secondary" className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5">
+                          Last used
+                        </Badge>
                       )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleGitHubLogin}
-                      disabled={isLoading || isGoogleLoading || isGitHubLoading}
-                    >
-                      {isGitHubLoading ? (
-                        '...'
-                      ) : (
-                        <>
-                          <GitHubIcon />
-                          GitHub
-                        </>
+                    </div>
+                    <div className="relative">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleGitHubLogin}
+                        disabled={isLoading || isGoogleLoading || isGitHubLoading}
+                      >
+                        {isGitHubLoading ? (
+                          '...'
+                        ) : (
+                          <>
+                            <GitHubIcon />
+                            GitHub
+                          </>
+                        )}
+                      </Button>
+                      {lastUsedMethod === 'github' && (
+                        <Badge variant="secondary" className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5">
+                          Last used
+                        </Badge>
                       )}
-                    </Button>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-4 text-center text-sm">
