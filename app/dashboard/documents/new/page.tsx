@@ -6,6 +6,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
+import { getUsageStatus } from "@/lib/usage"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default async function NewDocumentPage({
   searchParams,
@@ -42,6 +44,10 @@ export default async function NewDocumentPage({
     .eq("user_id", user.id)
     .order("name")
 
+  // Check usage limits
+  const usageType = type === "invoice" ? "invoice" : "quotation"
+  const usageStatus = await getUsageStatus(usageType)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -60,7 +66,31 @@ export default async function NewDocumentPage({
         </div>
       </div>
 
-      <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} />
+      {!usageStatus.canCreate ? (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Usage Limit Reached</CardTitle>
+            <CardDescription>
+              You&apos;ve reached your monthly limit of {usageStatus.limit} {usageType}s ({usageStatus.current}/{usageStatus.limit} used).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Upgrade to Pro for unlimited {usageType}s and access to all premium features.
+            </p>
+            <div className="flex gap-2">
+              <Button asChild>
+                <Link href="/dashboard/pricing">Upgrade to Pro</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/usage">View Usage</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} />
+      )}
     </div>
   )
 }

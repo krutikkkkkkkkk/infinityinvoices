@@ -94,6 +94,60 @@ export async function checkAndIncrementUsage(
   return { allowed: true, remaining: limit - currentCount - 1, limit }
 }
 
+export async function getUsageStatus(
+  type: "invoice" | "quotation" | "email"
+): Promise<{ canCreate: boolean; current: number; limit: number }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { canCreate: false, current: 0, limit: 0 }
+  }
+
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("plan")
+    .eq("user_id", user.id)
+    .single()
+
+  const plan = getPlan(subscription?.plan || "free") || getFreePlan()
+  const monthYear = new Date().toISOString().slice(0, 7)
+
+  const { data: usage } = await supabase
+    .from("usage_tracking")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("month_year", monthYear)
+    .single()
+
+  let currentCount = 0
+  let limit = 0
+
+  switch (type) {
+    case "invoice":
+      currentCount = usage?.invoices_created || 0
+      limit = plan.limits.invoicesPerMonth
+      break
+    case "quotation":
+      currentCount = usage?.quotations_created || 0
+      limit = plan.limits.quotationsPerMonth
+      break
+    case "email":
+      currentCount = usage?.emails_sent || 0
+      limit = plan.limits.emailsPerMonth
+      break
+  }
+
+  // -1 means unlimited
+  if (limit === -1) {
+    return { canCreate: true, current: currentCount, limit: -1 }
+  }
+
+  return { canCreate: currentCount < limit, current: currentCount, limit }
+}
+
 export async function getUsageStats() {
   const supabase = await createClient()
   const {
