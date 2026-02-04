@@ -7,7 +7,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import Link from "next/link"
 import {
   Select,
   SelectContent,
@@ -57,6 +68,8 @@ const emptyLineItem: NewLineItem = {
 export function DocumentForm({ type, document, clients = [], nextNumber, profile }: DocumentFormProps) {
   const [isPending, startTransition] = useTransition()
   const [products, setProducts] = useState<Product[]>([])
+  const [showUsageLimitDialog, setShowUsageLimitDialog] = useState(false)
+  const [usageLimitMessage, setUsageLimitMessage] = useState("")
   const supabase = createClient()
 
   // Fetch products on mount
@@ -221,10 +234,18 @@ const addLineItem = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     startTransition(async () => {
-      if (document) {
-        await updateDocument(document.id, formData)
-      } else {
-        await createDocument(formData)
+      try {
+        if (document) {
+          await updateDocument(document.id, formData)
+        } else {
+          await createDocument(formData)
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "An error occurred"
+        if (message.startsWith("USAGE_LIMIT_EXCEEDED:")) {
+          setUsageLimitMessage(message.replace("USAGE_LIMIT_EXCEEDED:", ""))
+          setShowUsageLimitDialog(true)
+        }
       }
     })
   }
@@ -768,6 +789,24 @@ const addLineItem = () => {
           {document ? "Update" : "Create"} {type === "invoice" ? "Invoice" : "Quotation"}
         </Button>
       </div>
+
+      {/* Usage Limit Dialog */}
+      <AlertDialog open={showUsageLimitDialog} onOpenChange={setShowUsageLimitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usage Limit Reached</AlertDialogTitle>
+            <AlertDialogDescription>
+              {usageLimitMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Link href="/dashboard/pricing">Upgrade to Pro</Link>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   )
 }
