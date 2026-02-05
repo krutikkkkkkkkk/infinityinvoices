@@ -20,10 +20,12 @@ const PAGE_SIZE = 20
 
 function formatCurrency(amount: number, currency: string) {
   const currencyData = CURRENCIES.find((c) => c.value === currency)
-  return \`\${currencyData?.symbol || ""}\${amount.toLocaleString("en-IN", {
+  const symbol = currencyData?.symbol || ""
+  const formatted = amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}\`
+  })
+  return symbol + formatted
 }
 
 function getStatusBadge(status: string) {
