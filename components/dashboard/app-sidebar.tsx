@@ -99,7 +99,7 @@ export function AppSidebar({ user }: { user: User }) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarSeparator />
+
 
       {/* Main Navigation */}
       <SidebarContent>

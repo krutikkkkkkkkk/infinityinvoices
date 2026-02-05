@@ -44,6 +44,13 @@ export default async function NewDocumentPage({
     .eq("user_id", user.id)
     .order("name")
 
+  // Get profile for auto-filling payment methods
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .single()
+
   // Check usage limits
   const usageType = type === "invoice" ? "invoice" : "quotation"
   const usageStatus = await getUsageStatus(usageType)
@@ -89,7 +96,7 @@ export default async function NewDocumentPage({
           </CardContent>
         </Card>
       ) : (
-        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} />
+        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} />
       )}
     </div>
   )
