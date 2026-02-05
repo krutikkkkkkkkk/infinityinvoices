@@ -86,4 +86,12 @@ export const POST = Webhooks({
 
     console.log("[Polar] Subscription revoked:", subscription.id)
   },
+
+  onCheckoutCreated: async (payload) => {
+    console.log("[Polar] Checkout created:", payload.data.id)
+  },
+
+  onCheckoutUpdated: async (payload) => {
+    console.log("[Polar] Checkout updated:", payload.data.id, payload.data.status)
+  },
 })
