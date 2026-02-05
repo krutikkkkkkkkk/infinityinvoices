@@ -79,7 +79,7 @@ export default async function InvoicesPage({
   }
 
   if (search) {
-    query = query.or(\`number.ilike.%\${search}%,client_name.ilike.%\${search}%\`)
+    query = query.or(`number.ilike.%${search}%,client_name.ilike.%${search}%`)
   }
 
   if (from) {
@@ -144,7 +144,7 @@ export default async function InvoicesPage({
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">
                         <Link
-                          href={\`/dashboard/documents/\${invoice.id}\`}
+                          href={`/dashboard/documents/${invoice.id}`}
                           className="hover:underline"
                         >
                           {invoice.number}
@@ -192,7 +192,7 @@ export default async function InvoicesPage({
                     <div className="flex items-center gap-1">
                       {generatePageNumbers(page, totalPages).map((p, i) =>
                         p === "..." ? (
-                          <span key={\`ellipsis-\${i}\`} className="px-2 text-sm text-muted-foreground">...</span>
+                          <span key={`ellipsis-${i}`} className="px-2 text-sm text-muted-foreground">...</span>
                         ) : (
                           <Button
                             key={p}
@@ -263,7 +263,7 @@ function buildPageUrl(
   if (params.sort && params.sort !== "created_at") sp.set("sort", params.sort)
   if (params.order && params.order !== "desc") sp.set("order", params.order)
   const qs = sp.toString()
-  return \`/dashboard/invoices\${qs ? \`?\${qs}\` : ""}\`
+  return `/dashboard/invoices${qs ? `?${qs}` : ""}`
 }
 
 function generatePageNumbers(current: number, total: number): (number | string)[] {
