@@ -1,11 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -13,35 +11,11 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Files01Icon, InvoiceIcon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
-import { Document, CURRENCIES } from "@/lib/types"
+import type { Document } from "@/lib/types"
 import { InvoiceFilters } from "@/components/dashboard/invoice-filters"
+import { InvoiceTableRow } from "@/components/dashboard/invoice-table-row"
 
 const PAGE_SIZE = 20
-
-function formatCurrency(amount: number, currency: string) {
-  const currencyData = CURRENCIES.find((c) => c.value === currency)
-  const symbol = currencyData?.symbol || ""
-  const formatted = amount.toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-  return symbol + formatted
-}
-
-function getStatusBadge(status: string) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    draft: "secondary",
-    sent: "default",
-    paid: "default",
-    overdue: "destructive",
-    cancelled: "outline",
-  }
-  return (
-    <Badge variant={variants[status] || "secondary"} className="capitalize">
-      {status}
-    </Badge>
-  )
-}
 
 export default async function InvoicesPage({
   searchParams,
@@ -137,33 +111,12 @@ export default async function InvoicesPage({
                     <TableHead>Issue Date</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right w-[50px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(invoices as Document[]).map((invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">
-                        <Link
-                          href={`/dashboard/documents/${invoice.id}`}
-                          className="hover:underline"
-                        >
-                          {invoice.number}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{invoice.client_name || "-"}</TableCell>
-                      <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                      <TableCell>
-                        {new Date(invoice.issue_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        {invoice.due_date
-                          ? new Date(invoice.due_date).toLocaleDateString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(Number(invoice.grand_total), invoice.currency)}
-                      </TableCell>
-                    </TableRow>
+                    <InvoiceTableRow key={invoice.id} invoice={invoice} />
                   ))}
                 </TableBody>
               </Table>
