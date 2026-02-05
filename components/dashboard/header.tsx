@@ -50,34 +50,34 @@ export function DashboardHeader({ user }: { user: User }) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Left: Logo + Navigation */}
-        <div className="flex items-center gap-8">
+      <div className="container mx-auto flex h-16 items-center px-4">
+        {/* Left: Logo */}
+        <div className="flex items-center">
           <Link href="/dashboard" className="flex items-center gap-2.5 font-semibold text-lg">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <HugeiconsIcon icon={InvoiceIcon} size={18} />
             </div>
             <span className="hidden sm:inline-block">Infinity Invoice</span>
           </Link>
-          
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                  isActive(item.href)
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
         </div>
+          
+        {/* Center: Desktop Navigation */}
+        <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                isActive(item.href)
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
         {/* Right: Usage, Upgrade, User */}
         <div className="flex items-center gap-3">
