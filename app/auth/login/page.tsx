@@ -57,9 +57,11 @@ export default function Page() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isGitHubLoading, setIsGitHubLoading] = useState(false)
   const [lastUsedMethod, setLastUsedMethod] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
+    setMounted(true)
     const lastUsed = localStorage.getItem('lastLoginMethod')
     if (lastUsed) setLastUsedMethod(lastUsed)
   }, [])
@@ -178,7 +180,7 @@ export default function Page() {
                     <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                       {isLoading ? 'Logging in...' : 'Login'}
                     </Button>
-                    {lastUsedMethod === 'email' && (
+                    {mounted && lastUsedMethod === 'email' && (
                       <Badge variant="secondary" className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5">
                         Last used
                       </Badge>
@@ -210,7 +212,7 @@ export default function Page() {
                           </>
                         )}
                       </Button>
-                      {lastUsedMethod === 'google' && (
+                      {mounted && lastUsedMethod === 'google' && (
                         <Badge variant="secondary" className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5">
                           Last used
                         </Badge>
@@ -233,7 +235,7 @@ export default function Page() {
                           </>
                         )}
                       </Button>
-                      {lastUsedMethod === 'github' && (
+                      {mounted && lastUsedMethod === 'github' && (
                         <Badge variant="secondary" className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0.5">
                           Last used
                         </Badge>
