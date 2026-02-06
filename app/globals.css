@@ -149,6 +149,21 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Ensure clicks work properly on all platforms including Mac */
+  button, a, [role="button"], [role="link"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+  }
+  
+  /* Ensure interactive elements are clickable */
+  button:not(:disabled), 
+  a:not([aria-disabled="true"]), 
+  [role="button"]:not([aria-disabled="true"]) {
+    pointer-events: auto;
+  }
 }
 
 /* Print styles */
