@@ -172,66 +172,83 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         return
       }
 
-      // Function to convert oklch and other modern colors to hex/rgb
-      const convertColorsToRgb = (clonedDoc: Document) => {
-        // Remove all stylesheets temporarily to avoid oklch parsing
-        const styleSheets = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]')
-        styleSheets.forEach(sheet => sheet.remove())
-        
-        // Add basic inline styles for the PDF
-        const style = clonedDoc.createElement('style')
-        style.textContent = `
-          * { 
-            font-family: system-ui, -apple-system, sans-serif !important;
-          }
-          #document-preview {
-            background: #ffffff !important;
-            color: #000000 !important;
-          }
-          .text-gray-500 { color: #6b7280 !important; }
-          .text-gray-600 { color: #4b5563 !important; }
-          .text-gray-700 { color: #374151 !important; }
-          .text-gray-800 { color: #1f2937 !important; }
-          .text-black { color: #000000 !important; }
-          .bg-white { background-color: #ffffff !important; }
-          .bg-gray-50 { background-color: #f9fafb !important; }
-          .bg-gray-100 { background-color: #f3f4f6 !important; }
-          .border-gray-200 { border-color: #e5e7eb !important; }
-          .border-gray-300 { border-color: #d1d5db !important; }
-        `
-        clonedDoc.head.appendChild(style)
-      }
-
-      // Capture with onclone callback to modify styles before rendering
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        onclone: (clonedDoc) => {
-          convertColorsToRgb(clonedDoc)
+        onclone: (clonedDoc: globalThis.Document) => {
+          const preview = clonedDoc.getElementById("document-preview")
+          if (preview) {
+            // Force white background and black text for PDF
+            preview.style.backgroundColor = "#ffffff"
+            preview.style.color = "#000000"
+          }
+          // Override any oklch/modern colors with safe fallbacks
+          const style = clonedDoc.createElement("style")
+          style.textContent = `
+            #document-preview, #document-preview * {
+              color-scheme: light !important;
+            }
+            #document-preview {
+              background: #ffffff !important;
+              color: #000000 !important;
+            }
+          `
+          clonedDoc.head.appendChild(style)
         },
       })
 
       const imgData = canvas.toDataURL("image/png")
-      
+
       // Create PDF with A4 dimensions
       const pdf = new jsPDF("p", "mm", "a4")
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = pdf.internal.pageSize.getHeight()
-      
+
       const imgWidth = canvas.width
       const imgHeight = canvas.height
-      
-      // Calculate scaling to fit A4
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
-      const imgX = (pdfWidth - imgWidth * ratio) / 2
-      const imgY = 0
 
-      pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio)
-      
-      // Save with document number as filename
+      // Calculate scaling to fit width
+      const ratio = pdfWidth / imgWidth
+      const scaledHeight = imgHeight * ratio
+
+      // Handle multi-page if content is taller than one page
+      if (scaledHeight <= pdfHeight) {
+        // Single page - center vertically
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight)
+      } else {
+        // Multi-page
+        let remainingHeight = imgHeight
+        let position = 0
+
+        while (remainingHeight > 0) {
+          const pageCanvas = window.document.createElement("canvas")
+          pageCanvas.width = imgWidth
+          const sliceHeight = Math.min(remainingHeight, pdfHeight / ratio)
+          pageCanvas.height = sliceHeight
+
+          const ctx = pageCanvas.getContext("2d")
+          if (ctx) {
+            ctx.drawImage(
+              canvas,
+              0, position,
+              imgWidth, sliceHeight,
+              0, 0,
+              imgWidth, sliceHeight
+            )
+
+            const pageData = pageCanvas.toDataURL("image/png")
+            if (position > 0) pdf.addPage()
+            pdf.addImage(pageData, "PNG", 0, 0, pdfWidth, sliceHeight * ratio)
+          }
+
+          remainingHeight -= sliceHeight
+          position += sliceHeight
+        }
+      }
+
       pdf.save(`${document.type}-${document.number}.pdf`)
     } catch (error) {
       console.error("Error generating PDF:", error)
