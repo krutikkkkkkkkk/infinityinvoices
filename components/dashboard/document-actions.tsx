@@ -109,7 +109,12 @@ export function DocumentActions({ document }: DocumentActionsProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        setReminderStatus({ type: "error", text: data.error || "Failed to send reminder" })
+        if (data.error?.startsWith("PRO_REQUIRED:")) {
+          setUsageLimitMessage(data.error.replace("PRO_REQUIRED:", ""))
+          setShowUsageLimitDialog(true)
+        } else {
+          setReminderStatus({ type: "error", text: data.error || "Failed to send reminder" })
+        }
       } else {
         setReminderStatus({ type: "success", text: "Reminder sent successfully!" })
         setTimeout(() => setReminderStatus(null), 3000)
@@ -255,7 +260,13 @@ export function DocumentActions({ document }: DocumentActionsProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        setEmailStatus({ type: "error", text: data.error || "Failed to send email" })
+        if (data.error?.startsWith("PRO_REQUIRED:")) {
+          setUsageLimitMessage(data.error.replace("PRO_REQUIRED:", ""))
+          setShowUsageLimitDialog(true)
+          setShowEmailDialog(false)
+        } else {
+          setEmailStatus({ type: "error", text: data.error || "Failed to send email" })
+        }
       } else {
         setEmailStatus({ type: "success", text: "Email sent successfully!" })
         setCurrentStatus("sent")

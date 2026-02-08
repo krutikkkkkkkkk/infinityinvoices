@@ -15,6 +15,28 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
+    // Check authentication
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check if user has Pro plan
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("plan, status")
+      .eq("user_id", user.id)
+      .single()
+
+    const isPro = subscription?.plan === "pro" && subscription?.status === "active"
+
+    if (!isPro) {
+      return NextResponse.json({ 
+        error: "PRO_REQUIRED:Payment reminders are a Pro feature. Upgrade to Pro for automated reminders and unlimited emails.",
+        requiresUpgrade: true 
+      }, { status: 403 })
+    }
+
     // Fetch document
     const { data: document, error: docError } = await supabase
       .from("documents")
