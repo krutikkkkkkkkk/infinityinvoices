@@ -179,24 +179,94 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         backgroundColor: "#ffffff",
         logging: false,
         onclone: (clonedDoc: globalThis.Document) => {
+          // Convert all modern CSS colors (oklch, lab, etc.) to rgb
+          // by reading computed styles and inlining them
           const preview = clonedDoc.getElementById("document-preview")
-          if (preview) {
-            // Force white background and black text for PDF
-            preview.style.backgroundColor = "#ffffff"
-            preview.style.color = "#000000"
+          if (!preview) return
+
+          const allElements = preview.querySelectorAll("*")
+          const colorProps = ["color", "background-color", "border-color", "border-top-color", "border-bottom-color", "border-left-color", "border-right-color"]
+
+          const convertElement = (el: Element) => {
+            const computed = window.getComputedStyle(
+              window.document.getElementById("document-preview")?.querySelector(
+                `[data-pdf-id="${el.getAttribute("data-pdf-id")}"]`
+              ) || el
+            )
+            const htmlEl = el as HTMLElement
+            colorProps.forEach((prop) => {
+              const val = computed.getPropertyValue(prop)
+              if (val && (val.includes("oklch") || val.includes("lab") || val.includes("color("))) {
+                // Force safe fallbacks
+                if (prop === "background-color") {
+                  htmlEl.style.backgroundColor = "transparent"
+                } else if (prop === "color") {
+                  htmlEl.style.color = "#000000"
+                } else {
+                  htmlEl.style.setProperty(prop, "#e5e7eb")
+                }
+              }
+            })
           }
-          // Override any oklch/modern colors with safe fallbacks
+
+          // Simpler approach: remove all stylesheets and apply computed rgb styles
+          // Remove stylesheets that use modern color functions
+          const sheets = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]')
+          sheets.forEach((s) => s.remove())
+
+          // Add clean styles with only rgb/hex values
           const style = clonedDoc.createElement("style")
           style.textContent = `
-            #document-preview, #document-preview * {
-              color-scheme: light !important;
+            * {
+              font-family: system-ui, -apple-system, Arial, sans-serif !important;
             }
             #document-preview {
               background: #ffffff !important;
               color: #000000 !important;
+              padding: 32px !important;
             }
+            #document-preview table { width: 100%; border-collapse: collapse; }
+            #document-preview th { text-align: left; padding: 8px; border-bottom: 2px solid #e5e7eb; font-weight: 600; font-size: 12px; color: #6b7280; }
+            #document-preview td { padding: 8px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+            #document-preview h1, #document-preview h2, #document-preview h3 { color: #111827; }
+            #document-preview p { color: #374151; }
+            .text-muted-foreground { color: #6b7280 !important; }
+            .text-foreground { color: #111827 !important; }
+            .bg-muted { background-color: #f9fafb !important; }
+            .border { border-color: #e5e7eb !important; }
+            .bg-primary { background-color: #111827 !important; }
+            .text-primary { color: #111827 !important; }
+            .text-primary-foreground { color: #ffffff !important; }
           `
           clonedDoc.head.appendChild(style)
+
+          // Inline computed styles for all elements to avoid modern color issues
+          const sourcePreview = window.document.getElementById("document-preview")
+          if (sourcePreview) {
+            const sourceElements = sourcePreview.querySelectorAll("*")
+            const clonedElements = preview.querySelectorAll("*")
+            
+            sourceElements.forEach((srcEl, i) => {
+              if (clonedElements[i]) {
+                const computed = window.getComputedStyle(srcEl)
+                const clonedEl = clonedElements[i] as HTMLElement
+                
+                // Inline key layout/spacing styles
+                clonedEl.style.display = computed.display
+                clonedEl.style.flexDirection = computed.flexDirection
+                clonedEl.style.justifyContent = computed.justifyContent
+                clonedEl.style.alignItems = computed.alignItems
+                clonedEl.style.gap = computed.gap
+                clonedEl.style.padding = computed.padding
+                clonedEl.style.margin = computed.margin
+                clonedEl.style.width = computed.width
+                clonedEl.style.fontSize = computed.fontSize
+                clonedEl.style.fontWeight = computed.fontWeight
+                clonedEl.style.textAlign = computed.textAlign
+                clonedEl.style.lineHeight = computed.lineHeight
+              }
+            })
+          }
         },
       })
 
