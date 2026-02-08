@@ -172,58 +172,50 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         return
       }
 
+      // A4 dimensions in pixels at 96 DPI
+      const A4_WIDTH_PX = 794 // 210mm at 96dpi
+      const A4_HEIGHT_PX = 1123 // 297mm at 96dpi
+
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
+        width: A4_WIDTH_PX,
+        windowWidth: A4_WIDTH_PX,
         onclone: (clonedDoc: globalThis.Document) => {
-          // Convert all modern CSS colors (oklch, lab, etc.) to rgb
-          // by reading computed styles and inlining them
           const preview = clonedDoc.getElementById("document-preview")
           if (!preview) return
 
-          const allElements = preview.querySelectorAll("*")
-          const colorProps = ["color", "background-color", "border-color", "border-top-color", "border-bottom-color", "border-left-color", "border-right-color"]
+          // Force exact A4 width on the preview
+          preview.style.width = `${A4_WIDTH_PX}px`
+          preview.style.maxWidth = `${A4_WIDTH_PX}px`
+          preview.style.minHeight = `${A4_HEIGHT_PX}px`
+          preview.style.boxSizing = "border-box"
 
-          const convertElement = (el: Element) => {
-            const computed = window.getComputedStyle(
-              window.document.getElementById("document-preview")?.querySelector(
-                `[data-pdf-id="${el.getAttribute("data-pdf-id")}"]`
-              ) || el
-            )
-            const htmlEl = el as HTMLElement
-            colorProps.forEach((prop) => {
-              const val = computed.getPropertyValue(prop)
-              if (val && (val.includes("oklch") || val.includes("lab") || val.includes("color("))) {
-                // Force safe fallbacks
-                if (prop === "background-color") {
-                  htmlEl.style.backgroundColor = "transparent"
-                } else if (prop === "color") {
-                  htmlEl.style.color = "#000000"
-                } else {
-                  htmlEl.style.setProperty(prop, "#e5e7eb")
-                }
-              }
-            })
-          }
-
-          // Simpler approach: remove all stylesheets and apply computed rgb styles
-          // Remove stylesheets that use modern color functions
+          // Remove stylesheets that use modern color functions (oklch, lab)
           const sheets = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]')
           sheets.forEach((s) => s.remove())
 
-          // Add clean styles with only rgb/hex values
+          // Add clean styles with only hex colors
           const style = clonedDoc.createElement("style")
           style.textContent = `
             * {
               font-family: system-ui, -apple-system, Arial, sans-serif !important;
+              box-sizing: border-box;
             }
             #document-preview {
               background: #ffffff !important;
               color: #000000 !important;
-              padding: 32px !important;
+              padding: 40px !important;
+              width: ${A4_WIDTH_PX}px !important;
+              max-width: ${A4_WIDTH_PX}px !important;
+            }
+            #document-preview > div { 
+              max-width: 100% !important; 
+              width: 100% !important;
+              padding: 0 !important;
             }
             #document-preview table { width: 100%; border-collapse: collapse; }
             #document-preview th { text-align: left; padding: 8px; border-bottom: 2px solid #e5e7eb; font-weight: 600; font-size: 12px; color: #6b7280; }
@@ -240,7 +232,7 @@ export function DocumentActions({ document }: DocumentActionsProps) {
           `
           clonedDoc.head.appendChild(style)
 
-          // Inline computed styles for all elements to avoid modern color issues
+          // Inline computed layout styles from live DOM
           const sourcePreview = window.document.getElementById("document-preview")
           if (sourcePreview) {
             const sourceElements = sourcePreview.querySelectorAll("*")
@@ -251,7 +243,6 @@ export function DocumentActions({ document }: DocumentActionsProps) {
                 const computed = window.getComputedStyle(srcEl)
                 const clonedEl = clonedElements[i] as HTMLElement
                 
-                // Inline key layout/spacing styles
                 clonedEl.style.display = computed.display
                 clonedEl.style.flexDirection = computed.flexDirection
                 clonedEl.style.justifyContent = computed.justifyContent
@@ -259,7 +250,6 @@ export function DocumentActions({ document }: DocumentActionsProps) {
                 clonedEl.style.gap = computed.gap
                 clonedEl.style.padding = computed.padding
                 clonedEl.style.margin = computed.margin
-                clonedEl.style.width = computed.width
                 clonedEl.style.fontSize = computed.fontSize
                 clonedEl.style.fontWeight = computed.fontWeight
                 clonedEl.style.textAlign = computed.textAlign
@@ -274,48 +264,37 @@ export function DocumentActions({ document }: DocumentActionsProps) {
 
       // Create PDF with A4 dimensions
       const pdf = new jsPDF("p", "mm", "a4")
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = pdf.internal.pageSize.getHeight()
+      const pdfWidth = pdf.internal.pageSize.getWidth() // 210mm
+      const pdfHeight = pdf.internal.pageSize.getHeight() // 297mm
 
       const imgWidth = canvas.width
       const imgHeight = canvas.height
 
-      // Calculate scaling to fit width
+      // Scale image to fit A4 width exactly
       const ratio = pdfWidth / imgWidth
       const scaledHeight = imgHeight * ratio
 
-      // Handle multi-page if content is taller than one page
       if (scaledHeight <= pdfHeight) {
-        // Single page - center vertically
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight)
       } else {
-        // Multi-page
-        let remainingHeight = imgHeight
-        let position = 0
+        // Multi-page: slice the canvas into A4-height pages
+        const pageHeightInPx = pdfHeight / ratio
+        let y = 0
 
-        while (remainingHeight > 0) {
+        while (y < imgHeight) {
+          const sliceH = Math.min(pageHeightInPx, imgHeight - y)
           const pageCanvas = window.document.createElement("canvas")
           pageCanvas.width = imgWidth
-          const sliceHeight = Math.min(remainingHeight, pdfHeight / ratio)
-          pageCanvas.height = sliceHeight
+          pageCanvas.height = sliceH
 
           const ctx = pageCanvas.getContext("2d")
           if (ctx) {
-            ctx.drawImage(
-              canvas,
-              0, position,
-              imgWidth, sliceHeight,
-              0, 0,
-              imgWidth, sliceHeight
-            )
-
+            ctx.drawImage(canvas, 0, y, imgWidth, sliceH, 0, 0, imgWidth, sliceH)
             const pageData = pageCanvas.toDataURL("image/png")
-            if (position > 0) pdf.addPage()
-            pdf.addImage(pageData, "PNG", 0, 0, pdfWidth, sliceHeight * ratio)
+            if (y > 0) pdf.addPage()
+            pdf.addImage(pageData, "PNG", 0, 0, pdfWidth, sliceH * ratio)
           }
-
-          remainingHeight -= sliceHeight
-          position += sliceHeight
+          y += sliceH
         }
       }
 
