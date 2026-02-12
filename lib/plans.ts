@@ -20,34 +20,37 @@ export const PLANS: Plan[] = [
     description: "Perfect for getting started",
     priceInCents: 0,
     features: [
-      "5 invoices per month",
-      "5 quotations per month",
-      "10 clients",
-      "Email invoices",
+      "3 invoices per month",
+      "3 quotations per month",
+      "5 clients",
       "PDF downloads",
-      "Client portal",
+      "Standard templates",
+      "Share invoices via link",
     ],
     limits: {
-      invoicesPerMonth: 5,
-      quotationsPerMonth: 5,
-      emailsPerMonth: 10,
-      clients: 10,
+      invoicesPerMonth: 3,
+      quotationsPerMonth: 3,
+      emailsPerMonth: 0, // Email is Pro-only
+      clients: 5,
     },
   },
   {
     id: "pro",
     name: "Pro",
     description: "For growing businesses",
-    priceInCents: 200, // $2/month
+    priceInCents: 500, // $5/month
     features: [
       "Unlimited invoices",
       "Unlimited quotations",
       "Unlimited clients",
-      "Unlimited emails",
-      "Payment reminders",
+      "Email invoices to clients",
+      "Unlimited email sending",
+      "Automated payment reminders",
       "Priority support",
-      "Remove branding",
+      "Custom branding",
       "Custom invoice numbers",
+      "Advanced analytics",
+      "Bulk operations",
     ],
     limits: {
       invoicesPerMonth: -1, // -1 means unlimited

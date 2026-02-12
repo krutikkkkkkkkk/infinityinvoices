@@ -13,6 +13,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Check if user has Pro plan
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("plan, status")
+      .eq("user_id", user.id)
+      .single()
+
+    const isPro = subscription?.plan === "pro" && subscription?.status === "active"
+
+    if (!isPro) {
+      return NextResponse.json({ 
+        error: "PRO_REQUIRED:Email sending is a Pro feature. Upgrade to Pro for unlimited email sending and advanced features.",
+        requiresUpgrade: true 
+      }, { status: 403 })
+    }
+
     const { documentId, recipientEmail, message } = await request.json()
 
     if (!documentId || !recipientEmail) {

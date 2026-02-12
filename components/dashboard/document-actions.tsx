@@ -109,7 +109,12 @@ export function DocumentActions({ document }: DocumentActionsProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        setReminderStatus({ type: "error", text: data.error || "Failed to send reminder" })
+        if (data.error?.startsWith("PRO_REQUIRED:")) {
+          setUsageLimitMessage(data.error.replace("PRO_REQUIRED:", ""))
+          setShowUsageLimitDialog(true)
+        } else {
+          setReminderStatus({ type: "error", text: data.error || "Failed to send reminder" })
+        }
       } else {
         setReminderStatus({ type: "success", text: "Reminder sent successfully!" })
         setTimeout(() => setReminderStatus(null), 3000)
@@ -167,66 +172,128 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         return
       }
 
-      // Function to convert oklch and other modern colors to hex/rgb
-      const convertColorsToRgb = (clonedDoc: Document) => {
-        // Remove all stylesheets temporarily to avoid oklch parsing
-        const styleSheets = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]')
-        styleSheets.forEach(sheet => sheet.remove())
-        
-        // Add basic inline styles for the PDF
-        const style = clonedDoc.createElement('style')
-        style.textContent = `
-          * { 
-            font-family: system-ui, -apple-system, sans-serif !important;
-          }
-          #document-preview {
-            background: #ffffff !important;
-            color: #000000 !important;
-          }
-          .text-gray-500 { color: #6b7280 !important; }
-          .text-gray-600 { color: #4b5563 !important; }
-          .text-gray-700 { color: #374151 !important; }
-          .text-gray-800 { color: #1f2937 !important; }
-          .text-black { color: #000000 !important; }
-          .bg-white { background-color: #ffffff !important; }
-          .bg-gray-50 { background-color: #f9fafb !important; }
-          .bg-gray-100 { background-color: #f3f4f6 !important; }
-          .border-gray-200 { border-color: #e5e7eb !important; }
-          .border-gray-300 { border-color: #d1d5db !important; }
-        `
-        clonedDoc.head.appendChild(style)
+      // Create an offscreen container at exact A4 pixel dimensions
+      const A4_WIDTH_PX = 794
+      const offscreen = window.document.createElement("div")
+      offscreen.style.cssText = `
+        position: fixed; left: -9999px; top: 0;
+        width: ${A4_WIDTH_PX}px;
+        background: #ffffff;
+        color: #000000;
+        font-family: system-ui, -apple-system, Arial, sans-serif;
+      `
+      // Clone the preview into offscreen container
+      const clone = element.cloneNode(true) as HTMLElement
+      clone.removeAttribute("id")
+      clone.style.cssText = `
+        width: ${A4_WIDTH_PX}px !important;
+        max-width: ${A4_WIDTH_PX}px !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        box-sizing: border-box;
+      `
+      // Force inner div to full width
+      const innerDiv = clone.querySelector(":scope > div") as HTMLElement
+      if (innerDiv) {
+        innerDiv.style.maxWidth = "100%"
+        innerDiv.style.width = "100%"
+        innerDiv.style.padding = "32px"
       }
 
-      // Capture with onclone callback to modify styles before rendering
-      const canvas = await html2canvas(element, {
+      // Replace all oklch/lab colors with safe hex values
+      const allEls = clone.querySelectorAll("*")
+      allEls.forEach((el) => {
+        const htmlEl = el as HTMLElement
+        const cs = htmlEl.style.cssText || ""
+        if (cs.includes("oklch") || cs.includes("lab(") || cs.includes("color(")) {
+          htmlEl.style.cssText = cs
+            .replace(/oklch\([^)]+\)/g, "#374151")
+            .replace(/lab\([^)]+\)/g, "#374151")
+            .replace(/color\([^)]+\)/g, "#374151")
+        }
+      })
+
+      // Add style overrides for Tailwind classes
+      const styleEl = window.document.createElement("style")
+      styleEl.textContent = `
+        .text-gray-800, .text-gray-900 { color: #1f2937 !important; }
+        .text-gray-700 { color: #374151 !important; }
+        .text-gray-600 { color: #4b5563 !important; }
+        .text-gray-500 { color: #6b7280 !important; }
+        .text-gray-400 { color: #9ca3af !important; }
+        .text-red-600 { color: #dc2626 !important; }
+        .text-black { color: #000000 !important; }
+        .bg-white { background: #ffffff !important; }
+        .bg-gray-50 { background: #f9fafb !important; }
+        .bg-gray-100 { background: #f3f4f6 !important; }
+        .border-gray-200 { border-color: #e5e7eb !important; }
+        .border-gray-100 { border-color: #f3f4f6 !important; }
+        .rounded-lg { border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; }
+        .font-mono { font-family: ui-monospace, monospace; }
+        img { max-width: 100%; }
+      `
+      offscreen.appendChild(styleEl)
+      offscreen.appendChild(clone)
+      window.document.body.appendChild(offscreen)
+
+      // Wait for images to load
+      const images = clone.querySelectorAll("img")
+      await Promise.all(
+        Array.from(images).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) return resolve()
+              img.onload = () => resolve()
+              img.onerror = () => resolve()
+            })
+        )
+      )
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        onclone: (clonedDoc) => {
-          convertColorsToRgb(clonedDoc)
-        },
+        width: A4_WIDTH_PX,
       })
 
+      // Clean up offscreen container
+      window.document.body.removeChild(offscreen)
+
       const imgData = canvas.toDataURL("image/png")
-      
-      // Create PDF with A4 dimensions
+
       const pdf = new jsPDF("p", "mm", "a4")
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = pdf.internal.pageSize.getHeight()
-      
       const imgWidth = canvas.width
       const imgHeight = canvas.height
-      
-      // Calculate scaling to fit A4
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
-      const imgX = (pdfWidth - imgWidth * ratio) / 2
-      const imgY = 0
+      const ratio = pdfWidth / imgWidth
+      const scaledHeight = imgHeight * ratio
 
-      pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio)
-      
-      // Save with document number as filename
+      if (scaledHeight <= pdfHeight) {
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight)
+      } else {
+        const pageHeightInPx = pdfHeight / ratio
+        let y = 0
+        while (y < imgHeight) {
+          const sliceH = Math.min(pageHeightInPx, imgHeight - y)
+          const pageCanvas = window.document.createElement("canvas")
+          pageCanvas.width = imgWidth
+          pageCanvas.height = sliceH
+          const ctx = pageCanvas.getContext("2d")
+          if (ctx) {
+            ctx.drawImage(canvas, 0, y, imgWidth, sliceH, 0, 0, imgWidth, sliceH)
+            const pageData = pageCanvas.toDataURL("image/png")
+            if (y > 0) pdf.addPage()
+            pdf.addImage(pageData, "PNG", 0, 0, pdfWidth, sliceH * ratio)
+          }
+          y += sliceH
+        }
+      }
+
       pdf.save(`${document.type}-${document.number}.pdf`)
     } catch (error) {
       console.error("Error generating PDF:", error)
@@ -255,7 +322,13 @@ export function DocumentActions({ document }: DocumentActionsProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        setEmailStatus({ type: "error", text: data.error || "Failed to send email" })
+        if (data.error?.startsWith("PRO_REQUIRED:")) {
+          setUsageLimitMessage(data.error.replace("PRO_REQUIRED:", ""))
+          setShowUsageLimitDialog(true)
+          setShowEmailDialog(false)
+        } else {
+          setEmailStatus({ type: "error", text: data.error || "Failed to send email" })
+        }
       } else {
         setEmailStatus({ type: "success", text: "Email sent successfully!" })
         setCurrentStatus("sent")
