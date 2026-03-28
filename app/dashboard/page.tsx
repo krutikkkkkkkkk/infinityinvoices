@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { InvoiceIcon, Files01Icon, UserGroupIcon, Clock01Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons"
+import { Add01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { Document, CURRENCIES } from "@/lib/types"
 import { StatusSelect } from "@/components/dashboard/status-select"
@@ -26,28 +26,6 @@ function formatCurrency(amount: number, currency: string) {
   })}`
 }
 
-function getStatusBadge(status: string) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    draft: "secondary",
-    sent: "default",
-    paid: "default",
-    overdue: "destructive",
-    cancelled: "outline",
-  }
-  const labels: Record<string, string> = {
-    draft: "Draft",
-    sent: "Sent",
-    paid: "Paid",
-    overdue: "Overdue",
-    cancelled: "Cancelled",
-  }
-  return (
-    <Badge variant={variants[status] || "secondary"}>
-      {labels[status] || status}
-    </Badge>
-  )
-}
-
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -57,20 +35,6 @@ export default async function DashboardPage() {
   }
 
   // Fetch stats
-  const { count: totalInvoices } = await supabase
-    .from("documents")
-    .select("*", { count: "exact", head: true })
-    .eq("type", "invoice")
-
-  const { count: totalQuotations } = await supabase
-    .from("documents")
-    .select("*", { count: "exact", head: true })
-    .eq("type", "quotation")
-
-  const { count: totalClients } = await supabase
-    .from("clients")
-    .select("*", { count: "exact", head: true })
-
   const { data: paidInvoices } = await supabase
     .from("documents")
     .select("grand_total, currency")
@@ -88,12 +52,6 @@ export default async function DashboardPage() {
     }
     return acc
   }, [] as { currency: string; total: number }[]) || []
-
-  const { count: pendingCount } = await supabase
-    .from("documents")
-    .select("*", { count: "exact", head: true })
-    .eq("type", "invoice")
-    .in("status", ["sent", "draft"])
 
   // Fetch analytics data (last year)
   const oneYearAgo = new Date()
@@ -162,9 +120,7 @@ export default async function DashboardPage() {
     ),
   }
 
-  
-
-  // Calculate stats based on invoice counts (not amounts, since currencies differ)
+  // Calculate stats based on invoice counts
   const analyticsStats = {
     totalInvoices: analyticsData?.length || 0,
     paidInvoices: analyticsData?.filter(d => d.status === "paid").length || 0,
@@ -172,68 +128,65 @@ export default async function DashboardPage() {
     overdueInvoices: analyticsData?.filter(d => d.status === "overdue").length || 0,
   }
 
-  // Auto-update overdue documents BEFORE fetching
+  // Auto-update overdue documents
   const today = new Date().toISOString().split("T")[0]
-  if (user) {
-    await supabase
-      .from("documents")
-      .update({ status: "overdue" })
-      .eq("user_id", user.id)
-      .lt("due_date", today)
-      .in("status", ["sent", "draft"])
-      .not("due_date", "is", null)
-  }
+  await supabase
+    .from("documents")
+    .update({ status: "overdue" })
+    .eq("user_id", user.id)
+    .lt("due_date", today)
+    .in("status", ["sent", "draft"])
+    .not("due_date", "is", null)
 
-  // Fetch recent documents (after status update)
+  // Fetch recent documents
   const { data: recentDocuments } = await supabase
     .from("documents")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(5)
 
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back! Here&apos;s an overview of your business.
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Overview of your invoicing activity
           </p>
         </div>
         <div className="flex gap-2">
           <Button asChild>
             <Link href="/dashboard/documents/new?type=invoice">
-              <HugeiconsIcon icon={Files01Icon} size={16} className="mr-2" />
+              <HugeiconsIcon icon={Add01Icon} size={16} data-icon="inline-start" />
               New Invoice
             </Link>
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="secondary" asChild>
             <Link href="/dashboard/documents/new?type=quotation">
-              <HugeiconsIcon icon={Files01Icon} size={16} className="mr-2" />
+              <HugeiconsIcon icon={Add01Icon} size={16} data-icon="inline-start" />
               New Quotation
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <RevenueTabs revenueByCategory={revenueByCategory} />
-      </div>
 
-      {/* Analytics Chart */}
-      <div className="grid gap-4">
-        <AnalyticsChart data={chartData} currency={primaryCurrency} stats={analyticsStats} />
-      </div>
+
+      {/* Chart */}
+      <AnalyticsChart data={chartData} currency={primaryCurrency} stats={analyticsStats} />
 
       {/* Recent Documents */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Documents</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <div>
+            <CardTitle className="text-base font-medium">Recent Documents</CardTitle>
+            <CardDescription>Your latest invoices and quotations</CardDescription>
+          </div>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard/invoices">
-              View all <HugeiconsIcon icon={ArrowRight02Icon} size={16} className="ml-1" />
+            <Link href="/dashboard/invoices" className="gap-1">
+              View all
+              <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
             </Link>
           </Button>
         </CardHeader>
@@ -247,7 +200,6 @@ export default async function DashboardPage() {
                   <TableHead>Client</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Issue Date</TableHead>
                   <TableHead>Due Date</TableHead>
                 </TableRow>
               </TableHeader>
@@ -262,8 +214,14 @@ export default async function DashboardPage() {
                         {doc.number}
                       </Link>
                     </TableCell>
-                    <TableCell className="capitalize">{doc.type}</TableCell>
-                    <TableCell>{doc.client_name || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="capitalize">
+                        {doc.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {doc.client_name || "-"}
+                    </TableCell>
                     <TableCell>
                       <StatusSelect 
                         documentId={doc.id} 
@@ -271,18 +229,15 @@ export default async function DashboardPage() {
                         compact 
                       />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right font-medium">
                       {formatCurrency(Number(doc.grand_total), doc.currency)}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(doc.issue_date).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
                       {doc.due_date ? (
                         <span className={
                           new Date(doc.due_date) < new Date() && doc.status !== "paid" 
-                            ? "text-destructive font-medium" 
-                            : ""
+                            ? "text-destructive" 
+                            : "text-muted-foreground"
                         }>
                           {new Date(doc.due_date).toLocaleDateString()}
                         </span>
@@ -296,23 +251,18 @@ export default async function DashboardPage() {
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <HugeiconsIcon icon={InvoiceIcon} size={48} className="text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium">No documents yet</h3>
-              <p className="text-muted-foreground text-sm mt-1 mb-4">
-                Create your first invoice or quotation to get started.
-              </p>
-              <div className="flex gap-2">
-                <Button asChild>
-                  <Link href="/dashboard/documents/new?type=invoice">
-                    Create Invoice
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/dashboard/documents/new?type=quotation">
-                    Create Quotation
-                  </Link>
-                </Button>
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted mb-4">
+                <HugeiconsIcon icon={InvoiceIcon} size={24} className="text-muted-foreground" />
               </div>
+              <h3 className="font-medium">No documents yet</h3>
+              <p className="text-sm text-muted-foreground mt-1 mb-4">
+                Create your first invoice to get started
+              </p>
+              <Button asChild>
+                <Link href="/dashboard/documents/new?type=invoice">
+                  Create Invoice
+                </Link>
+              </Button>
             </div>
           )}
         </CardContent>

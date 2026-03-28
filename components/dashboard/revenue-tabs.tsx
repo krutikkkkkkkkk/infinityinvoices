@@ -1,8 +1,10 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CURRENCIES } from "@/lib/types"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { MoneyBag02Icon } from "@hugeicons/core-free-icons"
 
 interface RevenueData {
   currency: string
@@ -22,23 +24,22 @@ function formatCurrency(amount: number, currency: string) {
 }
 
 export function RevenueTabs({ revenueByCategory }: RevenueTabsProps) {
-  // Filter out currencies with zero revenue
   const activeCurrencies = revenueByCategory.filter((r) => r.total > 0)
-  
-  // Default to first currency with revenue, or INR
   const defaultCurrency = activeCurrencies[0]?.currency || "INR"
 
   if (activeCurrencies.length === 0) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Revenue
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">₹0.00</div>
-          <p className="text-xs text-muted-foreground mt-1">No paid invoices yet</p>
+      <Card className="col-span-full">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-1/10">
+              <HugeiconsIcon icon={MoneyBag02Icon} size={20} className="text-chart-1" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Revenue</p>
+              <p className="text-2xl font-semibold">₹0.00</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     )
@@ -47,55 +48,51 @@ export function RevenueTabs({ revenueByCategory }: RevenueTabsProps) {
   if (activeCurrencies.length === 1) {
     const revenue = activeCurrencies[0]
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Revenue
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {formatCurrency(revenue.total, revenue.currency)}
+      <Card className="col-span-full">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-1/10">
+              <HugeiconsIcon icon={MoneyBag02Icon} size={20} className="text-chart-1" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Revenue</p>
+              <p className="text-2xl font-semibold">{formatCurrency(revenue.total, revenue.currency)}</p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">From paid invoices</p>
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="col-span-1 sm:col-span-2">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Total Revenue
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <Tabs defaultValue={defaultCurrency} className="w-full">
-          <div className="overflow-x-auto -mx-1 px-1">
-            <TabsList className="inline-flex h-9 w-max min-w-full justify-start gap-1 p-1">
-              {activeCurrencies.map((revenue) => (
-                <TabsTrigger 
-                  key={revenue.currency} 
-                  value={revenue.currency} 
-                  className="text-xs px-3 whitespace-nowrap"
-                >
-                  {revenue.currency}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+    <Card className="col-span-full">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-1/10">
+            <HugeiconsIcon icon={MoneyBag02Icon} size={20} className="text-chart-1" />
           </div>
-          {activeCurrencies.map((revenue) => (
-            <TabsContent key={revenue.currency} value={revenue.currency} className="mt-2">
-              <div className="text-2xl font-bold">
-                {formatCurrency(revenue.total, revenue.currency)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Paid invoices in {revenue.currency}
-              </p>
-            </TabsContent>
-          ))}
-        </Tabs>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-muted-foreground mb-2">Total Revenue</p>
+            <Tabs defaultValue={defaultCurrency}>
+              <TabsList className="h-8 mb-2">
+                {activeCurrencies.map((revenue) => (
+                  <TabsTrigger 
+                    key={revenue.currency} 
+                    value={revenue.currency} 
+                    className="text-xs px-3"
+                  >
+                    {revenue.currency}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {activeCurrencies.map((revenue) => (
+                <TabsContent key={revenue.currency} value={revenue.currency} className="mt-0">
+                  <p className="text-2xl font-semibold">{formatCurrency(revenue.total, revenue.currency)}</p>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
