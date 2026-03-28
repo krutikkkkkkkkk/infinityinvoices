@@ -1,456 +1,402 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { HugeiconsIcon } from "@hugeicons/react"
-import {
-  Invoice01Icon,
-  CheckmarkCircle02Icon,
-  Rocket01Icon,
-  Shield01Icon,
-  FlashIcon,
-  FileExportIcon,
-  Mail01Icon,
-  UserMultipleIcon,
-  ArrowRight01Icon,
-  StarIcon,
-} from "@hugeicons/core-free-icons"
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
-import { PLANS } from "@/lib/plans"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  InvoiceIcon,
+  FileExportIcon,
+  Mail01Icon,
+  Clock01Icon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  ArrowRight01Icon,
+  CheckmarkCircle02Icon,
+  Moon02Icon,
+  Sun03Icon,
+  UserMultipleIcon,
+  FlashIcon,
+} from "@hugeicons/core-free-icons"
+import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
-export default async function HomePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+const faqs = [
+  {
+    q: "How do I get started?",
+    a: "Sign up for free, add your business details, and create your first invoice in under 2 minutes. No credit card required.",
+  },
+  {
+    q: "What's included in the free plan?",
+    a: "The free plan includes 3 invoices per month, 3 quotations, PDF downloads, and the ability to share invoices via link.",
+  },
+  {
+    q: "Can I upgrade or downgrade anytime?",
+    a: "Yes, you can upgrade to Pro or cancel anytime. Your data is always yours and can be exported.",
+  },
+  {
+    q: "How does email sending work?",
+    a: "Pro users can send invoices directly to clients via email. Clients receive a professional email with a link to view and pay.",
+  },
+  {
+    q: "Is my data secure?",
+    a: "Yes, we use bank-level encryption and your data is stored securely on Supabase with row-level security.",
+  },
+]
 
-  if (user) {
-    redirect("/dashboard")
-  }
+export default function LandingPage() {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  const freePlan = PLANS.find((p) => p.id === "free")!
-  const proPlan = PLANS.find((p) => p.id === "pro")!
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - Wise style sticky nav */}
-      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-lg">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5 font-semibold text-lg">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <HugeiconsIcon icon={Invoice01Icon} size={18} />
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-lg">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
+              <HugeiconsIcon icon={InvoiceIcon} size={18} className="text-primary-foreground" />
             </div>
-            <span>Infinity Invoice</span>
+            <span className="text-lg font-semibold">InfinityInvoice</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How it works</a>
-            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild>
-              <Link href="/auth/login">Log in</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/auth/sign-up">Get started</Link>
-            </Button>
+
+          <div className="flex items-center gap-2">
+            {mounted && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="size-9"
+              >
+                <HugeiconsIcon
+                  icon={theme === "dark" ? Sun03Icon : Moon02Icon}
+                  size={18}
+                />
+              </Button>
+            )}
+            <Link href="/auth/login">
+              <Button variant="ghost" size="sm">Log in</Button>
+            </Link>
+            <Link href="/auth/sign-up">
+              <Button size="sm">Get Started</Button>
+            </Link>
           </div>
         </div>
-      </header>
+      </nav>
 
-      <main>
-        {/* Hero - Wise style split layout */}
-        <section className="container mx-auto px-4 lg:px-8 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* Left - Copy */}
-            <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-sm text-muted-foreground mb-6">
-                <HugeiconsIcon icon={Rocket01Icon} size={14} />
-                <span>Free to get started</span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance leading-[1.1]">
-                Professional invoices,{" "}
-                <span className="text-primary">done in seconds</span>
-              </h1>
-              <p className="mt-6 text-lg text-muted-foreground leading-relaxed text-pretty">
-                Join thousands of freelancers and small businesses creating, sending, 
-                and managing invoices with ease. Beautiful templates, instant PDF export, 
-                and UPI QR codes built in.
-              </p>
-              <ul className="mt-8 space-y-3">
-                {[
-                  "Create invoices & quotations in under a minute",
-                  "Auto-calculate totals with tax and discounts",
-                  "Generate UPI QR codes for instant payments",
-                ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm">
-                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-10 flex flex-wrap items-center gap-4">
-                <Button size="lg" className="h-12 px-8 text-base" asChild>
-                  <Link href="/auth/sign-up">
-                    Create free account
-                    <HugeiconsIcon icon={ArrowRight01Icon} size={18} />
-                  </Link>
+      {/* Hero */}
+      <section className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-32">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+          <div className="absolute top-1/4 left-1/4 size-96 rounded-full bg-primary/10 blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 size-96 rounded-full bg-chart-1/10 blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+        </div>
+
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="mx-auto max-w-3xl text-center">
+            <Badge variant="secondary" className="mb-6 animate-fade-in">
+              <HugeiconsIcon icon={SparklesIcon} size={12} className="mr-1" />
+              Simple invoicing for modern businesses
+            </Badge>
+
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-balance">
+              Create invoices in{" "}
+              <span className="text-primary">seconds</span>, get paid{" "}
+              <span className="text-chart-1">faster</span>
+            </h1>
+
+            <p className="mt-6 text-lg text-muted-foreground text-balance max-w-2xl mx-auto">
+              The simplest way to create professional invoices, track payments, and manage your business finances. Free to start.
+            </p>
+
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/auth/sign-up">
+                <Button size="lg" className="h-12 px-8 text-base group">
+                  Start for Free
+                  <HugeiconsIcon icon={ArrowRight01Icon} size={18} className="ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
-              </div>
+              </Link>
+              <Link href="/auth/login">
+                <Button variant="outline" size="lg" className="h-12 px-8 text-base">
+                  View Demo
+                </Button>
+              </Link>
             </div>
 
-            {/* Right - Invoice preview card (Wise calculator style) */}
-            <div className="relative">
-              <div className="rounded-2xl border bg-card p-1 shadow-xl">
-                <Image
-                  src="/images/invoice-preview.jpg"
-                  alt="Invoice preview showing a professional invoice template"
-                  width={600}
-                  height={400}
-                  className="rounded-xl w-full"
-                  priority
-                />
-              </div>
-              {/* Floating badges */}
-              <div className="absolute -left-4 top-1/4 rounded-xl border bg-card px-4 py-3 shadow-lg hidden lg:block">
-                <p className="text-xs text-muted-foreground">PDF Ready</p>
-                <p className="text-sm font-semibold mt-0.5">Export in 1 click</p>
-              </div>
-              <div className="absolute -right-4 bottom-1/4 rounded-xl border bg-card px-4 py-3 shadow-lg hidden lg:block">
-                <p className="text-xs text-muted-foreground">UPI Payments</p>
-                <p className="text-sm font-semibold mt-0.5">QR code included</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Social proof bar */}
-        <section className="border-y bg-muted/30">
-          <div className="container mx-auto px-4 lg:px-8 py-8">
-            <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-16 text-center">
-              <div>
-                <p className="text-2xl font-bold">5,000+</p>
-                <p className="text-sm text-muted-foreground mt-1">Invoices created</p>
-              </div>
-              <div className="h-8 w-px bg-border hidden sm:block" />
-              <div>
-                <p className="text-2xl font-bold">1,200+</p>
-                <p className="text-sm text-muted-foreground mt-1">Active users</p>
-              </div>
-              <div className="h-8 w-px bg-border hidden sm:block" />
-              <div>
-                <p className="text-2xl font-bold">4.8/5</p>
-                <p className="text-sm text-muted-foreground mt-1">User rating</p>
-              </div>
-              <div className="h-8 w-px bg-border hidden sm:block" />
-              <div>
-                <p className="text-2xl font-bold">30 sec</p>
-                <p className="text-sm text-muted-foreground mt-1">Avg. invoice time</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* How it works - Wise step style */}
-        <section id="how-it-works" className="container mx-auto px-4 lg:px-8 py-20 lg:py-28">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
-              How to create an invoice
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground text-pretty">
-              Three simple steps to get paid faster
+            <p className="mt-4 text-sm text-muted-foreground">
+              No credit card required
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-12 max-w-4xl mx-auto">
-            {[
-              {
-                step: "01",
-                title: "Fill in the details",
-                description: "Enter your business info, client details, and line items. Auto-calculations handle the math.",
-                icon: Invoice01Icon,
-              },
-              {
-                step: "02",
-                title: "Choose payment method",
-                description: "Add UPI, PayPal, or bank details. A QR code is generated automatically for UPI payments.",
-                icon: FlashIcon,
-              },
-              {
-                step: "03",
-                title: "Send or download",
-                description: "Export as PDF, share via link, or email directly to your client. Track status in your dashboard.",
-                icon: FileExportIcon,
-              },
-            ].map((item) => (
-              <div key={item.step} className="relative">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-5">
-                  <HugeiconsIcon icon={item.icon} size={22} />
-                </div>
-                <p className="text-xs font-mono text-muted-foreground mb-2">{item.step}</p>
-                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
 
-        {/* Features - Wise card grid style */}
-        <section id="features" className="bg-muted/30 border-y">
-          <div className="container mx-auto px-4 lg:px-8 py-20 lg:py-28">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
-                Everything you need to get paid
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground text-pretty">
-                Built for Indian freelancers and small businesses
-              </p>
+          {/* Hero Image */}
+          <div className="mt-16 relative">
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 pointer-events-none" />
+            <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-2xl transition-transform hover:scale-[1.02] duration-500">
+              <Image
+                src="/images/hero-art.jpg"
+                alt="InfinityInvoice Dashboard"
+                width={1200}
+                height={600}
+                className="w-full object-cover"
+                priority
+              />
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {[
-                {
-                  icon: Invoice01Icon,
-                  title: "Invoices & Quotations",
-                  description: "Create both document types with shared templates. Convert quotations to invoices in one click.",
-                },
-                {
-                  icon: FlashIcon,
-                  title: "UPI QR Codes",
-                  description: "Auto-generated QR codes on every invoice. Clients scan and pay instantly via any UPI app.",
-                },
-                {
-                  icon: FileExportIcon,
-                  title: "PDF Export",
-                  description: "Download print-ready PDFs with your branding. Perfectly formatted for A4 paper.",
-                },
-                {
-                  icon: UserMultipleIcon,
-                  title: "Client Management",
-                  description: "Store client details once, auto-fill on every new invoice. Track all documents per client.",
-                },
-                {
-                  icon: Mail01Icon,
-                  title: "Email Invoices",
-                  description: "Send invoices directly to clients via email. Track delivery and status from your dashboard.",
-                  pro: true,
-                },
-                {
-                  icon: Shield01Icon,
-                  title: "Secure & Private",
-                  description: "Your data is encrypted and stored securely. We never share your information with third parties.",
-                },
-              ].map((feature) => (
-                <div
-                  key={feature.title}
-                  className="rounded-xl border bg-card p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <HugeiconsIcon icon={feature.icon} size={20} />
-                    </div>
-                    {feature.pro && (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                        Pro
-                      </span>
-                    )}
+          </div>
+        </div>
+      </section>
+
+      {/* Bento Features Grid */}
+      <section className="py-20 md:py-32">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Everything you need
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Powerful features, beautifully simple
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3 md:grid-rows-2">
+            {/* Large Card */}
+            <Card className="md:col-span-2 md:row-span-2 group overflow-hidden transition-all duration-500 hover:shadow-2xl hover:border-primary/50 hover:-translate-y-1">
+              <CardContent className="p-0 h-full flex flex-col">
+                <div className="p-6 md:p-8 flex-1">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 mb-4 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20">
+                    <HugeiconsIcon icon={InvoiceIcon} size={24} className="text-primary" />
                   </div>
-                  <h3 className="font-semibold mb-1.5">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                  <h3 className="text-xl font-semibold mb-2">Professional Invoices</h3>
+                  <p className="text-muted-foreground">
+                    Create beautiful, customizable invoices with your branding. Add line items, taxes, discounts, and notes. Export to PDF or share via link.
+                  </p>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+                <div className="relative h-48 md:h-64 overflow-hidden">
+                  <Image
+                    src="/images/feature-art.jpg"
+                    alt="Invoice Preview"
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Dashboard preview - Wise illustration style */}
-        <section className="container mx-auto px-4 lg:px-8 py-20 lg:py-28">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="order-2 lg:order-1">
-              <div className="rounded-2xl border bg-card p-1 shadow-xl">
-                <Image
-                  src="/images/dashboard-preview.jpg"
-                  alt="Dashboard preview showing invoice management interface"
-                  width={600}
-                  height={400}
-                  className="rounded-xl w-full"
-                />
-              </div>
-            </div>
-            <div className="order-1 lg:order-2 max-w-lg">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
-                Track everything from one dashboard
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground leading-relaxed text-pretty">
-                See all your invoices, quotations, and clients in one place. 
-                Filter by status, search by name, and stay on top of your business.
-              </p>
-              <ul className="mt-8 space-y-4">
-                {[
-                  "Filter invoices by status, date, and client",
-                  "Track paid, pending, and overdue documents",
-                  "Monitor monthly usage and limits",
-                  "Manage client details and history",
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm">
-                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
-                      <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
+            {/* Small Cards */}
+            <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-chart-1/50 hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-chart-1/10 mb-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+                  <HugeiconsIcon icon={FileExportIcon} size={20} className="text-chart-1" />
+                </div>
+                <h3 className="font-semibold mb-1">PDF Export</h3>
+                <p className="text-sm text-muted-foreground">
+                  Download invoices as professional PDFs instantly
+                </p>
+              </CardContent>
+            </Card>
 
-        {/* Pricing - Wise comparison style */}
-        <section id="pricing" className="bg-muted/30 border-y">
-          <div className="container mx-auto px-4 lg:px-8 py-20 lg:py-28">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
-                Simple, transparent pricing
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground text-pretty">
-                Start free, upgrade when you need more
-              </p>
-            </div>
-            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              {/* Free Plan */}
-              <div className="rounded-xl border bg-card p-8">
-                <h3 className="text-lg font-semibold">{freePlan.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{freePlan.description}</p>
-                <div className="mt-6 flex items-baseline gap-1">
+            <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 mb-4 transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                  <HugeiconsIcon icon={Mail01Icon} size={20} className="text-primary" />
+                </div>
+                <h3 className="font-semibold mb-1">
+                  Email Delivery
+                  <Badge variant="secondary" className="ml-2 text-xs">Pro</Badge>
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Send invoices directly to clients via email
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-destructive/50 hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-destructive/10 mb-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+                  <HugeiconsIcon icon={Clock01Icon} size={20} className="text-destructive" />
+                </div>
+                <h3 className="font-semibold mb-1">Payment Tracking</h3>
+                <p className="text-sm text-muted-foreground">
+                  Track paid, pending, and overdue invoices
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-green-500/50 hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-green-500/10 mb-4 transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                  <HugeiconsIcon icon={ShieldCheckIcon} size={20} className="text-green-500" />
+                </div>
+                <h3 className="font-semibold mb-1">Secure & Private</h3>
+                <p className="text-sm text-muted-foreground">
+                  Bank-level encryption for your data
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 mb-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+                  <HugeiconsIcon icon={UserMultipleIcon} size={20} className="text-primary" />
+                </div>
+                <h3 className="font-semibold mb-1">Client Management</h3>
+                <p className="text-sm text-muted-foreground">
+                  Store and manage all your client details
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-chart-1/50 hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-chart-1/10 mb-4 transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                  <HugeiconsIcon icon={FlashIcon} size={20} className="text-chart-1" />
+                </div>
+                <h3 className="font-semibold mb-1">UPI QR Codes</h3>
+                <p className="text-sm text-muted-foreground">
+                  Auto-generated QR codes for instant payments
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-20 md:py-32 bg-muted/30">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Simple pricing
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Start free, upgrade when you need more
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
+            {/* Free Plan */}
+            <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <CardContent className="p-8">
+                <h3 className="text-xl font-semibold">Free</h3>
+                <p className="text-muted-foreground mt-1">Perfect for getting started</p>
+
+                <div className="mt-6">
                   <span className="text-4xl font-bold">$0</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
-                <Button variant="outline" className="w-full mt-6" asChild>
-                  <Link href="/auth/sign-up">Get started</Link>
-                </Button>
+
                 <ul className="mt-8 space-y-3">
-                  {freePlan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm">
-                      <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} className="text-muted-foreground shrink-0" />
-                      {feature}
+                  {["3 invoices per month", "3 quotations per month", "5 clients", "PDF downloads", "Share via link"].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm">
+                      <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} className="text-primary shrink-0" />
+                      {f}
                     </li>
                   ))}
                 </ul>
-              </div>
 
-              {/* Pro Plan */}
-              <div className="rounded-xl border-2 border-primary bg-card p-8 relative">
-                <div className="absolute -top-3 left-8">
-                  <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
-                    Most popular
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold">{proPlan.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{proPlan.description}</p>
-                <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">${proPlan.priceInCents / 100}</span>
+                <Link href="/auth/sign-up" className="mt-8 block">
+                  <Button variant="outline" className="w-full">Get Started</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Pro Plan */}
+            <Card className="relative overflow-hidden border-primary transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-bl-lg">
+                Popular
+              </div>
+              <CardContent className="p-8">
+                <h3 className="text-xl font-semibold">Pro</h3>
+                <p className="text-muted-foreground mt-1">For growing businesses</p>
+
+                <div className="mt-6">
+                  <span className="text-4xl font-bold">$5</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
-                <Button className="w-full mt-6" asChild>
-                  <Link href="/auth/sign-up">Start free trial</Link>
-                </Button>
+
                 <ul className="mt-8 space-y-3">
-                  {proPlan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm">
-                      <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} className="text-primary shrink-0" />
-                      {feature}
+                  {["Unlimited invoices", "Unlimited quotations", "Unlimited clients", "Email invoices to clients", "Payment reminders", "Custom branding", "Priority support"].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm">
+                      <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} className="text-chart-1 shrink-0" />
+                      {f}
                     </li>
                   ))}
                 </ul>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        {/* Security - Wise trust section */}
-        <section className="container mx-auto px-4 lg:px-8 py-20 lg:py-28">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
-              Your data is safe with us
+                <Link href="/auth/sign-up" className="mt-8 block">
+                  <Button className="w-full">Upgrade to Pro</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-20 md:py-32">
+        <div className="mx-auto max-w-3xl px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Frequently asked questions
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground text-pretty">
-              Built on Supabase with enterprise-grade security
-            </p>
           </div>
-          <div className="grid sm:grid-cols-3 gap-8 max-w-3xl mx-auto text-center">
-            {[
-              {
-                icon: Shield01Icon,
-                title: "End-to-end encryption",
-                description: "All data is encrypted in transit and at rest. Your invoices are secure.",
-              },
-              {
-                icon: StarIcon,
-                title: "99.9% uptime",
-                description: "Built on reliable infrastructure. Your invoices are always accessible.",
-              },
-              {
-                icon: Rocket01Icon,
-                title: "Regular backups",
-                description: "Automatic daily backups ensure your data is never lost.",
-              },
-            ].map((item) => (
-              <div key={item.title}>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mx-auto mb-4">
-                  <HugeiconsIcon icon={item.icon} size={22} />
-                </div>
-                <h3 className="font-semibold mb-1.5">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-              </div>
+
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, i) => (
+              <AccordionItem key={i} value={`faq-${i}`}>
+                <AccordionTrigger className="text-left">{faq.q}</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  {faq.a}
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
-        </section>
+          </Accordion>
+        </div>
+      </section>
 
-        {/* CTA - Wise bottom CTA style */}
-        <section className="bg-primary text-primary-foreground">
-          <div className="container mx-auto px-4 lg:px-8 py-20 lg:py-28">
-            <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
-                Ready to get paid faster?
-              </h2>
-              <p className="mt-4 text-lg opacity-90 text-pretty">
-                Create your first invoice in under 30 seconds. No credit card required.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="h-12 px-8 text-base"
-                  asChild
-                >
-                  <Link href="/auth/sign-up">
-                    Create free account
-                    <HugeiconsIcon icon={ArrowRight01Icon} size={18} />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+      {/* CTA */}
+      <section className="py-20 md:py-32 bg-primary text-primary-foreground">
+        <div className="mx-auto max-w-4xl px-4 text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Ready to simplify your invoicing?
+          </h2>
+          <p className="mt-4 text-lg opacity-90">
+            Join thousands of businesses using InfinityInvoice to get paid faster.
+          </p>
+          <Link href="/auth/sign-up" className="mt-8 inline-block">
+            <Button size="lg" variant="secondary" className="h-12 px-8 text-base group">
+              Start for Free
+              <HugeiconsIcon icon={ArrowRight01Icon} size={18} className="ml-2 transition-transform group-hover:translate-x-1" />
+            </Button>
+          </Link>
+        </div>
+      </section>
 
-      {/* Footer - Clean minimal */}
-      <footer className="border-t">
-        <div className="container mx-auto px-4 lg:px-8 py-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5 font-semibold">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <HugeiconsIcon icon={Invoice01Icon} size={14} />
+      {/* Footer */}
+      <footer className="py-12 border-t border-border">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="flex size-6 items-center justify-center rounded bg-primary">
+                <HugeiconsIcon icon={InvoiceIcon} size={14} className="text-primary-foreground" />
               </div>
-              <span>Infinity Invoice</span>
+              <span className="font-semibold">InfinityInvoice</span>
             </div>
-            <nav className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-              <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-              <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-              <Link href="/auth/login" className="hover:text-foreground transition-colors">Log in</Link>
-              <Link href="/auth/sign-up" className="hover:text-foreground transition-colors">Sign up</Link>
-            </nav>
+
             <p className="text-sm text-muted-foreground">
-              Built with Next.js and Supabase
+              {new Date().getFullYear()} InfinityInvoice. All rights reserved.
             </p>
           </div>
         </div>
