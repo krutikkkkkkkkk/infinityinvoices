@@ -17,7 +17,7 @@ import {
   FileExportIcon,
   Mail01Icon,
   Clock01Icon,
-  ShieldCheckIcon,
+  SecurityCheckIcon,
   SparklesIcon,
   ArrowRight01Icon,
   CheckmarkCircle02Icon,
@@ -237,7 +237,7 @@ export default function LandingPage() {
             <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-green-500/50 hover:-translate-y-1">
               <CardContent className="p-6">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-green-500/10 mb-4 transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6">
-                  <HugeiconsIcon icon={ShieldCheckIcon} size={20} className="text-green-500" />
+                  <HugeiconsIcon icon={SecurityCheckIcon} size={20} className="text-green-500" />
                 </div>
                 <h3 className="font-semibold mb-1">Secure & Private</h3>
                 <p className="text-sm text-muted-foreground">
