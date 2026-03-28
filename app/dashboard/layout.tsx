@@ -22,9 +22,9 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar user={user} />
-      <SidebarInset>
+      <SidebarInset className="bg-background">
         <DashboardTopBar />
-        <div className="flex-1 px-6 py-6">{children}</div>
+        <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )

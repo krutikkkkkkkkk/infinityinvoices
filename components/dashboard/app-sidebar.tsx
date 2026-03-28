@@ -11,17 +11,15 @@ import {
   Logout03Icon,
   Settings01Icon,
   UserIcon,
+  Home01Icon,
+  Invoice01Icon,
+  FileValidationIcon,
+  UserMultipleIcon,
+  PackageIcon,
+  ChartLineData01Icon,
+  CreditCardIcon,
 } from "@hugeicons/core-free-icons"
-import {
-  LayoutDashboard,
-  FileText,
-  FileCheck,
-  Users,
-  Package,
-  BarChart3,
-  CreditCard,
-  ChevronUp,
-} from "lucide-react"
+import { ChevronUp } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -33,13 +31,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -47,17 +43,17 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 const mainNavItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/invoices", label: "Invoices", icon: FileText },
-  { href: "/dashboard/quotations", label: "Quotations", icon: FileCheck },
-  { href: "/dashboard/clients", label: "Clients", icon: Users },
-  { href: "/dashboard/products", label: "Products", icon: Package },
+  { href: "/dashboard", label: "Dashboard", icon: Home01Icon },
+  { href: "/dashboard/invoices", label: "Invoices", icon: Invoice01Icon },
+  { href: "/dashboard/quotations", label: "Quotations", icon: FileValidationIcon },
+  { href: "/dashboard/clients", label: "Clients", icon: UserMultipleIcon },
+  { href: "/dashboard/products", label: "Products", icon: PackageIcon },
 ]
 
-const bottomNavItems = [
-  { href: "/dashboard/usage", label: "Usage", icon: BarChart3 },
-  { href: "/dashboard/pricing", label: "Pricing", icon: CreditCard },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings01Icon, isHugeIcon: true },
+const accountNavItems = [
+  { href: "/dashboard/usage", label: "Usage", icon: ChartLineData01Icon },
+  { href: "/dashboard/pricing", label: "Pricing", icon: CreditCardIcon },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings01Icon },
 ]
 
 export function AppSidebar({ user }: { user: User }) {
@@ -77,20 +73,19 @@ export function AppSidebar({ user }: { user: User }) {
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
-      {/* Logo */}
+    <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip="Infinity Invoice">
               <Link href="/dashboard">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <HugeiconsIcon icon={InvoiceIcon} size={18} />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Infinity Invoice</span>
                   <span className="text-xs text-muted-foreground">
-                    {isPro ? "Pro Plan" : "Free Plan"}
+                    {isPro ? "Pro" : "Free"}
                   </span>
                 </div>
               </Link>
@@ -99,12 +94,9 @@ export function AppSidebar({ user }: { user: User }) {
         </SidebarMenu>
       </SidebarHeader>
 
-
-
-      {/* Main Navigation */}
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
@@ -115,7 +107,7 @@ export function AppSidebar({ user }: { user: User }) {
                     tooltip={item.label}
                   >
                     <Link href={item.href}>
-                      <item.icon className="size-4" />
+                      <HugeiconsIcon icon={item.icon} size={18} />
                       <span>{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -129,7 +121,7 @@ export function AppSidebar({ user }: { user: User }) {
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {bottomNavItems.map((item) => (
+              {accountNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
@@ -137,11 +129,7 @@ export function AppSidebar({ user }: { user: User }) {
                     tooltip={item.label}
                   >
                     <Link href={item.href}>
-                      {item.isHugeIcon ? (
-                        <HugeiconsIcon icon={item.icon as typeof Settings01Icon} size={16} />
-                      ) : (
-                        <item.icon className="size-4" />
-                      )}
+                      <HugeiconsIcon icon={item.icon} size={18} />
                       <span>{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -151,14 +139,13 @@ export function AppSidebar({ user }: { user: User }) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Upgrade CTA for free users */}
         {!isPro && (
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 group-data-[collapsible=icon]:hidden">
                 <p className="text-xs font-medium text-primary mb-1">Upgrade to Pro</p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Unlimited invoices, quotations & more
+                  Unlimited invoices & emails
                 </p>
                 <Link
                   href="/dashboard/pricing"
@@ -172,17 +159,13 @@ export function AppSidebar({ user }: { user: User }) {
         )}
       </SidebarContent>
 
-      {/* User Footer */}
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  tooltip={user.email || "Account"}
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                <SidebarMenuButton size="lg" tooltip={user.email || "Account"}>
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
                     <HugeiconsIcon icon={UserIcon} size={16} />
                   </div>
                   <div className="flex flex-col gap-0.5 leading-none">
@@ -202,23 +185,19 @@ export function AppSidebar({ user }: { user: User }) {
                 align="start"
                 sideOffset={8}
               >
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user.email?.split("@")[0]}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "w-fit mt-1 text-[10px]",
-                        isPro
-                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                          : ""
-                      )}
-                    >
-                      {isPro ? "Pro" : "Free"}
-                    </Badge>
-                  </div>
-                </DropdownMenuLabel>
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium">{user.email?.split("@")[0]}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "mt-1.5 text-[10px]",
+                      isPro && "bg-chart-1/10 text-chart-1 border-chart-1/20"
+                    )}
+                  >
+                    {isPro ? "Pro" : "Free"}
+                  </Badge>
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/usage">Usage & Billing</Link>

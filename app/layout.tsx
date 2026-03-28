@@ -4,7 +4,13 @@ import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-import { Geist as V0_Font_Geist, Geist_Mono as V0_Font_Geist_Mono, Source_Serif_4 as V0_Font_Source_Serif_4 } from 'next/font/google'
+import { Geist as V0_Font_Geist, Geist_Mono as V0_Font_Geist_Mono, Source_Serif_4 as V0_Font_Source_Serif_4, DM_Sans, Instrument_Sans } from 'next/font/google'
+import { cn } from "@/lib/utils";
+
+const instrumentSansHeading = Instrument_Sans({subsets:['latin'],variable:'--font-heading'});
+
+const dmSans = DM_Sans({subsets:['latin'],variable:'--font-sans'});
+
 
 // Initialize fonts
 const _geist = V0_Font_Geist({ subsets: ['latin'], weight: ["100","200","300","400","500","600","700","800","900"] })
@@ -40,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("dark font-sans", dmSans.variable, instrumentSansHeading.variable)}>
       <body className={`font-sans antialiased`}>
         {children}
         <Analytics />

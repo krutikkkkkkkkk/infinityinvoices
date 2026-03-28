@@ -26,28 +26,19 @@ const pageTitles: Record<string, string> = {
 export function DashboardTopBar() {
   const pathname = usePathname()
 
-  const getPageTitle = () => {
-    // Check for exact match first
-    if (pageTitles[pathname]) return pageTitles[pathname]
-
-    // Check for nested routes
-    if (pathname.includes("/documents/new")) return "New Document"
-    if (pathname.includes("/documents/") && pathname.includes("/edit")) return "Edit Document"
-    if (pathname.includes("/invoices")) return "Invoices"
-    if (pathname.includes("/quotations")) return "Quotations"
-    if (pathname.includes("/clients")) return "Clients"
-    if (pathname.includes("/products")) return "Products"
-
-    return "Dashboard"
-  }
-
   const getBreadcrumbs = () => {
     const segments = pathname.split("/").filter(Boolean)
     if (segments.length <= 1) return null
 
     return segments.slice(1).map((segment, index) => {
       const href = "/" + segments.slice(0, index + 2).join("/")
-      const label = pageTitles[href] || segment.charAt(0).toUpperCase() + segment.slice(1)
+      let label = pageTitles[href] || segment.charAt(0).toUpperCase() + segment.slice(1)
+      
+      // Handle special cases
+      if (segment === "new") label = "New"
+      if (segment === "edit") label = "Edit"
+      if (segment === "documents") label = "Documents"
+      
       const isLast = index === segments.length - 2
       return { href, label, isLast }
     })
@@ -56,7 +47,7 @@ export function DashboardTopBar() {
   const breadcrumbs = getBreadcrumbs()
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-6">
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/50 px-6">
       <SidebarTrigger className="-ml-2" />
       <Separator orientation="vertical" className="mr-2 !h-4" />
       <Breadcrumb>
