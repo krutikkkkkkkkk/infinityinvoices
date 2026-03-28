@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { InvoiceIcon, Add01Icon, ArrowRight01Icon, CheckmarkCircle02Icon, Clock01Icon, AlertCircleIcon } from "@hugeicons/core-free-icons"
+import { Add01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { Document, CURRENCIES } from "@/lib/types"
 import { StatusSelect } from "@/components/dashboard/status-select"
@@ -171,60 +171,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Invoices */}
-        <Card className="relative overflow-hidden transition-all hover:shadow-lg hover:border-primary/50">
-          <CardContent className="p-6 flex items-start justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Total</span>
-              <span className="text-3xl font-semibold tracking-tight">{analyticsStats.totalInvoices}</span>
-            </div>
-            <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-              <HugeiconsIcon icon={InvoiceIcon} size={20} className="text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Paid Invoices */}
-        <Card className="relative overflow-hidden transition-all hover:shadow-lg hover:border-primary/50">
-          <CardContent className="p-6 flex items-start justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Paid</span>
-              <span className="text-3xl font-semibold tracking-tight text-chart-1">{analyticsStats.paidInvoices}</span>
-            </div>
-            <div className="flex size-10 items-center justify-center rounded-lg bg-chart-1/10">
-              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={20} className="text-chart-1" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pending Invoices */}
-        <Card className="relative overflow-hidden transition-all hover:shadow-lg hover:border-primary/50">
-          <CardContent className="p-6 flex items-start justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Pending</span>
-              <span className="text-3xl font-semibold tracking-tight text-primary">{analyticsStats.pendingInvoices}</span>
-            </div>
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-              <HugeiconsIcon icon={Clock01Icon} size={20} className="text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Overdue Invoices */}
-        <Card className="relative overflow-hidden transition-all hover:shadow-lg hover:border-primary/50">
-          <CardContent className="p-6 flex items-start justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Overdue</span>
-              <span className="text-3xl font-semibold tracking-tight text-destructive">{analyticsStats.overdueInvoices}</span>
-            </div>
-            <div className="flex size-10 items-center justify-center rounded-lg bg-destructive/10">
-              <HugeiconsIcon icon={AlertCircleIcon} size={20} className="text-destructive" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Chart */}
       <AnalyticsChart data={chartData} currency={primaryCurrency} stats={analyticsStats} />
