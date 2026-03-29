@@ -165,22 +165,88 @@ export function DocumentActions({ document }: DocumentActionsProps) {
     setIsGeneratingPdf(true)
     try {
       const response = await fetch(`/api/documents/pdf?id=${document.id}`)
+      const contentType = response.headers.get("content-type")
 
-      if (!response.ok) {
-        const error = await response.json()
-        console.error("PDF generation error:", error)
-        return
+      if (contentType?.includes("application/pdf")) {
+        // Server returned PDF directly (Browserless available)
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = window.document.createElement("a")
+        a.href = url
+        a.download = `${document.type}-${document.number}.pdf`
+        window.document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        window.document.body.removeChild(a)
+      } else {
+        // Fallback: Server returned HTML, render client-side
+        const data = await response.json()
+
+        if (!response.ok) {
+          console.error("PDF generation error:", data.error)
+          return
+        }
+
+        if (data.fallback && data.html) {
+          const html2canvas = (await import("html2canvas")).default
+          const jsPDF = (await import("jspdf")).default
+
+          // Create iframe to render HTML
+          const iframe = window.document.createElement("iframe")
+          iframe.style.cssText = "position: fixed; left: -9999px; top: 0; width: 794px; height: 1123px;"
+          window.document.body.appendChild(iframe)
+
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+          if (iframeDoc) {
+            iframeDoc.open()
+            iframeDoc.write(data.html)
+            iframeDoc.close()
+
+            // Wait for content to render
+            await new Promise((resolve) => setTimeout(resolve, 500))
+
+            const canvas = await html2canvas(iframeDoc.body, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+              width: 794,
+              height: iframeDoc.body.scrollHeight,
+            })
+
+            window.document.body.removeChild(iframe)
+
+            const imgData = canvas.toDataURL("image/png")
+            const pdf = new jsPDF("p", "mm", "a4")
+            const pdfWidth = pdf.internal.pageSize.getWidth()
+            const pdfHeight = pdf.internal.pageSize.getHeight()
+            const ratio = pdfWidth / canvas.width
+            const scaledHeight = canvas.height * ratio
+
+            if (scaledHeight <= pdfHeight) {
+              pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight)
+            } else {
+              const pageHeightInPx = pdfHeight / ratio
+              let y = 0
+              while (y < canvas.height) {
+                const sliceH = Math.min(pageHeightInPx, canvas.height - y)
+                const pageCanvas = window.document.createElement("canvas")
+                pageCanvas.width = canvas.width
+                pageCanvas.height = sliceH
+                const ctx = pageCanvas.getContext("2d")
+                if (ctx) {
+                  ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH)
+                  const pageData = pageCanvas.toDataURL("image/png")
+                  if (y > 0) pdf.addPage()
+                  pdf.addImage(pageData, "PNG", 0, 0, pdfWidth, sliceH * ratio)
+                }
+                y += sliceH
+              }
+            }
+
+            pdf.save(`${document.type}-${document.number}.pdf`)
+          }
+        }
       }
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = window.document.createElement("a")
-      a.href = url
-      a.download = `${document.type}-${document.number}.pdf`
-      window.document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      window.document.body.removeChild(a)
     } catch (error) {
       console.error("Error downloading PDF:", error)
     } finally {
