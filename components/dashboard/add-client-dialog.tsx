@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { UserAdd01Icon, Loading01Icon } from "@hugeicons/core-free-icons"
 import { createClient } from "@/lib/supabase/client"
@@ -34,6 +34,7 @@ export function AddClientDialog() {
     address: "",
     gst_id: "",
     pan_number: "",
+    auto_reminder: false,
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -56,6 +57,7 @@ export function AddClientDialog() {
         address: formData.address || null,
         gst_id: formData.gst_id || null,
         pan_number: formData.pan_number || null,
+        auto_reminder: formData.auto_reminder,
       })
 
       if (!error) {
@@ -69,6 +71,7 @@ export function AddClientDialog() {
           address: "", 
           gst_id: "",
           pan_number: "",
+          auto_reminder: false,
         })
         router.refresh()
       }
@@ -191,6 +194,18 @@ export function AddClientDialog() {
                   maxLength={10}
                 />
               </div>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-input bg-card p-3">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Auto Reminders</Label>
+                <p className="text-xs text-muted-foreground">Send payment reminders for overdue invoices</p>
+              </div>
+              <Switch
+                checked={formData.auto_reminder}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, auto_reminder: checked }))
+                }
+              />
             </div>
           </div>
           <DialogFooter>

@@ -39,6 +39,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { MoreHorizontalIcon, PencilEdit01Icon, Delete01Icon, Loading01Icon } from "@hugeicons/core-free-icons"
 import { Client } from "@/lib/types"
@@ -63,6 +64,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
     address: "",
     gst_id: "",
     pan_number: "",
+    auto_reminder: false,
   })
 
   const openEditDialog = (client: Client) => {
@@ -75,6 +77,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
       address: client.address || "",
       gst_id: client.gst_id || "",
       pan_number: client.pan_number || "",
+      auto_reminder: client.auto_reminder || false,
     })
     setEditingClient(client)
   }
@@ -96,6 +99,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
           address: formData.address || null,
           gst_id: formData.gst_id || null,
           pan_number: formData.pan_number || null,
+          auto_reminder: formData.auto_reminder,
         })
         .eq("id", editingClient.id)
 
@@ -132,7 +136,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
             <TableHead>Contact</TableHead>
             <TableHead>GSTIN</TableHead>
             <TableHead>PAN</TableHead>
-            <TableHead>Address</TableHead>
+            <TableHead>Auto Reminders</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -157,8 +161,19 @@ export function ClientsTable({ clients }: ClientsTableProps) {
               </TableCell>
               <TableCell className="font-mono text-sm">{client.gst_id || "-"}</TableCell>
               <TableCell className="font-mono text-sm">{client.pan_number || "-"}</TableCell>
-              <TableCell className="max-w-xs truncate text-sm">
-                {client.address || "-"}
+              <TableCell>
+                <Switch
+                  checked={client.auto_reminder}
+                  onCheckedChange={async (checked) => {
+                    const supabase = createClient()
+                    await supabase
+                      .from("clients")
+                      .update({ auto_reminder: checked })
+                      .eq("id", client.id)
+                    router.refresh()
+                  }}
+                  disabled={isPending}
+                />
               </TableCell>
               <TableCell>
                 <DropdownMenu>
@@ -297,6 +312,18 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                     maxLength={10}
                   />
                 </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-input bg-card p-3">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Auto Reminders</Label>
+                  <p className="text-xs text-muted-foreground">Send payment reminders for overdue invoices</p>
+                </div>
+                <Switch
+                  checked={formData.auto_reminder}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, auto_reminder: checked }))
+                  }
+                />
               </div>
             </div>
             <DialogFooter>
