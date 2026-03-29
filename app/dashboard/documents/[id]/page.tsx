@@ -122,6 +122,14 @@ export default async function DocumentDetailPage({
     .eq("id", user.id)
     .single()
 
+  // Fetch subscription for pro feature gating
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("plan")
+    .eq("user_id", user.id)
+    .single()
+  const isPro = subscription?.plan === "pro"
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -138,7 +146,7 @@ export default async function DocumentDetailPage({
             {getStatusBadge(document.status)}
           </div>
         </div>
-        <DocumentActions document={document as Document & { line_items: LineItem[] }} />
+        <DocumentActions document={document as Document & { line_items: LineItem[] }} isPro={isPro} />
       </div>
 
       {/* Preview and Payments */}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateDocumentHTML } from "@/lib/generate-document-html"
+import { getTemplate } from "@/lib/pdf-templates"
+import type { TemplateId } from "@/lib/pdf-templates"
   const lineItems = document.line_items || []
   const subtotal = lineItems.reduce(
     (sum: number, item: any) => sum + item.quantity * item.rate,
@@ -204,6 +205,7 @@ import { generateDocumentHTML } from "@/lib/generate-document-html"
 export async function GET(request: NextRequest) {
   try {
     const documentId = request.nextUrl.searchParams.get("id")
+    const templateId = (request.nextUrl.searchParams.get("template") || "classic") as TemplateId
 
     if (!documentId) {
       return NextResponse.json({ error: "Document ID required" }, { status: 400 })
@@ -239,8 +241,9 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    // Generate HTML using shared generator
-    const html = generateDocumentHTML(document, profile)
+    // Generate HTML using selected template
+    const template = getTemplate(templateId)
+    const html = template.generate(document, profile)
 
     // Use Browserless if available, otherwise return HTML for client-side rendering
     const browserlessUrl = process.env.BROWSERLESS_URL
