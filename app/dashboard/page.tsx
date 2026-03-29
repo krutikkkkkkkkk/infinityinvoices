@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Add01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import { Add01Icon, ArrowRight01Icon, InvoiceIcon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { Document, CURRENCIES } from "@/lib/types"
 import { StatusSelect } from "@/components/dashboard/status-select"
