@@ -22,9 +22,9 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar user={user} />
-      <SidebarInset className="bg-background">
+      <SidebarInset className="bg-background overflow-hidden">
         <DashboardTopBar />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )
