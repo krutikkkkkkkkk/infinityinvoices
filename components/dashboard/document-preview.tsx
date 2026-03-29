@@ -34,7 +34,7 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
 
   return (
     <div className="bg-white text-black print:shadow-none shadow-lg" id="document-preview">
-      <div className="p-8 max-w-[210mm] mx-auto" style={{ minHeight: "297mm" }}>
+      <div className="p-8 max-w-[210mm] mx-auto border border-gray-200" style={{ minHeight: "297mm" }}>
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
