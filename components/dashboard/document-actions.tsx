@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -163,140 +164,25 @@ export function DocumentActions({ document }: DocumentActionsProps) {
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true)
     try {
-      const html2canvas = (await import("html2canvas")).default
-      const jsPDF = (await import("jspdf")).default
+      const response = await fetch(`/api/documents/pdf?id=${document.id}`)
 
-      const element = window.document.getElementById("document-preview")
-      if (!element) {
-        console.error("Document preview element not found")
+      if (!response.ok) {
+        const error = await response.json()
+        console.error("PDF generation error:", error)
         return
       }
 
-      // Create an offscreen container at exact A4 pixel dimensions
-      const A4_WIDTH_PX = 794
-      const offscreen = window.document.createElement("div")
-      offscreen.style.cssText = `
-        position: fixed; left: -9999px; top: 0;
-        width: ${A4_WIDTH_PX}px;
-        background: #ffffff;
-        color: #000000;
-        font-family: system-ui, -apple-system, Arial, sans-serif;
-      `
-      // Clone the preview into offscreen container
-      const clone = element.cloneNode(true) as HTMLElement
-      clone.removeAttribute("id")
-      clone.style.cssText = `
-        width: ${A4_WIDTH_PX}px !important;
-        max-width: ${A4_WIDTH_PX}px !important;
-        background: #ffffff !important;
-        color: #000000 !important;
-        box-sizing: border-box;
-      `
-      // Force inner div to full width
-      const innerDiv = clone.querySelector(":scope > div") as HTMLElement
-      if (innerDiv) {
-        innerDiv.style.maxWidth = "100%"
-        innerDiv.style.width = "100%"
-        innerDiv.style.padding = "32px"
-      }
-
-      // Replace all oklch/lab colors with safe hex values
-      const allEls = clone.querySelectorAll("*")
-      allEls.forEach((el) => {
-        const htmlEl = el as HTMLElement
-        const cs = htmlEl.style.cssText || ""
-        if (cs.includes("oklch") || cs.includes("lab(") || cs.includes("color(")) {
-          htmlEl.style.cssText = cs
-            .replace(/oklch\([^)]+\)/g, "#374151")
-            .replace(/lab\([^)]+\)/g, "#374151")
-            .replace(/color\([^)]+\)/g, "#374151")
-        }
-      })
-
-      // Add style overrides for Tailwind classes
-      const styleEl = window.document.createElement("style")
-      styleEl.textContent = `
-        .text-gray-800, .text-gray-900 { color: #1f2937 !important; }
-        .text-gray-700 { color: #374151 !important; }
-        .text-gray-600 { color: #4b5563 !important; }
-        .text-gray-500 { color: #6b7280 !important; }
-        .text-gray-400 { color: #9ca3af !important; }
-        .text-red-600 { color: #dc2626 !important; }
-        .text-black { color: #000000 !important; }
-        .bg-white { background: #ffffff !important; }
-        .bg-gray-50 { background: #f9fafb !important; }
-        .bg-gray-100 { background: #f3f4f6 !important; }
-        .border-gray-200 { border-color: #e5e7eb !important; }
-        .border-gray-100 { border-color: #f3f4f6 !important; }
-        .rounded-lg { border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 8px; }
-        .font-mono { font-family: ui-monospace, monospace; }
-        img { max-width: 100%; }
-      `
-      offscreen.appendChild(styleEl)
-      offscreen.appendChild(clone)
-      window.document.body.appendChild(offscreen)
-
-      // Wait for images to load
-      const images = clone.querySelectorAll("img")
-      await Promise.all(
-        Array.from(images).map(
-          (img) =>
-            new Promise<void>((resolve) => {
-              if (img.complete) return resolve()
-              img.onload = () => resolve()
-              img.onerror = () => resolve()
-            })
-        )
-      )
-
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        width: A4_WIDTH_PX,
-      })
-
-      // Clean up offscreen container
-      window.document.body.removeChild(offscreen)
-
-      const imgData = canvas.toDataURL("image/png")
-
-      const pdf = new jsPDF("p", "mm", "a4")
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = pdf.internal.pageSize.getHeight()
-      const imgWidth = canvas.width
-      const imgHeight = canvas.height
-      const ratio = pdfWidth / imgWidth
-      const scaledHeight = imgHeight * ratio
-
-      if (scaledHeight <= pdfHeight) {
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight)
-      } else {
-        const pageHeightInPx = pdfHeight / ratio
-        let y = 0
-        while (y < imgHeight) {
-          const sliceH = Math.min(pageHeightInPx, imgHeight - y)
-          const pageCanvas = window.document.createElement("canvas")
-          pageCanvas.width = imgWidth
-          pageCanvas.height = sliceH
-          const ctx = pageCanvas.getContext("2d")
-          if (ctx) {
-            ctx.drawImage(canvas, 0, y, imgWidth, sliceH, 0, 0, imgWidth, sliceH)
-            const pageData = pageCanvas.toDataURL("image/png")
-            if (y > 0) pdf.addPage()
-            pdf.addImage(pageData, "PNG", 0, 0, pdfWidth, sliceH * ratio)
-          }
-          y += sliceH
-        }
-      }
-
-      pdf.save(`${document.type}-${document.number}.pdf`)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = window.document.createElement("a")
+      a.href = url
+      a.download = `${document.type}-${document.number}.pdf`
+      window.document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      window.document.body.removeChild(a)
     } catch (error) {
-      console.error("Error generating PDF:", error)
+      console.error("Error downloading PDF:", error)
     } finally {
       setIsGeneratingPdf(false)
     }
