@@ -145,6 +145,49 @@ function generateInvoiceHTML(document: any, profile: any) {
     </div>
   </div>
 
+  ${(profile?.bank_name || profile?.upi_id || profile?.paypal_email) ? `
+  <div style="margin-top: 30px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+    <div style="font-size: 10px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600;">Payment Information</div>
+    
+    ${profile?.bank_name ? `
+    <div style="margin-bottom: 16px;">
+      <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">Bank Transfer</div>
+      <div style="font-size: 12px; color: #4b5563;">
+        <div><span style="color: #6b7280;">Bank:</span> ${profile.bank_name}</div>
+        ${profile.bank_account_name ? `<div><span style="color: #6b7280;">Account Name:</span> ${profile.bank_account_name}</div>` : ""}
+        ${profile.bank_account_number ? `<div><span style="color: #6b7280;">Account Number:</span> <span style="font-family: monospace;">${profile.bank_account_number}</span></div>` : ""}
+        ${profile.bank_routing_number ? `<div><span style="color: #6b7280;">Routing/IFSC:</span> <span style="font-family: monospace;">${profile.bank_routing_number}</span></div>` : ""}
+        ${profile.bank_swift_code ? `<div><span style="color: #6b7280;">SWIFT/BIC:</span> <span style="font-family: monospace;">${profile.bank_swift_code}</span></div>` : ""}
+      </div>
+    </div>
+    ` : ""}
+    
+    ${profile?.upi_id ? `
+    <div style="margin-bottom: 16px; ${profile?.bank_name ? "padding-top: 12px; border-top: 1px solid #f3f4f6;" : ""}">
+      <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">UPI Payment</div>
+      <div style="display: flex; gap: 16px; align-items: flex-start;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${encodeURIComponent(profile.upi_id)}&pn=${encodeURIComponent(profile.company_name || "")}&am=${document.grand_total || total}&cu=INR" alt="UPI QR" style="width: 100px; height: 100px;" />
+        <div style="font-size: 12px;">
+          <div style="color: #6b7280;">UPI ID:</div>
+          <div style="font-family: monospace;">${profile.upi_id}</div>
+          <div style="color: #9ca3af; font-size: 10px; margin-top: 4px;">Scan QR code to pay</div>
+        </div>
+      </div>
+    </div>
+    ` : ""}
+    
+    ${profile?.paypal_email ? `
+    <div style="${(profile?.bank_name || profile?.upi_id) ? "padding-top: 12px; border-top: 1px solid #f3f4f6;" : ""}">
+      <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">PayPal</div>
+      <div style="font-size: 12px;">
+        <div style="color: #6b7280;">PayPal Email:</div>
+        <div>${profile.paypal_email}</div>
+      </div>
+    </div>
+    ` : ""}
+  </div>
+  ` : ""}
+
   ${document.notes ? `
   <div class="notes">
     <div class="notes-label">Notes</div>
@@ -194,7 +237,7 @@ export async function GET(request: NextRequest) {
     // Fetch user profile
     const { data: profile } = await supabase
       .from("profiles")
-      .select("company_name, company_address, gst_id, email, phone, logo_url")
+      .select("company_name, company_address, gst_id, email, phone, logo_url, upi_id, paypal_email, bank_name, bank_account_name, bank_account_number, bank_routing_number, bank_swift_code")
       .eq("id", user.id)
       .single()
 
