@@ -26,13 +26,14 @@ export default async function AdminLayout({
   }
 
   // Check if user is an admin
-  const { data: adminRecord } = await supabase
+  const { data: adminRecord, error } = await supabase
     .from("super_admins")
     .select("*")
     .eq("user_id", user.id)
-    .single()
+    .maybeSingle()
 
   if (!adminRecord) {
+    console.log("[v0] Admin check failed for user:", user.id, "Error:", error)
     redirect("/dashboard")
   }
 
