@@ -26,24 +26,37 @@ export default async function AdminUsersPage({
     .select(`
       id,
       email,
-      full_name,
       company_name,
-      created_at,
-      subscriptions(plan, status)
+      created_at
     `)
     .order("created_at", { ascending: false })
 
   if (params.search) {
-    query = query.or(`email.ilike.%${params.search}%,full_name.ilike.%${params.search}%,company_name.ilike.%${params.search}%`)
+    query = query.or(`email.ilike.%${params.search}%,company_name.ilike.%${params.search}%`)
   }
 
   const { data: users, error } = await query
+
+  console.log("[v0] Admin users query result:", { usersCount: users?.length, error })
+
+  // Fetch subscriptions separately for all users
+  const userIds = users?.map((u: any) => u.id) || []
+  const { data: subscriptions } = await supabase
+    .from("subscriptions")
+    .select("user_id, plan, status")
+    .in("user_id", userIds)
+
+  // Map subscriptions to users
+  const subscriptionMap: Record<string, any> = {}
+  subscriptions?.forEach((sub: any) => {
+    subscriptionMap[sub.user_id] = sub
+  })
 
   // Filter by plan if specified
   let filteredUsers = users || []
   if (params.plan) {
     filteredUsers = filteredUsers.filter((user: any) => {
-      const subscription = user.subscriptions?.[0]
+      const subscription = subscriptionMap[user.id]
       if (params.plan === "pro") return subscription?.plan === "pro"
       if (params.plan === "free") return !subscription || subscription.plan === "free"
       return true
@@ -51,11 +64,11 @@ export default async function AdminUsersPage({
   }
 
   // Get document counts per user
-  const userIds = filteredUsers.map((u: any) => u.id)
+  const filteredUserIds = filteredUsers.map((u: any) => u.id)
   const { data: documentCounts } = await supabase
     .from("documents")
     .select("user_id")
-    .in("user_id", userIds)
+    .in("user_id", filteredUserIds)
 
   const docCountMap: Record<string, number> = {}
   documentCounts?.forEach((doc: any) => {
@@ -120,15 +133,14 @@ export default async function AdminUsersPage({
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user: any) => {
-                const subscription = user.subscriptions?.[0]
+                const subscription = subscriptionMap[user.id]
                 const isPro = subscription?.plan === "pro"
                 
                 return (
                   <TableRow key={user.id} className="border-gray-800">
                     <TableCell>
                       <div>
-                        <p className="font-medium text-white">{user.full_name || "No name"}</p>
-                        <p className="text-sm text-gray-400">{user.email}</p>
+                        <p className="font-medium text-white">{user.email}</p>
                       </div>
                     </TableCell>
                     <TableCell className="text-gray-300">
