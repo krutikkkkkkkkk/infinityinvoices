@@ -345,22 +345,23 @@ export function DocumentActions({ document, isPro = false }: DocumentActionsProp
 
   return (
     <>
+      {/* Template selector */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground print:hidden">
+        <span>PDF Template:</span>
+        <span className="font-medium text-foreground">
+          &apos;{PDF_TEMPLATES.find((t) => t.id === selectedTemplate)?.name}&apos;
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 px-2 text-xs"
+          onClick={() => setShowTemplatePicker(true)}
+        >
+          Change
+        </Button>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
-        {/* Template selector label */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span>PDF Template:</span>
-          <span className="font-medium text-foreground">
-            &apos;{PDF_TEMPLATES.find((t) => t.id === selectedTemplate)?.name}&apos;
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={() => setShowTemplatePicker(true)}
-          >
-            Change
-          </Button>
-        </div>
         <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
           <SelectTrigger className="w-[130px]">
             <SelectValue placeholder="Status" />
