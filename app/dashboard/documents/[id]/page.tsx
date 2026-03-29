@@ -142,15 +142,15 @@ export default async function DocumentDetailPage({
       </div>
 
       {/* Preview and Payments */}
-      <div className="grid lg:grid-cols-3 gap-6 min-h-0">
-        <div className="lg:col-span-2 print:block overflow-y-auto max-h-[calc(100vh-200px)]">
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 print:block">
           <DocumentPreview
             document={document as Document & { line_items: LineItem[] }}
             profile={profile as Profile | null}
           />
         </div>
         {document.type === "invoice" && (
-          <div className="lg:col-span-1 sticky top-0">
+          <div className="lg:col-span-1">
             <PaymentsPanel
               documentId={document.id}
               grandTotal={Number(document.grand_total)}
