@@ -62,9 +62,6 @@ import {
   convertToInvoice,
   updateDocumentStatus,
 } from "@/app/dashboard/documents/actions"
-import { TemplatePicker } from "@/components/dashboard/template-picker"
-import type { TemplateId } from "@/lib/pdf-templates"
-import { PDF_TEMPLATES } from "@/lib/pdf-templates"
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
@@ -76,13 +73,10 @@ const STATUS_OPTIONS = [
 
 interface DocumentActionsProps {
   document: Document & { line_items: LineItem[] }
-  isPro?: boolean
 }
 
-export function DocumentActions({ document, isPro = false }: DocumentActionsProps) {
+export function DocumentActions({ document }: DocumentActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("classic")
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(document.status)
   const [isPending, startTransition] = useTransition()
@@ -170,7 +164,7 @@ export function DocumentActions({ document, isPro = false }: DocumentActionsProp
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true)
     try {
-      const response = await fetch(`/api/documents/pdf?id=${document.id}&template=${selectedTemplate}`)
+      const response = await fetch(`/api/documents/pdf?id=${document.id}`)
       const contentType = response.headers.get("content-type")
 
       if (contentType?.includes("application/pdf")) {
@@ -345,22 +339,6 @@ export function DocumentActions({ document, isPro = false }: DocumentActionsProp
 
   return (
     <>
-      {/* Template selector */}
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground print:hidden">
-        <span>PDF Template:</span>
-        <span className="font-medium text-foreground">
-          &apos;{PDF_TEMPLATES.find((t) => t.id === selectedTemplate)?.name}&apos;
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          onClick={() => setShowTemplatePicker(true)}
-        >
-          Change
-        </Button>
-      </div>
-
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
         <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
           <SelectTrigger className="w-[130px]">
@@ -579,15 +557,6 @@ export function DocumentActions({ document, isPro = false }: DocumentActionsProp
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Template Picker */}
-      <TemplatePicker
-        open={showTemplatePicker}
-        onOpenChange={setShowTemplatePicker}
-        selectedTemplate={selectedTemplate}
-        onSelect={setSelectedTemplate}
-        isPro={isPro}
-      />
 
       {/* Usage Limit Dialog */}
       <AlertDialog open={showUsageLimitDialog} onOpenChange={setShowUsageLimitDialog}>
