@@ -11,6 +11,13 @@ interface DocumentPreviewProps {
     email: string | null
     phone: string | null
     logo_url: string | null
+    upi_id: string | null
+    paypal_email: string | null
+    bank_name: string | null
+    bank_account_name: string | null
+    bank_account_number: string | null
+    bank_routing_number: string | null
+    bank_swift_code: string | null
   } | null
 }
 
@@ -27,7 +34,7 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
 
   return (
     <div className="bg-white text-black print:shadow-none shadow-lg" id="document-preview">
-      <div className="p-8 max-w-[210mm] mx-auto" style={{ minHeight: "297mm" }}>
+      <div className="p-8 max-w-[210mm] mx-auto border border-gray-200" style={{ minHeight: "297mm" }}>
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -197,47 +204,45 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
         </div>
 
         {/* Payment Information */}
-        {(document.payment_methods?.length > 0 || document.payment_method_type) && (
+        {(profile?.bank_name || profile?.upi_id || profile?.paypal_email) && (
           <div className="mb-8 p-4 border border-gray-200 rounded-lg">
             <h3 className="text-sm font-semibold text-gray-600 mb-3">
               Payment Information
             </h3>
             <div className="space-y-4">
               {/* Bank Transfer Details */}
-              {(document.payment_methods?.includes("bank") || document.payment_method_type === "bank") && (
+              {profile?.bank_name && (
                 <div className="space-y-1 text-sm">
                   <p className="font-medium text-gray-700 mb-2">Bank Transfer</p>
-                  {document.bank_name && (
-                    <p><span className="text-gray-500">Bank:</span> <span className="text-gray-800">{document.bank_name}</span></p>
+                  <p><span className="text-gray-500">Bank:</span> <span className="text-gray-800">{profile.bank_name}</span></p>
+                  {profile.bank_account_name && (
+                    <p><span className="text-gray-500">Account Name:</span> <span className="text-gray-800">{profile.bank_account_name}</span></p>
                   )}
-                  {document.bank_account_name && (
-                    <p><span className="text-gray-500">Account Name:</span> <span className="text-gray-800">{document.bank_account_name}</span></p>
+                  {profile.bank_account_number && (
+                    <p><span className="text-gray-500">Account Number:</span> <span className="text-gray-800 font-mono">{profile.bank_account_number}</span></p>
                   )}
-                  {document.bank_account_number && (
-                    <p><span className="text-gray-500">Account Number:</span> <span className="text-gray-800 font-mono">{document.bank_account_number}</span></p>
+                  {profile.bank_routing_number && (
+                    <p><span className="text-gray-500">Routing/IFSC:</span> <span className="text-gray-800 font-mono">{profile.bank_routing_number}</span></p>
                   )}
-                  {document.bank_routing_number && (
-                    <p><span className="text-gray-500">Routing/IFSC:</span> <span className="text-gray-800 font-mono">{document.bank_routing_number}</span></p>
-                  )}
-                  {document.bank_swift_code && (
-                    <p><span className="text-gray-500">SWIFT/BIC:</span> <span className="text-gray-800 font-mono">{document.bank_swift_code}</span></p>
+                  {profile.bank_swift_code && (
+                    <p><span className="text-gray-500">SWIFT/BIC:</span> <span className="text-gray-800 font-mono">{profile.bank_swift_code}</span></p>
                   )}
                 </div>
               )}
               
               {/* UPI Details with QR Code */}
-              {(document.payment_methods?.includes("upi") || document.payment_method_type === "upi") && document.upi_id && (
+              {profile?.upi_id && (
                 <div className="pt-2 border-t border-gray-100 first:border-t-0 first:pt-0">
                   <p className="font-medium text-gray-700 mb-2">UPI Payment</p>
                   <div className="flex items-start gap-4">
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=upi://pay?pa=${encodeURIComponent(document.upi_id)}&pn=${encodeURIComponent(profile?.company_name || "")}&am=${document.grand_total}&cu=${document.currency}`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=upi://pay?pa=${encodeURIComponent(profile.upi_id)}&pn=${encodeURIComponent(profile.company_name || "")}&am=${document.grand_total}&cu=${document.currency}`}
                       alt="UPI QR Code"
                       className="w-28 h-28"
                     />
                     <div className="text-sm">
                       <p className="text-gray-500">UPI ID:</p>
-                      <p className="text-gray-800 font-mono">{document.upi_id}</p>
+                      <p className="text-gray-800 font-mono">{profile.upi_id}</p>
                       <p className="text-xs text-gray-400 mt-2">Scan QR code to pay</p>
                     </div>
                   </div>
@@ -245,22 +250,13 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
               )}
               
               {/* PayPal Details */}
-              {(document.payment_methods?.includes("paypal") || document.payment_method_type === "paypal") && document.paypal_email && (
+              {profile?.paypal_email && (
                 <div className="pt-2 border-t border-gray-100 first:border-t-0 first:pt-0">
                   <p className="font-medium text-gray-700 mb-2">PayPal</p>
                   <div className="text-sm">
                     <p className="text-gray-500">PayPal Email:</p>
-                    <p className="text-gray-800">{document.paypal_email}</p>
-                    
+                    <p className="text-gray-800">{profile.paypal_email}</p>
                   </div>
-                </div>
-              )}
-              
-              {/* Other Payment Method */}
-              {(document.payment_methods?.includes("other") || document.payment_method_type === "other") && document.payment_method && (
-                <div className="pt-2 border-t border-gray-100 first:border-t-0 first:pt-0">
-                  <p className="font-medium text-gray-700 mb-1">Other</p>
-                  <p className="text-sm text-gray-800">{document.payment_method}</p>
                 </div>
               )}
             </div>

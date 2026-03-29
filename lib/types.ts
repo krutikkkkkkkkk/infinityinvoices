@@ -34,6 +34,7 @@ export interface Client {
   pan_number: string | null
   company_name: string | null
   contact_person: string | null
+  auto_reminder: boolean
   created_at: string
   updated_at: string
 }

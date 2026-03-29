@@ -37,15 +37,27 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
-    // Fetch document
+    // Fetch document with client info
     const { data: document, error: docError } = await supabase
       .from("documents")
-      .select("*")
+      .select(
+        `
+        *,
+        clients:client_id(id, name, email, auto_reminder)
+      `
+      )
       .eq("id", documentId)
       .single()
 
     if (docError || !document) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
+    }
+
+    // Check if client has auto_reminder enabled
+    if (document.clients && !document.clients.auto_reminder) {
+      return NextResponse.json({ 
+        error: "Auto reminders are disabled for this client" 
+      }, { status: 403 })
     }
 
     if (!document.client_email) {
