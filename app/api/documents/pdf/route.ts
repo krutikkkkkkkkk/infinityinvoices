@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-
-// Generate clean HTML for PDF
-function generateInvoiceHTML(document: any, profile: any) {
+import { generateDocumentHTML } from "@/lib/generate-document-html"
   const lineItems = document.line_items || []
   const subtotal = lineItems.reduce(
     (sum: number, item: any) => sum + item.quantity * item.rate,
@@ -241,8 +239,8 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    // Generate HTML
-    const html = generateInvoiceHTML(document, profile)
+    // Generate HTML using shared generator
+    const html = generateDocumentHTML(document, profile)
 
     // Use Browserless if available, otherwise return HTML for client-side rendering
     const browserlessUrl = process.env.BROWSERLESS_URL
