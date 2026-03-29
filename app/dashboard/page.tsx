@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Add01Icon, ArrowRight01Icon, InvoiceIcon } from "@hugeicons/core-free-icons"
+import { Add01Icon, ArrowRight01Icon, Invoice01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { Document, CURRENCIES } from "@/lib/types"
 import { StatusSelect } from "@/components/dashboard/status-select"
@@ -252,7 +252,7 @@ export default async function DashboardPage() {
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="flex size-12 items-center justify-center rounded-full bg-muted mb-4">
-                <HugeiconsIcon icon={InvoiceIcon} size={24} className="text-muted-foreground" />
+                <HugeiconsIcon icon={Invoice01Icon} size={24} className="text-muted-foreground" />
               </div>
               <h3 className="font-medium">No documents yet</h3>
               <p className="text-sm text-muted-foreground mt-1 mb-4">
