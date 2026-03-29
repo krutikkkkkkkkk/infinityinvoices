@@ -52,14 +52,46 @@ export function generateDocumentHTML(
       margin: 0 auto;
       line-height: 1.6;
     }
-    .header { display: flex; justify-content: space-between; gap: 40px; margin-bottom: 32px; }
-    .company-logo { max-height: 64px; width: auto; margin-bottom: 8px; }
-    .company-info { flex: 1; }
-    .company-name { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #1f2937; }
-    .company-details { font-size: 12px; color: #6b7280; line-height: 1.5; }
-    .invoice-info { text-align: right; }
-    .invoice-title { font-size: 28px; font-weight: 700; text-transform: uppercase; color: #1f2937; margin-bottom: 8px; }
-    .invoice-meta { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-start;
+      gap: 40px; 
+      margin-bottom: 32px; 
+      width: 100%;
+    }
+    .company-info { 
+      flex: 1; 
+      min-width: 0;
+    }
+    .company-name { 
+      font-size: 18px; 
+      font-weight: 700; 
+      margin-bottom: 8px; 
+      color: #1f2937; 
+    }
+    .company-details { 
+      font-size: 12px; 
+      color: #6b7280; 
+      line-height: 1.6; 
+    }
+    .invoice-info { 
+      text-align: right; 
+      white-space: nowrap;
+    }
+    .invoice-title { 
+      font-size: 32px; 
+      font-weight: 700; 
+      text-transform: uppercase; 
+      color: #1f2937; 
+      margin-bottom: 8px; 
+    }
+    .invoice-meta { 
+      font-size: 12px; 
+      color: #6b7280; 
+      margin-top: 4px; 
+      line-height: 1.6;
+    }
     .bill-to { margin-bottom: 32px; padding: 16px; background: #f9fafb; border-radius: 6px; }
     .bill-to-label { font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; font-weight: 600; }
     .client-name { font-size: 15px; font-weight: 600; color: #1f2937; }
