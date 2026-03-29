@@ -26,14 +26,13 @@ export default async function AdminUsersPage({
     .select(`
       id,
       email,
-      full_name,
       company_name,
       created_at
     `)
     .order("created_at", { ascending: false })
 
   if (params.search) {
-    query = query.or(`email.ilike.%${params.search}%,full_name.ilike.%${params.search}%,company_name.ilike.%${params.search}%`)
+    query = query.or(`email.ilike.%${params.search}%,company_name.ilike.%${params.search}%`)
   }
 
   const { data: users, error } = await query
@@ -141,8 +140,7 @@ export default async function AdminUsersPage({
                   <TableRow key={user.id} className="border-gray-800">
                     <TableCell>
                       <div>
-                        <p className="font-medium text-white">{user.full_name || "No name"}</p>
-                        <p className="text-sm text-gray-400">{user.email}</p>
+                        <p className="font-medium text-white">{user.email}</p>
                       </div>
                     </TableCell>
                     <TableCell className="text-gray-300">
