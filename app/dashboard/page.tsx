@@ -17,6 +17,7 @@ import { Document, CURRENCIES } from "@/lib/types"
 import { StatusSelect } from "@/components/dashboard/status-select"
 import { RevenueTabs } from "@/components/dashboard/revenue-tabs"
 import { AnalyticsChart } from "@/components/dashboard/analytics-chart"
+import { ReceivablesWidget } from "@/components/dashboard/receivables-widget"
 
 function formatCurrency(amount: number, currency: string) {
   const currencyData = CURRENCIES.find((c) => c.value === currency)
@@ -128,13 +129,47 @@ export default async function DashboardPage() {
     overdueInvoices: analyticsData?.filter(d => d.status === "overdue").length || 0,
   }
 
+  // Fetch receivables (unpaid/overdue invoices with due dates)
+  const today = new Date()
+  const { data: receivableInvoices } = await supabase
+    .from("documents")
+    .select("grand_total, currency, due_date, status, include_tax")
+    .eq("type", "invoice")
+    .in("status", ["sent", "overdue"])
+    .not("due_date", "is", null)
+
+  function calcReceivables(invoices: typeof receivableInvoices) {
+    const result = { current: 0, overdue1to15: 0, overdue16to30: 0, overdue31to45: 0, overdueAbove45: 0, total: 0 }
+    if (!invoices) return result
+    for (const inv of invoices) {
+      const amount = Number(inv.grand_total)
+      const due = new Date(inv.due_date!)
+      const diffDays = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
+      result.total += amount
+      if (diffDays <= 0) result.current += amount
+      else if (diffDays <= 15) result.overdue1to15 += amount
+      else if (diffDays <= 30) result.overdue16to30 += amount
+      else if (diffDays <= 45) result.overdue31to45 += amount
+      else result.overdueAbove45 += amount
+    }
+    return result
+  }
+
+  const receivables = {
+    all: calcReceivables(receivableInvoices),
+    taxed: calcReceivables(receivableInvoices?.filter((i) => i.include_tax !== false)),
+    noTax: calcReceivables(receivableInvoices?.filter((i) => i.include_tax === false)),
+  }
+
+  const receivablesCurrency = receivableInvoices?.[0]?.currency || primaryCurrency
+
   // Auto-update overdue documents
-  const today = new Date().toISOString().split("T")[0]
+  const todayStr = today.toISOString().split("T")[0]
   await supabase
     .from("documents")
     .update({ status: "overdue" })
     .eq("user_id", user.id)
-    .lt("due_date", today)
+    .lt("due_date", todayStr)
     .in("status", ["sent", "draft"])
     .not("due_date", "is", null)
 
@@ -172,6 +207,14 @@ export default async function DashboardPage() {
       </div>
 
 
+
+      {/* Receivables Widget */}
+      <ReceivablesWidget
+        all={receivables.all}
+        taxed={receivables.taxed}
+        noTax={receivables.noTax}
+        currency={receivablesCurrency}
+      />
 
       {/* Chart */}
       <AnalyticsChart data={chartData} currency={primaryCurrency} stats={analyticsStats} />
