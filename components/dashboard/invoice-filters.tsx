@@ -19,9 +19,10 @@ interface InvoiceFiltersProps {
   to: string
   sort: string
   order: string
+  tax: string
 }
 
-export function InvoiceFilters({ status, search, from, to, sort, order }: InvoiceFiltersProps) {
+export function InvoiceFilters({ status, search, from, to, sort, order, tax }: InvoiceFiltersProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
@@ -31,7 +32,7 @@ export function InvoiceFilters({ status, search, from, to, sort, order }: Invoic
     (updates: Record<string, string>) => {
       const params = new URLSearchParams()
 
-      const current = { status, search: searchValue, from, to, sort, order, ...updates }
+      const current = { status, search: searchValue, from, to, sort, order, tax, ...updates }
 
       // Reset to page 1 on filter change
       if (current.status && current.status !== "all") params.set("status", current.status)
@@ -40,6 +41,7 @@ export function InvoiceFilters({ status, search, from, to, sort, order }: Invoic
       if (current.to) params.set("to", current.to)
       if (current.sort && current.sort !== "created_at") params.set("sort", current.sort)
       if (current.order && current.order !== "desc") params.set("order", current.order)
+      if (current.tax && current.tax !== "all") params.set("tax", current.tax)
 
       const qs = params.toString()
       startTransition(() => {
@@ -61,7 +63,7 @@ export function InvoiceFilters({ status, search, from, to, sort, order }: Invoic
     })
   }
 
-  const hasFilters = status !== "all" || search || from || to
+  const hasFilters = status !== "all" || tax !== "all" || search || from || to
 
   return (
     <div className="space-y-3">
@@ -94,6 +96,21 @@ export function InvoiceFilters({ status, search, from, to, sort, order }: Invoic
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="overdue">Overdue</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Tax Filter */}
+        <Select
+          value={tax}
+          onValueChange={(value) => updateFilters({ tax: value })}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Tax" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Invoices</SelectItem>
+            <SelectItem value="taxed">With Tax</SelectItem>
+            <SelectItem value="no-tax">No Tax</SelectItem>
           </SelectContent>
         </Select>
 

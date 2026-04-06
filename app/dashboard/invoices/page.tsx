@@ -28,6 +28,7 @@ export default async function InvoicesPage({
     to?: string
     sort?: string
     order?: string
+    tax?: string
   }>
 }) {
   const params = await searchParams
@@ -38,6 +39,7 @@ export default async function InvoicesPage({
   const to = params.to || ""
   const sort = params.sort || "created_at"
   const order = params.order || "desc"
+  const tax = params.tax || "all"
 
   const supabase = await createClient()
   const offset = (page - 1) * PAGE_SIZE
@@ -50,6 +52,12 @@ export default async function InvoicesPage({
 
   if (status !== "all") {
     query = query.eq("status", status)
+  }
+
+  if (tax === "taxed") {
+    query = query.eq("include_tax", true)
+  } else if (tax === "no-tax") {
+    query = query.eq("include_tax", false)
   }
 
   if (search) {
@@ -96,6 +104,7 @@ export default async function InvoicesPage({
         to={to}
         sort={sort}
         order={order}
+        tax={tax}
       />
 
       <Card>
@@ -215,6 +224,7 @@ function buildPageUrl(
   if (params.to) sp.set("to", params.to)
   if (params.sort && params.sort !== "created_at") sp.set("sort", params.sort)
   if (params.order && params.order !== "desc") sp.set("order", params.order)
+  if (params.tax && params.tax !== "all") sp.set("tax", params.tax)
   const qs = sp.toString()
   return `/dashboard/invoices${qs ? `?${qs}` : ""}`
 }
