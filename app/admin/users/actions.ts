@@ -3,9 +3,21 @@
 import { createClient } from "@/lib/supabase/server"
 
 export async function upgradeUserToPro(userId: string) {
-  const supabase = await createClient()
-
   try {
+    // Use admin client to bypass RLS for admin operations
+    const supabase = await createClient()
+    
+    // Verify that the current user is an admin
+    const { data: adminRecord } = await supabase
+      .from("super_admins")
+      .select("id")
+      .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+      .maybeSingle()
+
+    if (!adminRecord) {
+      return { success: false, message: "Unauthorized: Admin access required" }
+    }
+
     // Check if user has an existing subscription
     const { data: existingSubscription } = await supabase
       .from("subscriptions")
@@ -50,9 +62,20 @@ export async function upgradeUserToPro(userId: string) {
 }
 
 export async function downgradeUserToFree(userId: string) {
-  const supabase = await createClient()
-
   try {
+    const supabase = await createClient()
+    
+    // Verify that the current user is an admin
+    const { data: adminRecord } = await supabase
+      .from("super_admins")
+      .select("id")
+      .eq("user_id", (await supabase.auth.getUser()).data.user?.id)
+      .maybeSingle()
+
+    if (!adminRecord) {
+      return { success: false, message: "Unauthorized: Admin access required" }
+    }
+
     const { error } = await supabase
       .from("subscriptions")
       .update({
