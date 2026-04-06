@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { UserActionsCell } from "./user-actions-cell"
 import { Crown, Search } from "lucide-react"
 
 export default async function AdminUsersPage({
@@ -129,6 +130,7 @@ export default async function AdminUsersPage({
                 <TableHead className="text-gray-400">Plan</TableHead>
                 <TableHead className="text-gray-400">Documents</TableHead>
                 <TableHead className="text-gray-400">Joined</TableHead>
+                <TableHead className="text-gray-400">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -163,6 +165,9 @@ export default async function AdminUsersPage({
                     </TableCell>
                     <TableCell className="text-gray-400">
                       {new Date(user.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <UserActionsCell userId={user.id} isPro={isPro} />
                     </TableCell>
                   </TableRow>
                 )
