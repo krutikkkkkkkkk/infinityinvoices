@@ -12,12 +12,18 @@ export function generateDocumentHTML(
   profile: any
 ) {
   const lineItems = document.line_items || []
+  const includeTax = document.include_tax !== false
   const subtotal = lineItems.reduce(
     (sum: number, item: LineItem) => sum + item.quantity * item.rate,
     0
   )
-  const taxAmount = subtotal * ((document.tax_rate || 0) / 100)
-  const discount = document.discount || 0
+  const taxAmount = includeTax
+    ? lineItems.reduce(
+        (sum: number, item: LineItem) => sum + (item.quantity * item.rate * item.tax_percent) / 100,
+        0
+      )
+    : 0
+  const discount = document.discount_value || 0
   const total = subtotal + taxAmount - discount
 
   const currencySymbol = CURRENCIES[document.currency] || "₹"
@@ -27,10 +33,11 @@ export function generateDocumentHTML(
       (item: LineItem, i: number) => `
       <tr>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${i + 1}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.description || ""}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.name || item.description || ""}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.quantity}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${currencySymbol}${item.rate.toFixed(2)}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${currencySymbol}${(item.quantity * item.rate).toFixed(2)}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${currencySymbol}${Number(item.rate).toFixed(2)}</td>
+        ${includeTax ? `<td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.tax_percent}%</td>` : ""}
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${currencySymbol}${Number(item.line_total).toFixed(2)}</td>
       </tr>
     `
     )
@@ -174,6 +181,7 @@ export function generateDocumentHTML(
         <th>Description</th>
         <th style="width: 80px;">Qty</th>
         <th style="width: 100px;">Rate</th>
+        ${includeTax ? `<th style="width: 80px;">Tax</th>` : ""}
         <th style="width: 100px;">Amount</th>
       </tr>
     </thead>
@@ -187,9 +195,9 @@ export function generateDocumentHTML(
       <span>Subtotal</span>
       <span>${currencySymbol}${subtotal.toFixed(2)}</span>
     </div>
-    ${document.tax_rate ? `
+    ${includeTax && taxAmount > 0 ? `
     <div class="total-row tax">
-      <span>Tax (${document.tax_rate}%)</span>
+      <span>Tax</span>
       <span>${currencySymbol}${taxAmount.toFixed(2)}</span>
     </div>
     ` : ""}

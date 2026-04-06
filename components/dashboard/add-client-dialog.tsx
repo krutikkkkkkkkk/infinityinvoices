@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { UserAdd01Icon, Loading01Icon } from "@hugeicons/core-free-icons"

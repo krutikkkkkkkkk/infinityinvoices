@@ -9,7 +9,8 @@ import {
   BarChart3,
   Shield,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -40,6 +41,7 @@ export default async function AdminLayout({
   const navItems = [
     { href: "/admin", label: "Overview", icon: LayoutDashboard },
     { href: "/admin/users", label: "Users", icon: Users },
+    { href: "/admin/revenue", label: "Revenue", icon: TrendingUp },
     { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard },
     { href: "/admin/documents", label: "Documents", icon: FileText },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },

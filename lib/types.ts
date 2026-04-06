@@ -75,6 +75,7 @@ export interface Document {
   client_email: string | null
   client_address: string | null
   client_gst_id: string | null
+  include_tax: boolean
   created_at: string
   updated_at: string
   line_items?: LineItem[]
@@ -115,6 +116,7 @@ export interface DocumentFormData {
   bank_swift_code: string
   discount_type: DiscountType | null
   discount_value: number
+  include_tax: boolean
   line_items: NewLineItem[]
 }
 

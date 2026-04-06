@@ -25,10 +25,12 @@ export async function createDocument(formData: DocumentFormData) {
     throw new Error(`USAGE_LIMIT_EXCEEDED:You've reached your monthly limit of ${limit} ${usageType}s. Upgrade to Pro for unlimited ${usageType}s.`)
   }
 
-  // Calculate totals
+  // Calculate totals based on include_tax toggle
+  const includeTax = formData.include_tax !== false
   const lineItemsWithTotals = formData.line_items.map((item) => ({
     ...item,
-    line_total: item.quantity * item.rate * (1 + item.tax_percent / 100),
+    tax_percent: includeTax ? item.tax_percent : 0,
+    line_total: item.quantity * item.rate * (includeTax ? (1 + item.tax_percent / 100) : 1),
   }))
 
   const subtotal = lineItemsWithTotals.reduce(
@@ -36,10 +38,12 @@ export async function createDocument(formData: DocumentFormData) {
     0
   )
 
-  const taxTotal = lineItemsWithTotals.reduce(
-    (sum, item) => sum + (item.quantity * item.rate * item.tax_percent) / 100,
-    0
-  )
+  const taxTotal = includeTax
+    ? lineItemsWithTotals.reduce(
+        (sum, item) => sum + (item.quantity * item.rate * item.tax_percent) / 100,
+        0
+      )
+    : 0
 
   let discountAmount = 0
   if (formData.discount_type === "percentage") {
@@ -83,6 +87,7 @@ export async function createDocument(formData: DocumentFormData) {
       bank_account_number: formData.bank_account_number || null,
       bank_routing_number: formData.bank_routing_number || null,
       bank_swift_code: formData.bank_swift_code || null,
+      include_tax: includeTax,
     })
     .select()
     .single()
@@ -128,10 +133,12 @@ export async function updateDocument(id: string, formData: DocumentFormData) {
     throw new Error("Not authenticated")
   }
 
-  // Calculate totals
+  // Calculate totals based on include_tax toggle
+  const includeTax = formData.include_tax !== false
   const lineItemsWithTotals = formData.line_items.map((item) => ({
     ...item,
-    line_total: item.quantity * item.rate * (1 + item.tax_percent / 100),
+    tax_percent: includeTax ? item.tax_percent : 0,
+    line_total: item.quantity * item.rate * (includeTax ? (1 + item.tax_percent / 100) : 1),
   }))
 
   const subtotal = lineItemsWithTotals.reduce(
@@ -139,10 +146,12 @@ export async function updateDocument(id: string, formData: DocumentFormData) {
     0
   )
 
-  const taxTotal = lineItemsWithTotals.reduce(
-    (sum, item) => sum + (item.quantity * item.rate * item.tax_percent) / 100,
-    0
-  )
+  const taxTotal = includeTax
+    ? lineItemsWithTotals.reduce(
+        (sum, item) => sum + (item.quantity * item.rate * item.tax_percent) / 100,
+        0
+      )
+    : 0
 
   let discountAmount = 0
   if (formData.discount_type === "percentage") {
@@ -185,6 +194,7 @@ export async function updateDocument(id: string, formData: DocumentFormData) {
       bank_account_number: formData.bank_account_number || null,
       bank_routing_number: formData.bank_routing_number || null,
       bank_swift_code: formData.bank_swift_code || null,
+      include_tax: includeTax,
     })
     .eq("id", id)
     .eq("user_id", user.id)

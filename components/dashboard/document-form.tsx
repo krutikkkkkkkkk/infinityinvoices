@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Add01Icon, Delete01Icon, Loading01Icon, Package01Icon } from "@hugeicons/core-free-icons"
 import {
@@ -130,6 +131,7 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
     bank_swift_code: document?.bank_swift_code || profile?.bank_swift_code || "",
     discount_type: document?.discount_type || null,
     discount_value: document?.discount_value || 0,
+    include_tax: document?.include_tax ?? true,
     line_items: document?.line_items?.map((item) => ({
       name: item.name,
       description: item.description || "",
@@ -152,10 +154,13 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
       (sum, item) => sum + item.quantity * item.rate,
       0
     )
-    const taxTotal = formData.line_items.reduce(
-      (sum, item) => sum + (item.quantity * item.rate * item.tax_percent) / 100,
-      0
-    )
+    // Only calculate tax if include_tax is true
+    const taxTotal = formData.include_tax
+      ? formData.line_items.reduce(
+          (sum, item) => sum + (item.quantity * item.rate * item.tax_percent) / 100,
+          0
+        )
+      : 0
     let discount = 0
     if (formData.discount_type === "percentage") {
       discount = (subtotal * formData.discount_value) / 100
@@ -165,7 +170,7 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
     const grandTotal = subtotal + taxTotal - discount
 
     setTotals({ subtotal, taxTotal, discount, grandTotal })
-  }, [formData.line_items, formData.discount_type, formData.discount_value])
+  }, [formData.line_items, formData.discount_type, formData.discount_value, formData.include_tax])
 
   const handleClientChange = (clientId: string) => {
     if (clientId === "none") {
@@ -412,7 +417,21 @@ const addLineItem = () => {
       {/* Line Items */}
 <Card>
   <CardHeader className="flex flex-row items-center justify-between">
-  <CardTitle>Line Items</CardTitle>
+  <div className="space-y-1">
+    <CardTitle>Line Items</CardTitle>
+    <div className="flex items-center gap-2">
+      <Switch
+        id="include_tax"
+        checked={formData.include_tax}
+        onCheckedChange={(checked) =>
+          setFormData((prev) => ({ ...prev, include_tax: checked }))
+        }
+      />
+      <Label htmlFor="include_tax" className="text-sm font-normal text-muted-foreground cursor-pointer">
+        Include Tax
+      </Label>
+    </div>
+  </div>
   <div className="flex items-center gap-2">
     {products.length > 0 && (
       <Select onValueChange={(productId) => {
@@ -438,18 +457,19 @@ const addLineItem = () => {
   </div>
   </CardHeader>
         <CardContent className="space-y-4">
-          <div className="hidden lg:grid lg:grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">
-            <div className="col-span-4">Item</div>
-            <div className="col-span-2">Quantity</div>
-            <div className="col-span-2">Rate</div>
-            <div className="col-span-2">Tax %</div>
+          <div className={`hidden lg:grid gap-2 text-sm font-medium text-muted-foreground px-1 ${formData.include_tax ? "lg:grid-cols-12" : "lg:grid-cols-10"}`}>
+            <div className={formData.include_tax ? "col-span-4" : "col-span-4"}>Item</div>
+            <div className={formData.include_tax ? "col-span-2" : "col-span-2"}>Quantity</div>
+            <div className={formData.include_tax ? "col-span-2" : "col-span-2"}>Rate</div>
+            {formData.include_tax && <div className="col-span-2">Tax %</div>}
             <div className="col-span-1 text-right">Total</div>
             <div className="col-span-1" />
           </div>
           {formData.line_items.map((item, index) => {
-            const lineTotal = item.quantity * item.rate * (1 + item.tax_percent / 100)
+            const taxMultiplier = formData.include_tax ? (1 + item.tax_percent / 100) : 1
+            const lineTotal = item.quantity * item.rate * taxMultiplier
             return (
-              <div key={index} className="grid gap-2 lg:grid-cols-12 items-start border p-3 rounded-lg lg:border-0 lg:p-0">
+              <div key={index} className={`grid gap-2 items-start border p-3 rounded-lg lg:border-0 lg:p-0 ${formData.include_tax ? "lg:grid-cols-12" : "lg:grid-cols-10"}`}>
                 <div className="lg:col-span-4 space-y-2">
                   <Label className="lg:hidden">Item Name</Label>
                   <Input
@@ -487,17 +507,19 @@ const addLineItem = () => {
                     required
                   />
                 </div>
-                <div className="lg:col-span-2 space-y-1">
-                  <Label className="lg:hidden">Tax %</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={item.tax_percent}
-                    onChange={(e) => updateLineItem(index, "tax_percent", parseFloat(e.target.value) || 0)}
-                  />
-                </div>
+                {formData.include_tax && (
+                  <div className="lg:col-span-2 space-y-1">
+                    <Label className="lg:hidden">Tax %</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={item.tax_percent}
+                      onChange={(e) => updateLineItem(index, "tax_percent", parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                )}
                 <div className="lg:col-span-1 flex items-center justify-end lg:pt-2 font-medium">
                   {currencySymbol}
                   {lineTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -529,13 +551,15 @@ const addLineItem = () => {
                 {totals.subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
-            <div className="flex justify-between w-full sm:w-64">
-              <span className="text-muted-foreground">Tax:</span>
-              <span className="font-medium">
-                {currencySymbol}
-                {totals.taxTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
+            {formData.include_tax && (
+              <div className="flex justify-between w-full sm:w-64">
+                <span className="text-muted-foreground">Tax:</span>
+                <span className="font-medium">
+                  {currencySymbol}
+                  {totals.taxTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
 
             {/* Discount */}
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-64 pt-2">

@@ -125,9 +125,11 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
               <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">
                 Rate
               </th>
-              <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">
-                Tax
-              </th>
+              {document.include_tax !== false && (
+                <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">
+                  Tax
+                </th>
+              )}
               <th className="text-right py-3 px-2 text-sm font-semibold text-gray-600">
                 Amount
               </th>
@@ -148,9 +150,11 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
                 <td className="text-right py-3 px-2 text-gray-600">
                   {formatCurrency(Number(item.rate), document.currency)}
                 </td>
-                <td className="text-right py-3 px-2 text-gray-600">
-                  {Number(item.tax_percent)}%
-                </td>
+                {document.include_tax !== false && (
+                  <td className="text-right py-3 px-2 text-gray-600">
+                    {Number(item.tax_percent)}%
+                  </td>
+                )}
                 <td className="text-right py-3 px-2 font-medium text-gray-800">
                   {formatCurrency(Number(item.line_total), document.currency)}
                 </td>
@@ -168,12 +172,14 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
                 {formatCurrency(Number(document.subtotal), document.currency)}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Tax:</span>
-              <span className="text-gray-800">
-                {formatCurrency(Number(document.tax_total), document.currency)}
-              </span>
-            </div>
+            {document.include_tax !== false && Number(document.tax_total) > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Tax:</span>
+                <span className="text-gray-800">
+                  {formatCurrency(Number(document.tax_total), document.currency)}
+                </span>
+              </div>
+            )}
             {document.discount_value && Number(document.discount_value) > 0 && (
               <div className="flex justify-between text-sm text-red-600">
                 <span>
