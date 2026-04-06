@@ -10,6 +10,7 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import type { Document, LineItem, Profile, DocumentType, Currency } from "@/lib/types"
 import { PaymentsPanel } from "@/components/dashboard/payments-panel"
+import { isAdmin } from "@/lib/admin"
 
 function getStatusBadge(status: string) {
   const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -103,13 +104,21 @@ export default async function DocumentDetailPage({
     notFound()
   }
 
+  // Check if user is admin
+  const adminStatus = await isAdmin()
+
   // Fetch document with line items
-  const { data: document, error } = await supabase
+  let query = supabase
     .from("documents")
     .select("*, line_items(*)")
     .eq("id", id)
-    .eq("user_id", user.id)
-    .single()
+
+  // If not admin, filter by user_id
+  if (!adminStatus) {
+    query = query.eq("user_id", user.id)
+  }
+
+  const { data: document, error } = await query.single()
 
   if (error || !document) {
     notFound()
