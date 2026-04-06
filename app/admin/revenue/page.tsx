@@ -8,15 +8,15 @@ import { TrendingUp, Users, DollarSign, Calendar, Crown } from "lucide-react"
 const PRO_PRICE = PRO_PLAN.priceInCents / 100 // 5
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-IN", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "INR",
+    currency: "USD",
     minimumFractionDigits: 0,
   }).format(amount)
 }
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("en-IN", {
+  return new Date(date).toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
     year: "numeric",
