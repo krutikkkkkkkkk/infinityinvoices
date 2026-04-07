@@ -7,7 +7,7 @@ const CURRENCIES: { [key: string]: string } = {
   GBP: "£",
 }
 
-export type TemplateType = "classic" | "minimal" | "tax" | "dark"
+export type TemplateType = "classic" | "minimal" | "tax" | "dark" | "executive" | "bold"
 
 export function generateDocumentHTML(
   document: Document & { line_items: LineItem[] },
@@ -41,6 +41,14 @@ export function generateDocumentHTML(
 
   if (template === "dark") {
     return generateDarkTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
+  }
+
+  if (template === "executive") {
+    return generateExecutiveTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
+  }
+
+  if (template === "bold") {
+    return generateBoldTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
   }
 
   return generateClassicTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
@@ -1006,4 +1014,305 @@ function generateDarkTemplate(
 </body>
 </html>
   `
+}
+
+function generateExecutiveTemplate(
+  document: Document & { line_items: LineItem[] },
+  profile: any,
+  lineItems: LineItem[],
+  currencySymbol: string,
+  subtotal: number,
+  taxAmount: number,
+  discount: number,
+  total: number,
+  includeTax: boolean
+) {
+  const itemsHtml = lineItems
+    .map(
+      (item: LineItem) => `
+      <tr>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;">
+          <div style="font-weight: 600; color: #111827; font-size: 13px;">${item.name || ""}</div>
+          ${item.description ? `<div style="font-size: 11px; color: #9ca3af; margin-top: 2px;">${item.description}</div>` : ""}
+        </td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #374151;">${item.quantity}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #374151;">${currencySymbol}${Number(item.rate).toFixed(2)}</td>
+        ${includeTax ? `<td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #374151;">${item.tax_percent}%</td>` : ""}
+        <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; font-weight: 600; color: #111827;">${currencySymbol}${Number(item.line_total).toFixed(2)}</td>
+      </tr>
+    `
+    )
+    .join("")
+
+  const dateFormatted = new Date(document.issue_date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+  const dueDateFormatted = document.due_date ? new Date(document.due_date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : null
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; }
+    @page { margin: 0; size: A4; }
+    .page-break { break-after: page; }
+    .no-break { break-inside: avoid; }
+  </style>
+</head>
+<body>
+  <div style="display: flex; min-height: 297mm; width: 210mm; margin: 0 auto;">
+    <!-- Navy Sidebar -->
+    <div style="width: 56mm; background: linear-gradient(to bottom, #1e3a5f, #0f2744); color: white; padding: 24px 20px; display: flex; flex-direction: column;">
+      ${profile?.logo_url ? `<div style="background: white; border-radius: 8px; padding: 10px; margin-bottom: 20px;"><img src="${profile.logo_url}" alt="Logo" style="height: 48px; width: auto; display: block;"></div>` : ""}
+      <div style="margin-bottom: 24px;">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px;">${profile?.company_name || "Your Company"}</div>
+        ${profile?.company_address ? `<div style="font-size: 10px; opacity: 0.8; white-space: pre-line; line-height: 1.5; margin-bottom: 8px;">${profile.company_address}</div>` : ""}
+        ${profile?.email ? `<div style="font-size: 10px; opacity: 0.8; margin-top: 4px;">${profile.email}</div>` : ""}
+        ${profile?.phone ? `<div style="font-size: 10px; opacity: 0.8;">${profile.phone}</div>` : ""}
+        ${profile?.gst_id ? `<div style="font-size: 10px; opacity: 0.7; margin-top: 8px;">GST: ${profile.gst_id}</div>` : ""}
+      </div>
+      ${profile?.upi_id ? `
+      <div style="margin-top: auto;">
+        <div style="background: white; padding: 8px; border-radius: 6px; margin-bottom: 6px;">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=${encodeURIComponent(profile.upi_id)}&pn=${encodeURIComponent(profile.company_name || "")}&am=${document.grand_total}&cu=${document.currency}" alt="UPI QR" style="width: 100%; display: block;">
+        </div>
+        <div style="font-size: 9px; text-align: center; opacity: 0.7;">Scan to Pay via UPI</div>
+      </div>
+      ` : ""}
+    </div>
+
+    <!-- Main content -->
+    <div style="flex: 1; padding: 32px 28px; display: flex; flex-direction: column;">
+      <!-- Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #d4af37;">
+        <div>
+          <h1 style="font-size: 28px; font-weight: 800; color: #1e3a5f; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">${document.type}</h1>
+          <p style="font-size: 12px; color: #9ca3af;">Document #${document.number}</p>
+        </div>
+        <div style="text-align: right;">
+          <p style="font-size: 10px; color: #9ca3af; margin-bottom: 2px;">Issue Date</p>
+          <p style="font-size: 12px; font-weight: 600; color: #111827;">${dateFormatted}</p>
+          ${dueDateFormatted ? `<p style="font-size: 10px; color: #9ca3af; margin-top: 8px; margin-bottom: 2px;">Due Date</p><p style="font-size: 12px; font-weight: 600; color: #d4af37;">${dueDateFormatted}</p>` : ""}
+        </div>
+      </div>
+
+      <!-- Bill To -->
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <div style="width: 3px; height: 14px; background: #d4af37;"></div>
+          <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1e3a5f;">Bill To</span>
+        </div>
+        <p style="font-weight: 700; color: #111827; font-size: 14px; margin-bottom: 4px;">${document.client_name || "Client"}</p>
+        ${document.client_address ? `<p style="font-size: 12px; color: #6b7280; white-space: pre-line;">${document.client_address}</p>` : ""}
+        ${document.client_email ? `<p style="font-size: 12px; color: #6b7280;">${document.client_email}</p>` : ""}
+        ${document.client_gst_id ? `<p style="font-size: 12px; color: #6b7280; margin-top: 4px;"><strong>GST:</strong> ${document.client_gst_id}</p>` : ""}
+      </div>
+
+      <!-- Table -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+          <tr style="background: #1e3a5f;">
+            <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px;">Item</th>
+            <th style="text-align: right; padding: 10px 12px; font-size: 11px; font-weight: 700; color: white; text-transform: uppercase; width: 50px;">Qty</th>
+            <th style="text-align: right; padding: 10px 12px; font-size: 11px; font-weight: 700; color: white; text-transform: uppercase; width: 90px;">Rate</th>
+            ${includeTax ? `<th style="text-align: right; padding: 10px 12px; font-size: 11px; font-weight: 700; color: white; text-transform: uppercase; width: 50px;">Tax</th>` : ""}
+            <th style="text-align: right; padding: 10px 12px; font-size: 11px; font-weight: 700; color: white; text-transform: uppercase; width: 90px;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${itemsHtml}</tbody>
+      </table>
+
+      <!-- Totals -->
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 24px;">
+        <div style="width: 260px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: #6b7280;"><span>Subtotal:</span><span style="color: #111827; font-weight: 500;">${currencySymbol}${subtotal.toFixed(2)}</span></div>
+          ${includeTax && taxAmount > 0 ? `<div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: #6b7280;"><span>Tax:</span><span style="color: #111827; font-weight: 500;">${currencySymbol}${taxAmount.toFixed(2)}</span></div>` : ""}
+          ${discount > 0 ? `<div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: #dc2626;"><span>Discount:</span><span>-${currencySymbol}${Number(discount).toFixed(2)}</span></div>` : ""}
+          <div style="display: flex; justify-content: space-between; padding-top: 12px; margin-top: 4px; border-top: 2px solid #d4af37;">
+            <span style="font-size: 15px; font-weight: 800; color: #1e3a5f;">Total:</span>
+            <span style="font-size: 16px; font-weight: 800; color: #1e3a5f;">${currencySymbol}${Number(document.grand_total).toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Info -->
+      ${(profile?.bank_name || profile?.upi_id || profile?.paypal_email) ? `
+      <div style="border: 2px solid #1e3a5f; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1e3a5f; margin-bottom: 12px;">Payment Information</p>
+        ${profile?.bank_name ? `
+        <div style="margin-bottom: 12px; font-size: 11px;">
+          <p style="font-weight: 700; color: #374151; margin-bottom: 6px;">Bank Transfer</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+            <p style="color: #6b7280;"><b>Bank:</b> ${profile.bank_name}</p>
+            ${profile.bank_account_name ? `<p style="color: #6b7280;"><b>Account:</b> ${profile.bank_account_name}</p>` : ""}
+            ${profile.bank_account_number ? `<p style="color: #6b7280;"><b>A/C #:</b> <span style="font-family: monospace;">${profile.bank_account_number}</span></p>` : ""}
+            ${profile.bank_routing_number ? `<p style="color: #6b7280;"><b>IFSC:</b> <span style="font-family: monospace;">${profile.bank_routing_number}</span></p>` : ""}
+            ${profile.bank_swift_code ? `<p style="color: #6b7280;"><b>SWIFT:</b> <span style="font-family: monospace;">${profile.bank_swift_code}</span></p>` : ""}
+          </div>
+        </div>
+        ` : ""}
+        ${profile?.upi_id ? `<div style="border-top: 1px solid #e5e7eb; padding-top: 10px; font-size: 11px;"><p style="font-weight: 700; color: #374151; margin-bottom: 4px;">UPI</p><p style="color: #6b7280; font-family: monospace;">${profile.upi_id}</p></div>` : ""}
+        ${profile?.paypal_email ? `<div style="border-top: 1px solid #e5e7eb; padding-top: 10px; font-size: 11px;"><p style="font-weight: 700; color: #374151; margin-bottom: 4px;">PayPal</p><p style="color: #6b7280;">${profile.paypal_email}</p></div>` : ""}
+      </div>
+      ` : ""}
+
+      ${document.notes ? `<div style="margin-bottom: 12px;"><p style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 4px;">Notes</p><p style="font-size: 12px; color: #374151; white-space: pre-line; line-height: 1.5;">${document.notes}</p></div>` : ""}
+      ${document.terms ? `<div style="margin-bottom: 12px;"><p style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 4px;">Terms &amp; Conditions</p><p style="font-size: 12px; color: #374151; white-space: pre-line; line-height: 1.5;">${document.terms}</p></div>` : ""}
+
+      <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #d1d5db;">
+        <p>Thank you for your business!</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+function generateBoldTemplate(
+  document: Document & { line_items: LineItem[] },
+  profile: any,
+  lineItems: LineItem[],
+  currencySymbol: string,
+  subtotal: number,
+  taxAmount: number,
+  discount: number,
+  total: number,
+  includeTax: boolean
+) {
+  const itemsHtml = lineItems
+    .map(
+      (item: LineItem) => `
+      <tr>
+        <td style="padding: 14px 0; border-bottom: 1px solid #e5e7eb;">
+          <div style="font-weight: 600; color: #111827; font-size: 13px;">${item.name || ""}</div>
+          ${item.description ? `<div style="font-size: 11px; color: #9ca3af; margin-top: 2px;">${item.description}</div>` : ""}
+        </td>
+        <td style="padding: 14px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #4b5563;">${item.quantity}</td>
+        <td style="padding: 14px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #4b5563;">${currencySymbol}${Number(item.rate).toFixed(2)}</td>
+        ${includeTax ? `<td style="padding: 14px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; color: #4b5563;">${item.tax_percent}%</td>` : ""}
+        <td style="padding: 14px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; font-weight: 700; color: #111827;">${currencySymbol}${Number(item.line_total).toFixed(2)}</td>
+      </tr>
+    `
+    )
+    .join("")
+
+  const dateFormatted = new Date(document.issue_date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+  const dueDateFormatted = document.due_date ? new Date(document.due_date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : null
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; width: 210mm; min-height: 297mm; }
+    @page { margin: 0; size: A4; }
+    .page-break { break-after: page; }
+    .no-break { break-inside: avoid; }
+  </style>
+</head>
+<body>
+  <!-- Black header band -->
+  <div style="background: #0d0d0d; padding: 32px 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        ${profile?.logo_url ? `<img src="${profile.logo_url}" alt="Logo" style="height: 48px; width: auto; margin-bottom: 12px; display: block;">` : ""}
+        <div style="color: white; font-size: 18px; font-weight: 700; margin-bottom: 4px;">${profile?.company_name || "Your Company"}</div>
+        ${profile?.company_address ? `<div style="color: #9ca3af; font-size: 11px; white-space: pre-line; line-height: 1.5;">${profile.company_address}</div>` : ""}
+        ${profile?.email ? `<div style="color: #9ca3af; font-size: 11px;">${profile.email}</div>` : ""}
+        ${profile?.phone ? `<div style="color: #9ca3af; font-size: 11px;">${profile.phone}</div>` : ""}
+        ${profile?.gst_id ? `<div style="color: #9ca3af; font-size: 11px; margin-top: 4px;">GST: ${profile.gst_id}</div>` : ""}
+      </div>
+      <div style="text-align: right;">
+        <div style="color: white; font-size: 52px; font-weight: 900; text-transform: uppercase; line-height: 1; letter-spacing: -1px;">${document.type}</div>
+        <div style="color: #9ca3af; font-size: 12px; margin-top: 10px;">No. <strong style="color: white;">${document.number}</strong></div>
+        <div style="color: #9ca3af; font-size: 12px; margin-top: 4px;">Date: <strong style="color: white;">${dateFormatted}</strong></div>
+        ${dueDateFormatted ? `<div style="font-size: 12px; margin-top: 4px; color: #6b7280;">Due: <strong style="color: #fbbf24;">${dueDateFormatted}</strong></div>` : ""}
+      </div>
+    </div>
+  </div>
+  <!-- Amber accent bar -->
+  <div style="height: 4px; background: #fbbf24;"></div>
+
+  <!-- Body -->
+  <div style="padding: 32px 40px;">
+    <!-- Bill To -->
+    <div style="margin-bottom: 32px;">
+      <p style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; margin-bottom: 8px;">Bill To</p>
+      <p style="font-size: 20px; font-weight: 900; color: #111827; margin-bottom: 6px;">${document.client_name || "Client"}</p>
+      ${document.client_address ? `<p style="font-size: 13px; color: #6b7280; white-space: pre-line; line-height: 1.5;">${document.client_address}</p>` : ""}
+      ${document.client_email ? `<p style="font-size: 13px; color: #6b7280;">${document.client_email}</p>` : ""}
+      ${document.client_gst_id ? `<p style="font-size: 13px; color: #6b7280; margin-top: 4px;"><b>GST:</b> ${document.client_gst_id}</p>` : ""}
+    </div>
+
+    <!-- Table -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+      <thead>
+        <tr style="border-top: 2px solid #0d0d0d; border-bottom: 2px solid #0d0d0d;">
+          <th style="text-align: left; padding: 12px 0; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #111827;">Item</th>
+          <th style="text-align: right; padding: 12px 0; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #111827; width: 50px;">Qty</th>
+          <th style="text-align: right; padding: 12px 0; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #111827; width: 90px;">Rate</th>
+          ${includeTax ? `<th style="text-align: right; padding: 12px 0; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #111827; width: 50px;">Tax</th>` : ""}
+          <th style="text-align: right; padding: 12px 0; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #111827; width: 90px;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>${itemsHtml}</tbody>
+    </table>
+
+    <!-- Totals -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 32px;">
+      <div style="width: 280px;">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; color: #6b7280;"><span>Subtotal:</span><span style="color: #111827; font-weight: 500;">${currencySymbol}${subtotal.toFixed(2)}</span></div>
+        ${includeTax && taxAmount > 0 ? `<div style="display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; color: #6b7280;"><span>Tax:</span><span style="color: #111827; font-weight: 500;">${currencySymbol}${taxAmount.toFixed(2)}</span></div>` : ""}
+        ${discount > 0 ? `<div style="display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; color: #dc2626;"><span>Discount:</span><span>-${currencySymbol}${Number(discount).toFixed(2)}</span></div>` : ""}
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #0d0d0d; padding: 12px 16px; margin-top: 8px;">
+          <span style="font-size: 14px; font-weight: 900; color: white; text-transform: uppercase; letter-spacing: 1px;">Total</span>
+          <span style="font-size: 18px; font-weight: 900; color: #fbbf24;">${currencySymbol}${Number(document.grand_total).toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Info -->
+    ${(profile?.bank_name || profile?.upi_id || profile?.paypal_email) ? `
+    <div style="border-top: 2px solid #0d0d0d; padding-top: 24px; margin-bottom: 24px;">
+      <p style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #111827; margin-bottom: 16px;">Payment Information</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div>
+          ${profile?.bank_name ? `
+          <div style="margin-bottom: 16px; font-size: 11px;">
+            <p style="font-weight: 700; color: #111827; margin-bottom: 6px;">Bank Transfer</p>
+            <p style="color: #6b7280; margin-bottom: 2px;"><b>Bank:</b> ${profile.bank_name}</p>
+            ${profile.bank_account_name ? `<p style="color: #6b7280; margin-bottom: 2px;"><b>Account:</b> ${profile.bank_account_name}</p>` : ""}
+            ${profile.bank_account_number ? `<p style="color: #6b7280; margin-bottom: 2px;"><b>A/C #:</b> <span style="font-family: monospace;">${profile.bank_account_number}</span></p>` : ""}
+            ${profile.bank_routing_number ? `<p style="color: #6b7280; margin-bottom: 2px;"><b>IFSC:</b> <span style="font-family: monospace;">${profile.bank_routing_number}</span></p>` : ""}
+            ${profile.bank_swift_code ? `<p style="color: #6b7280;"><b>SWIFT:</b> <span style="font-family: monospace;">${profile.bank_swift_code}</span></p>` : ""}
+          </div>
+          ` : ""}
+          ${profile?.paypal_email ? `<div style="font-size: 11px;"><p style="font-weight: 700; color: #111827; margin-bottom: 4px;">PayPal</p><p style="color: #6b7280;">${profile.paypal_email}</p></div>` : ""}
+        </div>
+        ${profile?.upi_id ? `
+        <div>
+          <p style="font-size: 11px; font-weight: 700; color: #111827; margin-bottom: 8px;">UPI Payment</p>
+          <div style="border: 2px solid #0d0d0d; padding: 4px; display: inline-block; margin-bottom: 6px;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=upi://pay?pa=${encodeURIComponent(profile.upi_id)}&pn=${encodeURIComponent(profile.company_name || "")}&am=${document.grand_total}&cu=${document.currency}" alt="UPI QR" style="width: 100px; height: 100px; display: block;">
+          </div>
+          <p style="font-size: 11px; color: #6b7280; font-family: monospace;">${profile.upi_id}</p>
+        </div>
+        ` : ""}
+      </div>
+    </div>
+    ` : ""}
+
+    ${document.notes ? `<div style="margin-bottom: 16px; border-left: 4px solid #fbbf24; padding-left: 12px;"><p style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #111827; margin-bottom: 4px;">Notes</p><p style="font-size: 12px; color: #374151; white-space: pre-line; line-height: 1.5;">${document.notes}</p></div>` : ""}
+    ${document.terms ? `<div style="margin-bottom: 16px; border-left: 4px solid #d1d5db; padding-left: 12px;"><p style="font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #111827; margin-bottom: 4px;">Terms &amp; Conditions</p><p style="font-size: 12px; color: #374151; white-space: pre-line; line-height: 1.5;">${document.terms}</p></div>` : ""}
+
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 11px; color: #9ca3af;">
+      <span>Thank you for your business!</span>
+      <span style="font-family: monospace;">${document.number}</span>
+    </div>
+  </div>
+</body>
+</html>`
 }

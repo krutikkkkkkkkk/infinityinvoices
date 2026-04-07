@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircleIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type TemplateType = "classic" | "minimal" | "tax" | "dark"
+export type TemplateType = "classic" | "minimal" | "tax" | "dark" | "executive" | "bold"
 
 export const TEMPLATES: {
   id: TemplateType
   label: string
   description: string
   preview: React.ReactNode
+  pro?: boolean
 }[] = [
   {
     id: "classic",
@@ -195,14 +196,104 @@ export const TEMPLATES: {
       </div>
     ),
   },
+  {
+    id: "executive",
+    label: "Executive",
+    description: "Navy & gold sidebar",
+    pro: true,
+    preview: (
+      <div className="w-full h-full flex overflow-hidden rounded">
+        {/* Navy sidebar */}
+        <div className="w-8 flex flex-col gap-1 p-1.5" style={{ backgroundColor: "#1e3a5f" }}>
+          <div className="w-4 h-4 bg-white rounded-sm mx-auto mb-1" />
+          <div className="w-3 h-0.5 bg-white/60 rounded-sm" />
+          <div className="w-4 h-0.5 bg-white/40 rounded-sm" />
+          <div className="w-3 h-0.5 bg-white/40 rounded-sm" />
+          <div className="mt-auto w-5 h-5 bg-white rounded-sm mx-auto" />
+        </div>
+        {/* Content area */}
+        <div className="flex-1 bg-white p-1.5 flex flex-col gap-1">
+          <div className="flex justify-between items-start">
+            <div className="space-y-0.5">
+              <div className="w-10 h-1.5 rounded-sm" style={{ backgroundColor: "#1e3a5f" }} />
+              <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="w-6 h-0.5 bg-gray-300 rounded-sm ml-auto" />
+              <div className="w-8 h-0.5 rounded-sm ml-auto" style={{ backgroundColor: "#d4af37" }} />
+            </div>
+          </div>
+          <div className="w-full h-px" style={{ backgroundColor: "#d4af37" }} />
+          <div className="p-1 bg-gray-50 rounded space-y-0.5">
+            <div className="w-6 h-0.5 bg-gray-400 rounded-sm" />
+            <div className="w-10 h-1 bg-gray-700 rounded-sm" />
+          </div>
+          <div className="space-y-0.5 mt-0.5">
+            <div className="flex justify-between">
+              <div className="w-10 h-1 rounded-sm" style={{ backgroundColor: "#1e3a5f" }} />
+              <div className="w-6 h-1 rounded-sm" style={{ backgroundColor: "#1e3a5f" }} />
+            </div>
+            <div className="flex justify-between">
+              <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
+              <div className="w-5 h-0.5 bg-gray-300 rounded-sm" />
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "bold",
+    label: "Bold",
+    description: "Dark header, clean body",
+    pro: true,
+    preview: (
+      <div className="w-full h-full flex flex-col overflow-hidden rounded">
+        {/* Black header band */}
+        <div className="bg-[#0d0d0d] p-2 flex justify-between items-start">
+          <div className="space-y-0.5">
+            <div className="w-5 h-1 bg-white rounded-sm" />
+            <div className="w-8 h-0.5 bg-gray-500 rounded-sm" />
+          </div>
+          <div className="text-right">
+            <div className="w-10 h-2 bg-white rounded-sm" />
+            <div className="w-6 h-0.5 bg-gray-500 rounded-sm mt-0.5 ml-auto" />
+          </div>
+        </div>
+        {/* Amber accent bar */}
+        <div className="h-0.5 bg-amber-400 w-full" />
+        {/* Body */}
+        <div className="flex-1 bg-white p-2 flex flex-col gap-1">
+          <div className="w-10 h-1.5 bg-gray-900 rounded-sm" />
+          <div className="w-8 h-0.5 bg-gray-400 rounded-sm" />
+          <div className="w-full h-px bg-gray-300 my-0.5" />
+          <div className="space-y-0.5">
+            <div className="flex justify-between">
+              <div className="w-12 h-0.5 bg-gray-700 rounded-sm" />
+              <div className="w-5 h-0.5 bg-gray-700 rounded-sm" />
+            </div>
+            <div className="flex justify-between">
+              <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
+              <div className="w-4 h-0.5 bg-gray-300 rounded-sm" />
+            </div>
+          </div>
+          <div className="mt-auto bg-[#0d0d0d] flex justify-between px-1.5 py-1">
+            <div className="w-5 h-1 bg-white rounded-sm" />
+            <div className="w-6 h-1 bg-amber-400 rounded-sm" />
+          </div>
+        </div>
+      </div>
+    ),
+  },
 ]
 
 interface TemplateSelectorProps {
   value: TemplateType
   onChange: (template: TemplateType) => void
+  isPro?: boolean
 }
 
-export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
+export function TemplateSelector({ value, onChange, isPro = true }: TemplateSelectorProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -212,16 +303,21 @@ export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
         <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
           {TEMPLATES.map((tpl) => {
             const isSelected = value === tpl.id
+            const isLocked = tpl.pro && !isPro
             return (
               <button
                 key={tpl.id}
                 type="button"
-                onClick={() => onChange(tpl.id)}
+                onClick={() => !isLocked && onChange(tpl.id)}
+                disabled={isLocked}
+                title={isLocked ? "Pro template — upgrade to unlock" : tpl.label}
                 className={cn(
-                  "relative flex-none w-28 rounded-lg border-2 p-1.5 transition-all hover:border-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  isSelected
+                  "relative flex-none w-28 rounded-lg border-2 p-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  isLocked
+                    ? "border-muted bg-background opacity-60 cursor-not-allowed"
+                    : isSelected
                     ? "border-primary bg-primary/5"
-                    : "border-muted bg-background"
+                    : "border-muted bg-background hover:border-primary/60 cursor-pointer"
                 )}
               >
                 {/* Thumbnail */}
@@ -233,8 +329,15 @@ export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
                 <p className="text-xs font-medium text-center truncate">{tpl.label}</p>
                 <p className="text-[10px] text-muted-foreground text-center truncate">{tpl.description}</p>
 
+                {/* PRO badge */}
+                {tpl.pro && (
+                  <span className="absolute top-1 left-1 bg-amber-400 text-[#0d0d0d] text-[9px] font-black px-1 py-0.5 rounded leading-none uppercase tracking-wide">
+                    Pro
+                  </span>
+                )}
+
                 {/* Selected check */}
-                {isSelected && (
+                {isSelected && !isLocked && (
                   <span className="absolute top-1 right-1 text-primary">
                     <CheckCircleIcon className="w-3.5 h-3.5 fill-primary text-primary-foreground" />
                   </span>
