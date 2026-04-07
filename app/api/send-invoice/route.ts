@@ -340,7 +340,7 @@ export async function POST(request: NextRequest) {
 `
 
     // Send email via Resend
-    const fromEmail = process.env.RESEND_FROM_EMAIL 
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "hello@new.infinityinvoices.com"
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: recipientEmail,

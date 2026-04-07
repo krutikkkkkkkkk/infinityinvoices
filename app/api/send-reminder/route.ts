@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     // Send email
     const { error: emailError } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      from: process.env.RESEND_FROM_EMAIL || "hello@new.infinityinvoices.com",
       to: document.client_email,
       subject: `${daysOverdue > 0 ? "OVERDUE: " : "Reminder: "}Invoice ${document.number} - ${symbol}${remaining.toLocaleString()} Due`,
       html: emailHtml,
