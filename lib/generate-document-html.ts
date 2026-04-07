@@ -80,6 +80,134 @@ function generateClassicTemplate(
     )
     .join("")
 
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { margin: 0.5in; size: A4; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+    .company-logo { max-height: 60px; margin-bottom: 12px; }
+    .company-name { font-size: 18px; font-weight: 700; color: #1f2937; }
+    .company-details { font-size: 12px; color: #6b7280; line-height: 1.6; }
+    .invoice-title { font-size: 32px; font-weight: 700; text-transform: uppercase; color: #1f2937; }
+    .invoice-meta { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .bill-to { margin-bottom: 32px; padding: 16px; background: #f9fafb; border-radius: 6px; }
+    .bill-to-label { font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; font-weight: 600; }
+    .client-name { font-size: 15px; font-weight: 600; color: #1f2937; }
+    .client-details { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    th { padding: 12px; text-align: left; font-size: 11px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+    .totals { margin-left: auto; width: 280px; }
+    .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; }
+    .total-row.final { border-top: 2px solid #1f2937; font-weight: 700; font-size: 16px; margin-top: 8px; padding-top: 12px; }
+    .payment-info { margin-top: 32px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 6px; }
+    .payment-label { font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; }
+    .payment-method { margin-bottom: 12px; }
+    .payment-method-title { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+    .payment-detail { font-size: 12px; color: #6b7280; margin: 2px 0; }
+    .qr-container { display: flex; gap: 12px; margin-top: 8px; }
+    .qr-image { width: 80px; height: 80px; }
+    .notes { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+    .notes-label { font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; font-weight: 600; }
+    .notes-text { font-size: 12px; color: #6b7280; white-space: pre-line; }
+    .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      ${profile?.logo_url ? `<img src="${profile.logo_url}" alt="Logo" class="company-logo">` : ""}
+      <div class="company-name">${profile?.company_name || "Your Company"}</div>
+      <div class="company-details">
+        ${profile?.company_address ? `${profile.company_address}<br>` : ""}
+        ${profile?.email ? `${profile.email}<br>` : ""}
+        ${profile?.phone ? `${profile.phone}<br>` : ""}
+        ${profile?.gst_id ? `GSTIN: ${profile.gst_id}` : ""}
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div class="invoice-title">${document.type === "quotation" ? "Quotation" : "Invoice"}</div>
+      <div class="invoice-meta"><strong>#</strong> ${document.number || "DRAFT"}</div>
+      <div class="invoice-meta"><strong>Date:</strong> ${new Date(document.issue_date).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</div>
+      ${document.due_date ? `<div class="invoice-meta"><strong>Due:</strong> ${new Date(document.due_date).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</div>` : ""}
+    </div>
+  </div>
+
+  <div class="bill-to">
+    <div class="bill-to-label">Bill To</div>
+    <div class="client-name">${document.client_name || "Client"}</div>
+    <div class="client-details">
+      ${document.client_email ? `${document.client_email}<br>` : ""}
+      ${document.client_address || ""}
+      ${document.client_gst_id ? `<br>GSTIN: ${document.client_gst_id}` : ""}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 40px;">#</th>
+        <th>Description</th>
+        <th style="text-align: right; width: 60px;">Qty</th>
+        <th style="text-align: right; width: 100px;">Rate</th>
+        ${includeTax ? `<th style="text-align: right; width: 60px;">Tax</th>` : ""}
+        <th style="text-align: right; width: 100px;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+
+  <div class="totals">
+    <div class="total-row"><span>Subtotal</span><span>${currencySymbol}${subtotal.toFixed(2)}</span></div>
+    ${includeTax && taxAmount > 0 ? `<div class="total-row"><span>Tax</span><span>${currencySymbol}${taxAmount.toFixed(2)}</span></div>` : ""}
+    ${discount > 0 ? `<div class="total-row" style="color: #dc2626;"><span>Discount</span><span>-${currencySymbol}${discount.toFixed(2)}</span></div>` : ""}
+    <div class="total-row final"><span>Total</span><span>${currencySymbol}${total.toFixed(2)}</span></div>
+  </div>
+
+  ${(profile?.bank_name || profile?.upi_id || profile?.paypal_email) ? `
+  <div class="payment-info">
+    <div class="payment-label">Payment Information</div>
+    ${profile?.bank_name ? `
+    <div class="payment-method">
+      <div class="payment-method-title">Bank Transfer</div>
+      <div class="payment-detail">Bank: ${profile.bank_name}</div>
+      ${profile.bank_account_name ? `<div class="payment-detail">Account: ${profile.bank_account_name}</div>` : ""}
+      ${profile.bank_account_number ? `<div class="payment-detail">A/C #: ${profile.bank_account_number}</div>` : ""}
+      ${profile.bank_routing_number ? `<div class="payment-detail">IFSC: ${profile.bank_routing_number}</div>` : ""}
+      ${profile.bank_swift_code ? `<div class="payment-detail">SWIFT: ${profile.bank_swift_code}</div>` : ""}
+    </div>
+    ` : ""}
+    ${profile?.upi_id ? `
+    <div class="payment-method" style="${profile?.bank_name ? "border-top: 1px solid #e5e7eb; padding-top: 12px; margin-top: 12px;" : ""}">
+      <div class="payment-method-title">UPI Payment</div>
+      <div class="qr-container">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=upi://pay?pa=${encodeURIComponent(profile.upi_id)}&pn=${encodeURIComponent(profile.company_name || "")}&am=${total}&cu=INR" alt="UPI QR" class="qr-image">
+        <div><div class="payment-detail">UPI ID: ${profile.upi_id}</div><div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">Scan to pay</div></div>
+      </div>
+    </div>
+    ` : ""}
+    ${profile?.paypal_email ? `
+    <div class="payment-method" style="${(profile?.bank_name || profile?.upi_id) ? "border-top: 1px solid #e5e7eb; padding-top: 12px; margin-top: 12px;" : ""}">
+      <div class="payment-method-title">PayPal</div>
+      <div class="payment-detail">Email: ${profile.paypal_email}</div>
+    </div>
+    ` : ""}
+  </div>
+  ` : ""}
+
+  ${document.notes ? `<div class="notes"><div class="notes-label">Notes</div><div class="notes-text">${document.notes}</div></div>` : ""}
+  ${document.terms ? `<div class="notes"><div class="notes-label">Terms & Conditions</div><div class="notes-text">${document.terms}</div></div>` : ""}
+
+  <div class="footer">Thank you for your business!</div>
+</body>
+</html>
+  `
+}
+
 function generateTaxTemplate(
   document: Document & { line_items: LineItem[] },
   profile: any,
