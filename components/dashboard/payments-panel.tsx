@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,6 +63,7 @@ export function PaymentsPanel({ documentId, grandTotal, currency, onPaymentChang
   })
 
   const supabase = createClient()
+  const router = useRouter()
   const symbol = CURRENCIES.find((c) => c.value === currency)?.symbol || "₹"
 
   const fetchPayments = async () => {
@@ -100,13 +102,15 @@ export function PaymentsPanel({ documentId, grandTotal, currency, onPaymentChang
       notes: formData.notes || null,
     })
 
-    // Update document amount_paid
+    // Update document amount_paid and status
     const newTotalPaid = totalPaid + parseFloat(formData.amount)
+    const newStatus = newTotalPaid >= grandTotal ? "paid" : "sent"
+    
     await supabase
       .from("documents")
       .update({ 
         amount_paid: newTotalPaid,
-        status: newTotalPaid >= grandTotal ? "paid" : undefined
+        status: newStatus
       })
       .eq("id", documentId)
 
@@ -119,23 +123,30 @@ export function PaymentsPanel({ documentId, grandTotal, currency, onPaymentChang
       reference_number: "",
       notes: "",
     })
-    fetchPayments()
+    await fetchPayments()
+    router.refresh()
   }
 
   const handleDelete = async () => {
     if (!deletingPayment) return
     await supabase.from("payments").delete().eq("id", deletingPayment.id)
     
-    // Update document amount_paid
+    // Update document amount_paid and status
     const newTotalPaid = totalPaid - Number(deletingPayment.amount)
+    const newStatus = newTotalPaid >= grandTotal ? "paid" : "sent"
+    
     await supabase
       .from("documents")
-      .update({ amount_paid: Math.max(0, newTotalPaid) })
+      .update({ 
+        amount_paid: Math.max(0, newTotalPaid),
+        status: newStatus
+      })
       .eq("id", documentId)
 
     setShowDeleteDialog(false)
     setDeletingPayment(null)
-    fetchPayments()
+    await fetchPayments()
+    router.refresh()
   }
 
   return (
