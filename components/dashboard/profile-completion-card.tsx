@@ -7,18 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  Tick01Icon,
+  CheckmarkCircle02Icon,
   Cancel01Icon,
-  Building04Icon,
-  MailAtSign01Icon,
-  Call02Icon,
-  Location01Icon,
-  Tag01Icon,
-  Image01Icon,
-  Bank01Icon,
-  MobileNavigator01Icon,
-  PaypalIcon,
 } from "@hugeicons/core-free-icons"
+import { Building2, Mail, Phone, MapPin, Receipt, ImageIcon, Landmark, Smartphone, CreditCard } from "lucide-react"
 import type { Profile } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -30,15 +22,15 @@ interface ProfileField {
 }
 
 const PROFILE_FIELDS: ProfileField[] = [
-  { key: "company_name",      label: "Company Name",    icon: Building04Icon,       group: "business" },
-  { key: "email",             label: "Business Email",  icon: MailAtSign01Icon,     group: "business" },
-  { key: "phone",             label: "Phone Number",    icon: Call02Icon,           group: "business" },
-  { key: "company_address",   label: "Address",         icon: Location01Icon,       group: "business" },
-  { key: "gst_id",            label: "GST / Tax ID",    icon: Tag01Icon,            group: "business" },
-  { key: "logo_url",          label: "Company Logo",    icon: Image01Icon,          group: "business" },
-  { key: "bank_name",         label: "Bank Details",    icon: Bank01Icon,           group: "payment" },
-  { key: "upi_id",            label: "UPI ID",          icon: MobileNavigator01Icon,group: "payment" },
-  { key: "paypal_email",      label: "PayPal Email",    icon: PaypalIcon,           group: "payment" },
+  { key: "company_name",      label: "Company Name",    icon: Building2,    group: "business" },
+  { key: "email",             label: "Business Email",  icon: Mail,         group: "business" },
+  { key: "phone",             label: "Phone Number",    icon: Phone,        group: "business" },
+  { key: "company_address",   label: "Address",         icon: MapPin,       group: "business" },
+  { key: "gst_id",            label: "GST / Tax ID",    icon: Receipt,      group: "business" },
+  { key: "logo_url",          label: "Company Logo",    icon: ImageIcon,    group: "business" },
+  { key: "bank_name",         label: "Bank Details",    icon: Landmark,     group: "payment" },
+  { key: "upi_id",            label: "UPI ID",          icon: Smartphone,   group: "payment" },
+  { key: "paypal_email",      label: "PayPal Email",    icon: CreditCard,   group: "payment" },
 ]
 
 function calcCompletion(profile: Profile | null) {
@@ -144,6 +136,7 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {businessFields.map((field) => {
               const done = isComplete(field.key)
+              const Icon = field.icon
               return (
                 <div
                   key={field.key}
@@ -154,14 +147,13 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
                       : "bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <HugeiconsIcon
-                    icon={field.icon}
+                  <Icon
                     size={14}
                     className={done ? "text-emerald-500 shrink-0" : "text-muted-foreground/60 shrink-0"}
                   />
                   <span className="flex-1 truncate">{field.label}</span>
                   {done ? (
-                    <HugeiconsIcon icon={Tick01Icon} size={13} className="text-emerald-500 shrink-0" />
+                    <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
                   ) : (
                     <HugeiconsIcon icon={Cancel01Icon} size={13} className="text-muted-foreground/40 shrink-0" />
                   )}
@@ -180,6 +172,7 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
             {paymentFields.map((field) => {
               const done = isComplete(field.key)
+              const Icon = field.icon
               return (
                 <div
                   key={field.key}
@@ -190,14 +183,13 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
                       : "bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <HugeiconsIcon
-                    icon={field.icon}
+                  <Icon
                     size={14}
                     className={done ? "text-emerald-500 shrink-0" : "text-muted-foreground/60 shrink-0"}
                   />
                   <span className="flex-1 truncate">{field.label}</span>
                   {done ? (
-                    <HugeiconsIcon icon={Tick01Icon} size={13} className="text-emerald-500 shrink-0" />
+                    <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
                   ) : (
                     <HugeiconsIcon icon={Cancel01Icon} size={13} className="text-muted-foreground/40 shrink-0" />
                   )}
