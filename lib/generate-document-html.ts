@@ -639,21 +639,18 @@ function generateDarkTemplate(
 ) {
   const itemsHtml = lineItems
     .map(
-      (item: LineItem, i: number) => {
-        const itemSubtotal = item.quantity * item.rate
-        const itemTax = includeTax ? (itemSubtotal * item.tax_percent) / 100 : 0
-        const itemTotal = itemSubtotal + itemTax
-
-        return `
+      (item: LineItem, i: number) => `
       <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #444; color: #f3f4f6;">${item.description || ""}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #444;">
+          <div style="color: #f3f4f6; font-weight: 500;">${item.name || ""}</div>
+          ${item.description ? `<div style="font-size: 12px; color: #9ca3af;">${item.description}</div>` : ""}
+        </td>
         <td style="padding: 12px; border-bottom: 1px solid #444; text-align: right; color: #d1d5db;">${item.quantity}</td>
-        <td style="padding: 12px; border-bottom: 1px solid #444; text-align: right; color: #d1d5db;">${currencySymbol}${itemSubtotal.toFixed(2)}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #444; text-align: right; color: #d1d5db;">${currencySymbol}${Number(item.rate).toFixed(2)}</td>
         ${includeTax ? `<td style="padding: 12px; border-bottom: 1px solid #444; text-align: right; color: #d1d5db;">${item.tax_percent}%</td>` : ""}
-        <td style="padding: 12px; border-bottom: 1px solid #444; text-align: right; color: #f3f4f6; font-weight: 600;">${currencySymbol}${itemTotal.toFixed(2)}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #444; text-align: right; color: #f3f4f6; font-weight: 600;">${currencySymbol}${Number(item.line_total).toFixed(2)}</td>
       </tr>
     `
-      }
     )
     .join("")
 
@@ -729,11 +726,12 @@ function generateDarkTemplate(
       letter-spacing: 4px;
       margin-bottom: 8px;
       color: #ffffff;
+      text-transform: uppercase;
     }
     .invoice-number {
       font-size: 12px;
       color: #9ca3af;
-      margin-bottom: 12px;
+      margin-bottom: 4px;
     }
     .invoice-date {
       font-size: 11px;
@@ -750,6 +748,9 @@ function generateDarkTemplate(
     }
     .bill-section {
       color: #f3f4f6;
+    }
+    .bill-section.right {
+      text-align: right;
     }
     .bill-label {
       font-size: 11px;
@@ -793,7 +794,6 @@ function generateDarkTemplate(
     .totals {
       margin-left: auto;
       width: 300px;
-      padding-left: 32px;
     }
     .total-row {
       display: flex;
@@ -802,6 +802,9 @@ function generateDarkTemplate(
       font-size: 13px;
       color: #d1d5db;
     }
+    .total-row.discount {
+      color: #f87171;
+    }
     .total-row.final {
       border-top: 2px solid #555;
       padding-top: 12px;
@@ -809,6 +812,52 @@ function generateDarkTemplate(
       font-size: 18px;
       font-weight: 700;
       color: #ffffff;
+    }
+    
+    .payment-info {
+      margin-top: 24px;
+      padding: 16px;
+      background: #333;
+      border-radius: 8px;
+      border: 1px solid #444;
+    }
+    .payment-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #d1d5db;
+      margin-bottom: 12px;
+    }
+    .payment-section {
+      margin-bottom: 12px;
+    }
+    .payment-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    .payment-detail {
+      font-size: 11px;
+      color: #d1d5db;
+      margin: 2px 0;
+    }
+    .payment-detail span {
+      color: #9ca3af;
+    }
+    
+    .notes-section {
+      margin-top: 16px;
+    }
+    .notes-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    .notes-text {
+      font-size: 12px;
+      color: #d1d5db;
+      white-space: pre-line;
     }
     
     .footer {
@@ -824,7 +873,7 @@ function generateDarkTemplate(
 <body>
   <div class="header">
     <div class="logo-section">
-      ${profile?.logo_url ? `<img src="${profile.logo_url}" alt="Logo" class="logo" style="width: 64px; height: 64px;">` : `<div class="logo">
+      ${profile?.logo_url ? `<img src="${profile.logo_url}" alt="Logo" class="logo" style="width: 64px; height: 64px; object-fit: contain;">` : `<div class="logo">
         <div style="width: 48px; height: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
           <div style="background: #2a2a2a;"></div>
           <div style="background: #2a2a2a;"></div>
@@ -833,46 +882,52 @@ function generateDarkTemplate(
         </div>
       </div>`}
       <div class="company-info">
-        <div class="company-name">${profile?.company_name || "FACTURA"}</div>
-        <div class="company-details">${profile?.city || ""}</div>
+        <div class="company-name">${profile?.company_name || "Your Company"}</div>
+        <div class="company-details">${profile?.company_address || ""}</div>
       </div>
     </div>
     <div class="invoice-meta">
-      <div class="invoice-title">FACTURA</div>
-      <div class="invoice-number">N° ${document.number}</div>
-      <div class="invoice-date">${new Date(document.issue_date).toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "long",
+      <div class="invoice-title">${document.type}</div>
+      <div class="invoice-number"># ${document.number}</div>
+      <div class="invoice-date">Date: ${new Date(document.issue_date).toLocaleDateString("en-IN", {
         year: "numeric",
+        month: "long",
+        day: "numeric",
       })}</div>
+      ${document.due_date ? `<div class="invoice-date">Due: ${new Date(document.due_date).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}</div>` : ""}
     </div>
   </div>
 
   <div class="bill-to">
     <div class="bill-section">
-      <div class="bill-label">Empresa</div>
-      <div class="bill-name">${profile?.company_name || "Company Name"}</div>
-      <div class="bill-detail">${profile?.address || ""}</div>
-      ${profile?.phone ? `<div class="bill-detail">${profile.phone}</div>` : ""}
+      <div class="bill-label">From</div>
+      <div class="bill-name">${profile?.company_name || "Your Company"}</div>
+      ${profile?.company_address ? `<div class="bill-detail">${profile.company_address}</div>` : ""}
       ${profile?.email ? `<div class="bill-detail">${profile.email}</div>` : ""}
+      ${profile?.phone ? `<div class="bill-detail">${profile.phone}</div>` : ""}
+      ${profile?.gst_id ? `<div class="bill-detail">GST: ${profile.gst_id}</div>` : ""}
     </div>
-    <div class="bill-section">
-      <div class="bill-label">Cliente</div>
+    <div class="bill-section right">
+      <div class="bill-label">Bill To</div>
       <div class="bill-name">${document.client_name || "Client Name"}</div>
-      <div class="bill-detail">${document.client_address || ""}</div>
+      ${document.client_address ? `<div class="bill-detail">${document.client_address}</div>` : ""}
       ${document.client_email ? `<div class="bill-detail">${document.client_email}</div>` : ""}
-      ${document.client_phone ? `<div class="bill-detail">${document.client_phone}</div>` : ""}
+      ${document.client_gst_id ? `<div class="bill-detail">GST: ${document.client_gst_id}</div>` : ""}
     </div>
   </div>
 
   <table>
     <thead>
       <tr>
-        <th>Descripción / Producto</th>
-        <th style="width: 80px;">Cantidad</th>
-        <th style="width: 100px;">Base</th>
-        ${includeTax ? `<th style="width: 60px;">IVA</th>` : ""}
-        <th style="width: 100px;">Total</th>
+        <th>Item</th>
+        <th style="width: 60px;">Qty</th>
+        <th style="width: 100px;">Rate</th>
+        ${includeTax ? `<th style="width: 60px;">Tax</th>` : ""}
+        <th style="width: 100px;">Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -882,29 +937,71 @@ function generateDarkTemplate(
 
   <div class="totals">
     <div class="total-row">
-      <span>Base Imponible</span>
-      <span>${currencySymbol}${subtotal.toFixed(2)}</span>
+      <span>Subtotal:</span>
+      <span>${currencySymbol}${Number(document.subtotal).toFixed(2)}</span>
     </div>
-    ${includeTax && taxAmount > 0 ? `
+    ${includeTax && Number(document.tax_total) > 0 ? `
     <div class="total-row">
-      <span>IVA</span>
-      <span>${currencySymbol}${taxAmount.toFixed(2)}</span>
+      <span>Tax:</span>
+      <span>${currencySymbol}${Number(document.tax_total).toFixed(2)}</span>
     </div>
     ` : ""}
     ${discount > 0 ? `
-    <div class="total-row">
-      <span>Rebención</span>
-      <span>-${currencySymbol}${discount.toFixed(2)}</span>
+    <div class="total-row discount">
+      <span>Discount${document.discount_type === "percentage" ? ` (${document.discount_value}%)` : ""}:</span>
+      <span>-${currencySymbol}${document.discount_type === "percentage" ? ((Number(document.subtotal) * Number(document.discount_value)) / 100).toFixed(2) : Number(discount).toFixed(2)}</span>
     </div>
     ` : ""}
     <div class="total-row final">
-      <span>Total</span>
-      <span>${currencySymbol}${total.toFixed(2)}</span>
+      <span>Total:</span>
+      <span>${currencySymbol}${Number(document.grand_total).toFixed(2)}</span>
     </div>
   </div>
 
+  ${(profile?.bank_name || profile?.upi_id || profile?.paypal_email) ? `
+  <div class="payment-info">
+    <div class="payment-title">Payment Information</div>
+    ${profile?.bank_name ? `
+    <div class="payment-section">
+      <div class="payment-section-title">Bank Transfer</div>
+      <div class="payment-detail"><span>Bank:</span> ${profile.bank_name}</div>
+      ${profile.bank_account_name ? `<div class="payment-detail"><span>Account Name:</span> ${profile.bank_account_name}</div>` : ""}
+      ${profile.bank_account_number ? `<div class="payment-detail"><span>Account Number:</span> ${profile.bank_account_number}</div>` : ""}
+      ${profile.bank_routing_number ? `<div class="payment-detail"><span>Routing/IFSC:</span> ${profile.bank_routing_number}</div>` : ""}
+      ${profile.bank_swift_code ? `<div class="payment-detail"><span>SWIFT/BIC:</span> ${profile.bank_swift_code}</div>` : ""}
+    </div>
+    ` : ""}
+    ${profile?.upi_id ? `
+    <div class="payment-section">
+      <div class="payment-section-title">UPI Payment</div>
+      <div class="payment-detail"><span>UPI ID:</span> ${profile.upi_id}</div>
+    </div>
+    ` : ""}
+    ${profile?.paypal_email ? `
+    <div class="payment-section">
+      <div class="payment-section-title">PayPal</div>
+      <div class="payment-detail"><span>PayPal Email:</span> ${profile.paypal_email}</div>
+    </div>
+    ` : ""}
+  </div>
+  ` : ""}
+
+  ${document.notes ? `
+  <div class="notes-section">
+    <div class="notes-title">Notes</div>
+    <div class="notes-text">${document.notes}</div>
+  </div>
+  ` : ""}
+
+  ${document.terms ? `
+  <div class="notes-section">
+    <div class="notes-title">Terms & Conditions</div>
+    <div class="notes-text">${document.terms}</div>
+  </div>
+  ` : ""}
+
   <div class="footer">
-    <p>El pago se recibirá en el plazo de tres meses desde la emisión de esta factura.</p>
+    <p>Thank you for your business!</p>
   </div>
 </body>
 </html>
