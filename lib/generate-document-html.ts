@@ -69,7 +69,8 @@ function generateClassicTemplate(
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${currencySymbol}${Number(item.line_total).toFixed(2)}</td>
       </tr>
   `
-}
+    )
+    .join("")
 
 function generateTaxTemplate(
   document: Document & { line_items: LineItem[] },
