@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateDocumentHTML } from "@/lib/generate-document-html"
+import { generateDocumentHTML, type TemplateType } from "@/lib/generate-document-html"
+import puppeteer from "puppeteer-core"
+import chromium from "@sparticuz/chromium"
 
 export async function GET(request: NextRequest) {
   try {
     const documentId = request.nextUrl.searchParams.get("id")
+    const template = (request.nextUrl.searchParams.get("template") || "classic") as TemplateType
 
     if (!documentId) {
       return NextResponse.json({ error: "Document ID required" }, { status: 400 })
@@ -40,46 +43,93 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    // Generate HTML using shared generator
-    const html = generateDocumentHTML(document, profile)
-
-    // Use Browserless if available, otherwise return HTML for client-side rendering
-    const browserlessUrl = process.env.BROWSERLESS_URL
-
-    if (browserlessUrl) {
-      // Use Browserless PDF API
-      const response = await fetch(`${browserlessUrl}/pdf`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          html,
-          options: {
-            format: "A4",
-            printBackground: true,
-            margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
-          },
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Browserless PDF generation failed")
-      }
-
-      const pdf = await response.arrayBuffer()
-
-      return new NextResponse(pdf, {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${document.number || document.type}-${Date.now()}.pdf"`,
-        },
-      })
+    // Generate HTML using shared generator with selected template
+    const baseHtml = generateDocumentHTML(document, profile, template)
+    
+    // Inject print styles for proper color rendering and page breaks
+    const html = baseHtml.replace(
+      "</style>",
+      `
+    /* Print color rendering */
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
     }
+    
+    /* Page break utilities */
+    .page-break {
+      break-after: page;
+      page-break-after: always;
+    }
+    
+    .no-break {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    
+    /* Ensure table rows don't break */
+    tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    
+    /* Ensure totals section stays together */
+    .totals {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    
+    /* Ensure payment info stays together */
+    .payment-info {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>`
+    )
 
-    // Fallback: Return HTML with instructions to use client-side rendering
-    // The client will use html2canvas as fallback
-    return NextResponse.json({ html, fallback: true }, { status: 200 })
+    // Launch browser using @sparticuz/chromium
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    })
+
+    const page = await browser.newPage()
+    
+    // Set content and wait for network to be idle
+    await page.setContent(html, {
+      waitUntil: "networkidle0",
+    })
+
+    // Generate PDF with A4 format and background colors
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "0mm",
+        right: "0mm",
+        bottom: "0mm",
+        left: "0mm",
+      },
+    })
+
+    await browser.close()
+
+    return new NextResponse(pdf, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${document.number || document.type}-${Date.now()}.pdf"`,
+      },
+    })
   } catch (error) {
     console.error("PDF generation error:", error)
     return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 })

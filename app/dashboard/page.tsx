@@ -18,6 +18,7 @@ import { StatusSelect } from "@/components/dashboard/status-select"
 import { RevenueTabs } from "@/components/dashboard/revenue-tabs"
 import { AnalyticsChart } from "@/components/dashboard/analytics-chart"
 import { ReceivablesWidget } from "@/components/dashboard/receivables-widget"
+import { ProfileCompletionCard, ProfileCompletionBanner } from "@/components/dashboard/profile-completion-card"
 
 function formatCurrency(amount: number, currency: string) {
   const currencyData = CURRENCIES.find((c) => c.value === currency)
@@ -34,6 +35,13 @@ export default async function DashboardPage() {
   if (!user) {
     return null
   }
+
+  // Fetch user profile for completion card
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single()
 
   // Fetch stats
   const { data: paidInvoices } = await supabase
@@ -207,6 +215,12 @@ export default async function DashboardPage() {
       </div>
 
 
+
+      {/* Profile Completion Banner */}
+      <ProfileCompletionBanner profile={profile} />
+
+      {/* Profile Completion Card */}
+      <ProfileCompletionCard profile={profile} />
 
       {/* Receivables Widget */}
       <ReceivablesWidget
