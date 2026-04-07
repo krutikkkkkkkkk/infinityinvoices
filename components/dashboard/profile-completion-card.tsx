@@ -21,26 +21,42 @@ interface ProfileField {
   group: "business" | "payment"
 }
 
-const PROFILE_FIELDS: ProfileField[] = [
-  { key: "company_name",      label: "Company Name",    icon: Building2,    group: "business" },
-  { key: "email",             label: "Business Email",  icon: Mail,         group: "business" },
-  { key: "phone",             label: "Phone Number",    icon: Phone,        group: "business" },
-  { key: "company_address",   label: "Address",         icon: MapPin,       group: "business" },
-  { key: "gst_id",            label: "GST / Tax ID",    icon: Receipt,      group: "business" },
-  { key: "logo_url",          label: "Company Logo",    icon: ImageIcon,    group: "business" },
-  { key: "bank_name",         label: "Bank Details",    icon: Landmark,     group: "payment" },
-  { key: "upi_id",            label: "UPI ID",          icon: Smartphone,   group: "payment" },
-  { key: "paypal_email",      label: "PayPal Email",    icon: CreditCard,   group: "payment" },
+// gst_id is intentionally excluded — it's optional
+const BUSINESS_FIELDS: ProfileField[] = [
+  { key: "company_name",    label: "Company Name",   icon: Building2,  group: "business" },
+  { key: "email",           label: "Business Email", icon: Mail,       group: "business" },
+  { key: "phone",           label: "Phone Number",   icon: Phone,      group: "business" },
+  { key: "company_address", label: "Address",        icon: MapPin,     group: "business" },
+  { key: "logo_url",        label: "Company Logo",   icon: ImageIcon,  group: "business" },
 ]
 
+// Optional informational field shown but not scored
+const OPTIONAL_FIELDS: ProfileField[] = [
+  { key: "gst_id", label: "GST / Tax ID (optional)", icon: Receipt, group: "business" },
+]
+
+const PAYMENT_FIELDS: ProfileField[] = [
+  { key: "bank_name",    label: "Bank Details", icon: Landmark,   group: "payment" },
+  { key: "upi_id",       label: "UPI ID",       icon: Smartphone, group: "payment" },
+  { key: "paypal_email", label: "PayPal Email", icon: CreditCard, group: "payment" },
+]
+
+// Payment counts as 1 point if at least one method is filled.
+// Business fields each count as 1 point. Total = BUSINESS_FIELDS.length + 1.
 function calcCompletion(profile: Profile | null) {
-  if (!profile) return { percent: 0, filled: 0, total: PROFILE_FIELDS.length, missing: PROFILE_FIELDS }
-  const filled = PROFILE_FIELDS.filter((f) => !!profile[f.key])
+  const total = BUSINESS_FIELDS.length + 1 // +1 for "at least one payment method"
+  if (!profile) return { percent: 0, filled: 0, total, missingBusiness: BUSINESS_FIELDS, hasPayment: false }
+
+  const filledBusiness = BUSINESS_FIELDS.filter((f) => !!profile[f.key])
+  const hasPayment = PAYMENT_FIELDS.some((f) => !!profile[f.key])
+  const filledCount = filledBusiness.length + (hasPayment ? 1 : 0)
+
   return {
-    percent: Math.round((filled.length / PROFILE_FIELDS.length) * 100),
-    filled: filled.length,
-    total: PROFILE_FIELDS.length,
-    missing: PROFILE_FIELDS.filter((f) => !profile[f.key]),
+    percent: Math.round((filledCount / total) * 100),
+    filled: filledCount,
+    total,
+    missingBusiness: BUSINESS_FIELDS.filter((f) => !profile[f.key]),
+    hasPayment,
   }
 }
 
@@ -50,19 +66,21 @@ interface ProfileCompletionCardProps {
 }
 
 export function ProfileCompletionCard({ profile, compact = false }: ProfileCompletionCardProps) {
-  const { percent, filled, total, missing } = calcCompletion(profile)
+  const { percent, filled, total, missingBusiness, hasPayment } = calcCompletion(profile)
 
   if (percent === 100) return null
 
-  const businessFields = PROFILE_FIELDS.filter((f) => f.group === "business")
-  const paymentFields  = PROFILE_FIELDS.filter((f) => f.group === "payment")
-
-  const isComplete = (key: keyof Profile) => !!profile?.[key]
+  const isFieldDone = (key: keyof Profile) => !!profile?.[key]
 
   const progressColor =
     percent < 35 ? "bg-destructive" :
     percent < 70 ? "bg-amber-500" :
     "bg-emerald-500"
+
+  const missingLabels = [
+    ...missingBusiness.map((f) => f.label),
+    ...(!hasPayment ? ["Payment Method"] : []),
+  ]
 
   if (compact) {
     return (
@@ -71,7 +89,7 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1.5">
               <p className="text-sm font-medium">Profile {percent}% complete</p>
-              <span className="text-xs text-muted-foreground">{filled}/{total} fields</span>
+              <span className="text-xs text-muted-foreground">{filled}/{total} steps</span>
             </div>
             <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
               <div
@@ -79,10 +97,10 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
                 style={{ width: `${percent}%` }}
               />
             </div>
-            {missing.length > 0 && (
+            {missingLabels.length > 0 && (
               <p className="text-xs text-muted-foreground mt-1.5">
-                Missing: {missing.slice(0, 3).map((f) => f.label).join(", ")}
-                {missing.length > 3 && ` +${missing.length - 3} more`}
+                Missing: {missingLabels.slice(0, 3).join(", ")}
+                {missingLabels.length > 3 && ` +${missingLabels.length - 3} more`}
               </p>
             )}
           </div>
@@ -115,10 +133,9 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
             >
               {percent}%
             </span>
-            <span className="text-xs text-muted-foreground">{filled} of {total} fields</span>
+            <span className="text-xs text-muted-foreground">{filled} of {total} steps</span>
           </div>
         </div>
-        {/* Progress bar */}
         <div className="relative h-2.5 w-full rounded-full bg-muted overflow-hidden mt-3">
           <div
             className={cn("absolute inset-y-0 left-0 rounded-full transition-all duration-700", progressColor)}
@@ -134,65 +151,83 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
             Business Info
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-            {businessFields.map((field) => {
-              const done = isComplete(field.key)
+            {BUSINESS_FIELDS.map((field) => {
+              const done = isFieldDone(field.key)
               const Icon = field.icon
               return (
                 <div
                   key={field.key}
                   className={cn(
                     "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                    done
-                      ? "bg-emerald-500/8 text-foreground"
-                      : "bg-muted/50 text-muted-foreground"
+                    done ? "bg-emerald-500/8 text-foreground" : "bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <Icon
-                    size={14}
-                    className={done ? "text-emerald-500 shrink-0" : "text-muted-foreground/60 shrink-0"}
-                  />
+                  <Icon size={14} className={cn("shrink-0", done ? "text-emerald-500" : "text-muted-foreground/60")} />
                   <span className="flex-1 truncate">{field.label}</span>
-                  {done ? (
-                    <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
-                  ) : (
-                    <HugeiconsIcon icon={Cancel01Icon} size={13} className="text-muted-foreground/40 shrink-0" />
+                  {done
+                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
+                    : <HugeiconsIcon icon={Cancel01Icon} size={13} className="text-muted-foreground/40 shrink-0" />
+                  }
+                </div>
+              )
+            })}
+            {/* Optional GST field — shown but not scored */}
+            {OPTIONAL_FIELDS.map((field) => {
+              const done = isFieldDone(field.key)
+              const Icon = field.icon
+              return (
+                <div
+                  key={field.key}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors border border-dashed",
+                    done ? "border-emerald-500/30 bg-emerald-500/5 text-foreground" : "border-muted-foreground/20 bg-muted/30 text-muted-foreground"
                   )}
+                >
+                  <Icon size={14} className={cn("shrink-0", done ? "text-emerald-500" : "text-muted-foreground/40")} />
+                  <span className="flex-1 truncate">{field.label}</span>
+                  {done
+                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
+                    : <span className="text-[10px] text-muted-foreground/50 shrink-0">optional</span>
+                  }
                 </div>
               )
             })}
           </div>
         </div>
 
-        {/* Payment Methods */}
+        {/* Payment Methods — at least one required */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Payment Methods
-            <span className="ml-1.5 font-normal normal-case tracking-normal">(at least one recommended)</span>
-          </p>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Payment Methods
+            </p>
+            <span className={cn(
+              "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+              hasPayment
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-destructive/10 text-destructive"
+            )}>
+              {hasPayment ? "Satisfied" : "At least 1 required"}
+            </span>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-            {paymentFields.map((field) => {
-              const done = isComplete(field.key)
+            {PAYMENT_FIELDS.map((field) => {
+              const done = isFieldDone(field.key)
               const Icon = field.icon
               return (
                 <div
                   key={field.key}
                   className={cn(
                     "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                    done
-                      ? "bg-emerald-500/8 text-foreground"
-                      : "bg-muted/50 text-muted-foreground"
+                    done ? "bg-emerald-500/8 text-foreground" : "bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <Icon
-                    size={14}
-                    className={done ? "text-emerald-500 shrink-0" : "text-muted-foreground/60 shrink-0"}
-                  />
+                  <Icon size={14} className={cn("shrink-0", done ? "text-emerald-500" : "text-muted-foreground/60")} />
                   <span className="flex-1 truncate">{field.label}</span>
-                  {done ? (
-                    <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
-                  ) : (
-                    <HugeiconsIcon icon={Cancel01Icon} size={13} className="text-muted-foreground/40 shrink-0" />
-                  )}
+                  {done
+                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
+                    : <HugeiconsIcon icon={Cancel01Icon} size={13} className="text-muted-foreground/40 shrink-0" />
+                  }
                 </div>
               )
             })}
@@ -212,7 +247,12 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
 // Dismissible banner — shown at top of dashboard when profile is incomplete
 export function ProfileCompletionBanner({ profile }: { profile: Profile | null }) {
   const [dismissed, setDismissed] = useState(false)
-  const { percent, missing } = calcCompletion(profile)
+  const { percent, missingBusiness, hasPayment } = calcCompletion(profile)
+
+  const missingLabels = [
+    ...missingBusiness.map((f) => f.label),
+    ...(!hasPayment ? ["Payment Method"] : []),
+  ]
 
   if (percent === 100 || dismissed) return null
 
@@ -247,10 +287,10 @@ export function ProfileCompletionBanner({ profile }: { profile: Profile | null }
         <p className="text-sm font-medium leading-snug">
           Your profile is {percent}% complete
         </p>
-        {missing.length > 0 && (
+        {missingLabels.length > 0 && (
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
-            Add: {missing.slice(0, 4).map((f) => f.label).join(", ")}
-            {missing.length > 4 && ` and ${missing.length - 4} more`}
+            Add: {missingLabels.slice(0, 4).join(", ")}
+            {missingLabels.length > 4 && ` and ${missingLabels.length - 4} more`}
           </p>
         )}
       </div>
