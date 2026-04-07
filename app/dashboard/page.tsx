@@ -19,6 +19,7 @@ import { RevenueTabs } from "@/components/dashboard/revenue-tabs"
 import { AnalyticsChart } from "@/components/dashboard/analytics-chart"
 import { ReceivablesWidget } from "@/components/dashboard/receivables-widget"
 import { ProfileCompletionCard, ProfileCompletionBanner } from "@/components/dashboard/profile-completion-card"
+import { FinancialSummaryWidget } from "@/components/dashboard/financial-summary-widget"
 
 function formatCurrency(amount: number, currency: string) {
   const currencyData = CURRENCIES.find((c) => c.value === currency)
@@ -188,6 +189,12 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false })
     .limit(5)
 
+  // Fetch all documents for financial summary
+  const { data: allDocuments } = await supabase
+    .from("documents")
+    .select("*")
+    .order("issue_date", { ascending: false })
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -221,6 +228,9 @@ export default async function DashboardPage() {
 
       {/* Profile Completion Card */}
       <ProfileCompletionCard profile={profile} />
+
+      {/* Financial Summary Widget */}
+      <FinancialSummaryWidget profile={profile} documents={allDocuments || []} />
 
       {/* Receivables Widget */}
       <ReceivablesWidget

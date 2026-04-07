@@ -21,6 +21,7 @@ export interface Profile {
   bank_swift_code: string | null
   created_at: string
   updated_at: string
+  financial_year_start?: number // 1-12, month when financial year starts (default 4 = April)
 }
 
 export interface Client {
