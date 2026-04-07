@@ -54,10 +54,26 @@ export function generateDocumentHTML(
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #1f2937;
       background: white;
-      padding: 32px;
-      max-width: 794px;
-      margin: 0 auto;
+      margin: 0.5in;
+      padding: 0;
+      width: 7.5in;
+      min-height: 9.5in;
       line-height: 1.6;
+    }
+    @page {
+      margin: 0.5in;
+      size: A4;
+    }
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color-adjust: exact;
+    }
+    .page-break {
+      break-after: page;
+    }
+    .no-break {
+      break-inside: avoid;
     }
     .header { 
       display: flex; 
