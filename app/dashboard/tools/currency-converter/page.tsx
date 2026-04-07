@@ -54,18 +54,32 @@ export default function CurrencyConverterPage() {
     setError(null)
 
     try {
-      const res = await fetch(
-        `https://api.frankfurter.app/latest?from=${fromCurrency}&to=${toCurrency}`
-      )
-      if (!res.ok) throw new Error("Failed to fetch rates")
+      const url = `https://api.frankfurter.app/latest?amount=${amount}&from=${fromCurrency}&to=${toCurrency}`
+      console.log("[v0] Fetching from:", url)
+      const res = await fetch(url)
+      console.log("[v0] Response status:", res.status)
+      
+      if (!res.ok) {
+        const text = await res.text()
+        console.log("[v0] Response text:", text)
+        throw new Error(`HTTP ${res.status}: Failed to fetch rates`)
+      }
+      
       const data = await res.json()
+      console.log("[v0] Rate data:", data)
+      
       const fetchedRate = data.rates[toCurrency]
+      if (!fetchedRate) {
+        throw new Error("Rate not found in response")
+      }
+      
       setRate(fetchedRate)
       setResult((parseFloat(amount) || 0) * fetchedRate)
       setLastUpdated(new Date().toLocaleString())
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown error"
+      console.error("[v0] Exchange rate error:", errorMsg, err)
       setError("Failed to fetch exchange rates. Please try again.")
-      console.error(err)
     } finally {
       setLoading(false)
     }
