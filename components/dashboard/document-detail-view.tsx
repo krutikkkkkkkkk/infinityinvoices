@@ -4,6 +4,7 @@ import { useState } from "react"
 import { DocumentPreview } from "./document-preview"
 import { DocumentPreviewMinimal } from "./document-preview-minimal"
 import { DocumentPreviewTax } from "./document-preview-tax"
+import { DocumentPreviewDark } from "./document-preview-dark"
 import { TemplateSelector, type TemplateType } from "./template-selector"
 import { PaymentsPanel } from "./payments-panel"
 import { DocumentActions } from "./document-actions"
@@ -24,6 +25,8 @@ export function DocumentDetailView({ document, profile, showActions = false }: D
         return <DocumentPreviewMinimal document={document} profile={profile} />
       case "tax":
         return <DocumentPreviewTax document={document} profile={profile} />
+      case "dark":
+        return <DocumentPreviewDark document={document} profile={profile} />
       default:
         return <DocumentPreview document={document} profile={profile} />
     }

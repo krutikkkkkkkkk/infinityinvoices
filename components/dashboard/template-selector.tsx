@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircleIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type TemplateType = "classic" | "minimal" | "tax"
+export type TemplateType = "classic" | "minimal" | "tax" | "dark"
 
 export const TEMPLATES: {
   id: TemplateType
@@ -139,6 +139,57 @@ export const TEMPLATES: {
           <div className="flex justify-between">
             <div className="w-6 h-1 bg-gray-800 rounded-sm" />
             <div className="w-6 h-1 bg-gray-800 rounded-sm" />
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "dark",
+    label: "Dark Modern",
+    description: "Sleek dark design",
+    preview: (
+      <div className="w-full h-full p-2 flex flex-col gap-1" style={{ backgroundColor: "#2a2a2a" }}>
+        <div className="flex justify-between items-start mb-1">
+          <div className="w-8 h-8 bg-white flex items-center justify-center">
+            <div className="w-5 h-5 grid grid-cols-2 gap-0.5">
+              <div className="bg-gray-900" />
+              <div className="bg-gray-900" />
+              <div className="bg-gray-900" />
+              <div className="bg-gray-900" />
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="w-16 h-2.5 bg-white rounded-sm mx-auto" />
+            <div className="w-10 h-1 bg-gray-500 rounded-sm mt-0.5 ml-auto" />
+          </div>
+        </div>
+        <div className="w-full h-px bg-gray-600 my-1" />
+        <div className="flex gap-2 text-xs">
+          <div className="flex-1 space-y-0.5">
+            <div className="w-6 h-0.5 bg-gray-500 rounded-sm" />
+            <div className="w-12 h-1 bg-gray-700 rounded-sm" />
+            <div className="w-10 h-0.5 bg-gray-600 rounded-sm" />
+          </div>
+          <div className="flex-1 text-right space-y-0.5">
+            <div className="w-6 h-0.5 bg-gray-500 rounded-sm ml-auto" />
+            <div className="w-12 h-1 bg-gray-700 rounded-sm ml-auto" />
+            <div className="w-10 h-0.5 bg-gray-600 rounded-sm ml-auto" />
+          </div>
+        </div>
+        <div className="w-full h-px bg-gray-600 my-1" />
+        <div className="space-y-0.5 mt-0.5">
+          <div className="flex justify-between">
+            <div className="w-12 h-1 bg-gray-600 rounded-sm" />
+            <div className="w-6 h-0.5 bg-gray-600 rounded-sm" />
+          </div>
+          <div className="flex justify-between">
+            <div className="w-10 h-0.5 bg-gray-700 rounded-sm" />
+            <div className="w-6 h-0.5 bg-gray-700 rounded-sm" />
+          </div>
+          <div className="flex justify-between">
+            <div className="w-8 h-1 bg-white rounded-sm" />
+            <div className="w-6 h-1 bg-white rounded-sm" />
           </div>
         </div>
       </div>
