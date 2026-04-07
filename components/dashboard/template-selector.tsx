@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircleIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type TemplateType = "classic" | "minimal"
+export type TemplateType = "classic" | "minimal" | "tax"
 
 export const TEMPLATES: {
   id: TemplateType
@@ -98,6 +98,48 @@ export const TEMPLATES: {
         <div className="flex justify-between mt-0.5">
           <div className="w-10 h-1 bg-gray-500 rounded-sm" />
           <div className="w-10 h-1 bg-gray-500 rounded-sm" />
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "tax",
+    label: "Tax Invoice",
+    description: "GST focused",
+    preview: (
+      <div className="w-full h-full bg-white p-2 flex flex-col gap-1 border-2 border-red-600">
+        <div className="text-center space-y-0.5 pb-1 border-b-2 border-red-600">
+          <div className="w-8 h-0.5 bg-red-600 rounded-sm mx-auto" />
+          <div className="w-10 h-1.5 bg-gray-800 rounded-sm mx-auto" />
+          <div className="w-12 h-0.5 bg-gray-400 rounded-sm mx-auto" />
+        </div>
+        <div className="grid grid-cols-2 gap-1 mt-0.5 text-xs">
+          <div className="space-y-0.5">
+            <div className="w-6 h-0.5 bg-gray-600 rounded-sm" />
+            <div className="w-10 h-1 bg-gray-700 rounded-sm" />
+            <div className="w-8 h-0.5 bg-gray-400 rounded-sm" />
+          </div>
+          <div className="space-y-0.5 text-right">
+            <div className="w-8 h-0.5 bg-gray-600 rounded-sm ml-auto" />
+            <div className="w-10 h-0.5 bg-red-600 rounded-sm ml-auto" />
+            <div className="w-8 h-0.5 bg-gray-400 rounded-sm ml-auto" />
+          </div>
+        </div>
+        <div className="mt-0.5 w-full h-px bg-gray-300" />
+        <div className="flex justify-between mt-0.5 text-xs">
+          <div className="w-8 h-1 bg-gray-700 rounded-sm" />
+          <div className="w-6 h-0.5 bg-gray-700 rounded-sm" />
+        </div>
+        <div className="mt-auto space-y-0.5">
+          <div className="flex justify-between">
+            <div className="w-6 h-0.5 bg-gray-600 rounded-sm" />
+            <div className="w-6 h-0.5 bg-gray-600 rounded-sm" />
+          </div>
+          <div className="w-full h-px bg-gray-800" />
+          <div className="flex justify-between">
+            <div className="w-6 h-1 bg-gray-800 rounded-sm" />
+            <div className="w-6 h-1 bg-gray-800 rounded-sm" />
+          </div>
         </div>
       </div>
     ),

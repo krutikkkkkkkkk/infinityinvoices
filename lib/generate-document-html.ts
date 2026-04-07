@@ -7,7 +7,7 @@ const CURRENCIES: { [key: string]: string } = {
   GBP: "£",
 }
 
-export type TemplateType = "classic" | "minimal"
+export type TemplateType = "classic" | "minimal" | "tax"
 
 export function generateDocumentHTML(
   document: Document & { line_items: LineItem[] },
@@ -35,6 +35,10 @@ export function generateDocumentHTML(
     return generateMinimalTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
   }
 
+  if (template === "tax") {
+    return generateTaxTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
+  }
+
   return generateClassicTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
 }
 
@@ -60,7 +64,37 @@ function generateClassicTemplate(
         ${includeTax ? `<td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${item.tax_percent}%</td>` : ""}
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">${currencySymbol}${Number(item.line_total).toFixed(2)}</td>
       </tr>
+  `
+}
+
+function generateTaxTemplate(
+  document: Document & { line_items: LineItem[] },
+  profile: any,
+  lineItems: LineItem[],
+  currencySymbol: string,
+  subtotal: number,
+  taxAmount: number,
+  discount: number,
+  total: number,
+  includeTax: boolean
+) {
+  const itemsHtml = lineItems
+    .map(
+      (item: LineItem, i: number) => {
+        const itemTotal = item.quantity * item.rate
+        const tax = (itemTotal * item.tax_percent) / 100
+        const lineTotal = itemTotal + tax
+        return `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${item.description || ""}</td>
+        <td style="text-align: right;">${item.quantity}</td>
+        <td style="text-align: right;">${currencySymbol}${Number(item.rate).toFixed(2)}</td>
+        ${includeTax ? `<td style="text-align: right;">${item.tax_percent}%</td>` : ""}
+        <td style="text-align: right;">${currencySymbol}${Number(lineTotal).toFixed(2)}</td>
+      </tr>
     `
+      }
     )
     .join("")
 
@@ -81,6 +115,200 @@ function generateClassicTemplate(
       min-height: 9.5in;
       line-height: 1.6;
     }
+    @page {
+      margin: 0.5in;
+      size: A4;
+    }
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color-adjust: exact;
+    }
+    .page-break { break-after: page; }
+    .no-break { break-inside: avoid; }
+    
+    .tax-header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 3px solid #dc2626;
+    }
+    .tax-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: #dc2626;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+    }
+    .company-name { font-size: 24px; font-weight: 700; margin: 8px 0; }
+    .gstin-info { font-size: 12px; color: #666; margin-top: 4px; }
+    
+    .invoice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 24px;
+    }
+    .bill-to-section { }
+    .bill-to-label { font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; margin-bottom: 8px; }
+    .client-name { font-size: 14px; font-weight: 600; color: #1f2937; margin-bottom: 4px; }
+    .gstin { font-size: 11px; color: #666; margin-top: 4px; }
+    .client-address { font-size: 11px; color: #666; margin-top: 8px; }
+    
+    .invoice-details { text-align: right; }
+    .detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .detail-label { font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; }
+    .detail-value { font-size: 13px; font-weight: 600; color: #1f2937; }
+    .due-date { color: #dc2626; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    thead tr { background-color: #f3f4f6; border-bottom: 2px solid #1f2937; }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    td {
+      padding: 12px;
+      font-size: 13px;
+      border-bottom: 1px solid #e5e7eb;
+      color: #1f2937;
+    }
+    
+    .totals {
+      width: 100%;
+      border-left: 3px solid #1f2937;
+      padding-left: 16px;
+      margin-bottom: 24px;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .total-row.tax { color: #dc2626; font-weight: 700; }
+    .total-row.final {
+      padding-top: 12px;
+      padding-bottom: 12px;
+      border-top: 2px solid #1f2937;
+      border-bottom: 2px solid #1f2937;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    
+    .footer {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 24px;
+      font-size: 11px;
+    }
+    .footer-section-title { font-weight: 700; color: #1f2937; margin-bottom: 8px; }
+    .footer-detail { color: #666; margin-bottom: 4px; font-size: 11px; }
+    .signatory { text-align: right; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <div class="tax-header">
+    <div class="tax-badge">TAX INVOICE</div>
+    ${profile?.logo_url ? `<img src="${profile.logo_url}" alt="Logo" style="height: 48px; margin: 8px 0;">` : ""}
+    <div class="company-name">${profile?.company_name || "Your Company"}</div>
+    ${profile?.gst_id ? `<div class="gstin-info">GSTIN: <strong>${profile.gst_id}</strong></div>` : ""}
+  </div>
+
+  <div class="invoice-grid">
+    <div class="bill-to-section">
+      <div class="bill-to-label">Bill To</div>
+      <div class="client-name">${document.client_name || "Client"}</div>
+      ${document.client_gst_id ? `<div class="gstin">GSTIN: <strong>${document.client_gst_id}</strong></div>` : ""}
+      ${document.client_address ? `<div class="client-address">${document.client_address}</div>` : ""}
+      ${document.client_email ? `<div class="client-address">${document.client_email}</div>` : ""}
+    </div>
+    <div class="invoice-details">
+      <div class="detail-row">
+        <div>
+          <div class="detail-label">Invoice No.</div>
+          <div class="detail-value">${document.number}</div>
+        </div>
+        <div>
+          <div class="detail-label">Date</div>
+          <div class="detail-value">${new Date(document.issue_date).toLocaleDateString("en-IN")}</div>
+        </div>
+      </div>
+      ${document.due_date ? `
+      <div>
+        <div class="detail-label">Due Date</div>
+        <div class="detail-value due-date">${new Date(document.due_date).toLocaleDateString("en-IN")}</div>
+      </div>
+      ` : ""}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th style="text-align: right; width: 60px;">Qty</th>
+        <th style="text-align: right; width: 100px;">Rate</th>
+        ${includeTax ? `<th style="text-align: right; width: 60px;">GST %</th>` : ""}
+        <th style="text-align: right; width: 100px;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="total-row">
+      <span>Subtotal:</span>
+      <span>${currencySymbol}${subtotal.toFixed(2)}</span>
+    </div>
+    ${includeTax && taxAmount > 0 ? `
+    <div class="total-row tax">
+      <span>Tax (GST):</span>
+      <span>${currencySymbol}${taxAmount.toFixed(2)}</span>
+    </div>
+    ` : ""}
+    ${discount > 0 ? `
+    <div class="total-row">
+      <span>Discount:</span>
+      <span>-${currencySymbol}${discount.toFixed(2)}</span>
+    </div>
+    ` : ""}
+    <div class="total-row final">
+      <span>TOTAL:</span>
+      <span>${currencySymbol}${total.toFixed(2)}</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>
+      <div class="footer-section-title">Bank Details</div>
+      ${profile?.bank_name ? `<div class="footer-detail">${profile.bank_name}</div>` : ""}
+      ${profile?.bank_account_name ? `<div class="footer-detail">Acc Name: ${profile.bank_account_name}</div>` : ""}
+      ${profile?.bank_account_number ? `<div class="footer-detail">Acc No: ${profile.bank_account_number}</div>` : ""}
+      ${profile?.bank_swift_code ? `<div class="footer-detail">SWIFT: ${profile.bank_swift_code}</div>` : ""}
+    </div>
+    <div class="signatory">
+      <div class="footer-section-title">Authorized Signatory</div>
+      <div style="margin-top: 48px;">${profile?.company_name || "Company"}</div>
+    </div>
+  </div>
+</body>
+</html>
+  `
+}
+
     @page {
       margin: 0.5in;
       size: A4;
