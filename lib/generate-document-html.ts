@@ -7,9 +7,12 @@ const CURRENCIES: { [key: string]: string } = {
   GBP: "£",
 }
 
+export type TemplateType = "classic" | "minimal"
+
 export function generateDocumentHTML(
   document: Document & { line_items: LineItem[] },
-  profile: any
+  profile: any,
+  template: TemplateType = "classic"
 ) {
   const lineItems = document.line_items || []
   const includeTax = document.include_tax !== false
@@ -28,6 +31,24 @@ export function generateDocumentHTML(
 
   const currencySymbol = CURRENCIES[document.currency] || "₹"
 
+  if (template === "minimal") {
+    return generateMinimalTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
+  }
+
+  return generateClassicTemplate(document, profile, lineItems, currencySymbol, subtotal, taxAmount, discount, total, includeTax)
+}
+
+function generateClassicTemplate(
+  document: Document & { line_items: LineItem[] },
+  profile: any,
+  lineItems: LineItem[],
+  currencySymbol: string,
+  subtotal: number,
+  taxAmount: number,
+  discount: number,
+  total: number,
+  includeTax: boolean
+) {
   const itemsHtml = lineItems
     .map(
       (item: LineItem, i: number) => `
@@ -69,80 +90,27 @@ export function generateDocumentHTML(
       print-color-adjust: exact;
       color-adjust: exact;
     }
-    .page-break {
-      break-after: page;
-    }
-    .no-break {
-      break-inside: avoid;
-    }
-    .header { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: flex-start;
-      gap: 40px; 
-      margin-bottom: 32px; 
-      width: 100%;
-    }
-    .company-info { 
-      flex: 1; 
-      min-width: 0;
-    }
-    .company-name { 
-      font-size: 18px; 
-      font-weight: 700; 
-      margin-bottom: 8px; 
-      color: #1f2937; 
-    }
-    .company-details { 
-      font-size: 12px; 
-      color: #6b7280; 
-      line-height: 1.6; 
-    }
-    .invoice-info { 
-      text-align: right; 
-      white-space: nowrap;
-    }
-    .invoice-title { 
-      font-size: 32px; 
-      font-weight: 700; 
-      text-transform: uppercase; 
-      color: #1f2937; 
-      margin-bottom: 8px; 
-    }
-    .invoice-meta { 
-      font-size: 12px; 
-      color: #6b7280; 
-      margin-top: 4px; 
-      line-height: 1.6;
-    }
+    .page-break { break-after: page; }
+    .no-break { break-inside: avoid; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; margin-bottom: 32px; width: 100%; }
+    .company-info { flex: 1; min-width: 0; }
+    .company-name { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #1f2937; }
+    .company-details { font-size: 12px; color: #6b7280; line-height: 1.6; }
+    .invoice-info { text-align: right; white-space: nowrap; }
+    .invoice-title { font-size: 32px; font-weight: 700; text-transform: uppercase; color: #1f2937; margin-bottom: 8px; }
+    .invoice-meta { font-size: 12px; color: #6b7280; margin-top: 4px; line-height: 1.6; }
     .bill-to { margin-bottom: 32px; padding: 16px; background: #f9fafb; border-radius: 6px; }
     .bill-to-label { font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; font-weight: 600; }
     .client-name { font-size: 15px; font-weight: 600; color: #1f2937; }
     .client-details { font-size: 12px; color: #6b7280; margin-top: 4px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-    th { 
-      padding: 12px; 
-      text-align: left; 
-      font-size: 11px; 
-      text-transform: uppercase; 
-      color: #6b7280; 
-      border-bottom: 2px solid #e5e7eb;
-      font-weight: 600;
-    }
+    th { padding: 12px; text-align: left; font-size: 11px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb; font-weight: 600; }
     th:nth-child(3), th:nth-child(4), th:nth-child(5) { text-align: right; }
     td { font-size: 13px; color: #1f2937; }
     .totals { margin-left: auto; width: 300px; margin-bottom: 24px; }
     .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; color: #1f2937; }
-    .total-row.subtotal { padding: 8px 0; }
-    .total-row.tax { padding: 8px 0; }
-    .total-row.discount { padding: 8px 0; color: #dc2626; }
-    .total-row.final { 
-      border-top: 2px solid #1f2937; 
-      font-weight: 700; 
-      font-size: 16px; 
-      margin-top: 12px; 
-      padding-top: 12px; 
-    }
+    .total-row.discount { color: #dc2626; }
+    .total-row.final { border-top: 2px solid #1f2937; font-weight: 700; font-size: 16px; margin-top: 12px; padding-top: 12px; }
     .payment-info { margin-top: 32px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 6px; background: #f9fafb; }
     .payment-label { font-size: 11px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; }
     .payment-method { margin-bottom: 16px; }
@@ -232,7 +200,6 @@ export function generateDocumentHTML(
   ${(profile?.bank_name || profile?.upi_id || profile?.paypal_email) ? `
   <div class="payment-info">
     <div class="payment-label">Payment Information</div>
-    
     ${profile?.bank_name ? `
     <div class="payment-method">
       <div class="payment-method-title">Bank Transfer</div>
@@ -243,7 +210,6 @@ export function generateDocumentHTML(
       ${profile.bank_swift_code ? `<div class="payment-detail">SWIFT/BIC: <span class="payment-detail-value">${profile.bank_swift_code}</span></div>` : ""}
     </div>
     ` : ""}
-    
     ${profile?.upi_id ? `
     <div class="payment-method ${profile?.bank_name ? "payment-divider" : ""}">
       <div class="payment-method-title">UPI Payment</div>
@@ -256,7 +222,6 @@ export function generateDocumentHTML(
       </div>
     </div>
     ` : ""}
-    
     ${profile?.paypal_email ? `
     <div class="payment-method ${(profile?.bank_name || profile?.upi_id) ? "payment-divider" : ""}">
       <div class="payment-method-title">PayPal</div>
@@ -275,6 +240,153 @@ export function generateDocumentHTML(
 
   <div class="footer">
     Thank you for your business!
+  </div>
+</body>
+</html>
+  `
+}
+
+function generateMinimalTemplate(
+  document: Document & { line_items: LineItem[] },
+  profile: any,
+  lineItems: LineItem[],
+  currencySymbol: string,
+  subtotal: number,
+  taxAmount: number,
+  discount: number,
+  total: number,
+  includeTax: boolean
+) {
+  const taxPercent = subtotal > 0 ? Math.round((taxAmount / subtotal) * 100) : 0
+
+  const itemsHtml = lineItems
+    .map(
+      (item: LineItem) => `
+      <tr style="border-bottom: 1px solid #e8e8e0;">
+        <td style="padding: 16px 0; color: #666;">
+          ${item.name || item.description || ""}
+          ${item.description && item.name ? `<br><span style="font-size: 12px; color: #999;">${item.description}</span>` : ""}
+        </td>
+        <td style="padding: 16px 0; text-align: right; color: #666;">${currencySymbol}${Number(item.rate).toFixed(2)}/hr</td>
+        <td style="padding: 16px 0; text-align: right; color: #666;">${item.quantity}</td>
+        <td style="padding: 16px 0; text-align: right; color: #1a1a1a;">${currencySymbol}${Number(item.line_total).toFixed(2)}</td>
+      </tr>
+    `
+    )
+    .join("")
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1a1a1a;
+      background: #f5f5f0;
+      margin: 0;
+      padding: 0.5in;
+      min-height: 11in;
+      line-height: 1.6;
+    }
+    @page {
+      margin: 0;
+      size: A4;
+    }
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color-adjust: exact;
+    }
+    .page-break { break-after: page; }
+    .no-break { break-inside: avoid; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 48px;">
+    <h1 style="font-size: 48px; font-weight: 900; letter-spacing: -1px; color: #1a1a1a;">
+      ${document.type === "quotation" ? "Quotation" : "Invoice"}
+    </h1>
+    <div style="text-align: right; font-size: 14px; color: #666;">
+      <p>${new Date(document.issue_date).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}</p>
+      <p style="font-weight: 500; color: #1a1a1a;">${document.type === "quotation" ? "Quotation" : "Invoice"} No. ${document.number || "DRAFT"}</p>
+    </div>
+  </div>
+
+  <!-- Billed To Card -->
+  <div style="margin-bottom: 40px; padding: 20px; background: #e8e8e0; border-radius: 8px;">
+    <p style="font-size: 14px; font-weight: 500; color: #3b82f6; margin-bottom: 8px;">Billed to:</p>
+    <p style="font-weight: 500; color: #1a1a1a;">${document.client_name || "Client Name"}</p>
+    ${document.client_phone ? `<p style="font-size: 14px; color: #666;">${document.client_phone}</p>` : ""}
+    ${document.client_address ? `<p style="font-size: 14px; color: #666;">${document.client_address}</p>` : ""}
+  </div>
+
+  <!-- Line Items Table -->
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 32px;">
+    <thead>
+      <tr style="border-bottom: 2px solid #d4d4c8;">
+        <th style="padding: 12px 0; text-align: left; font-size: 14px; font-weight: 500; color: #666;">Description</th>
+        <th style="padding: 12px 0; text-align: right; font-size: 14px; font-weight: 500; color: #666;">Rate</th>
+        <th style="padding: 12px 0; text-align: right; font-size: 14px; font-weight: 500; color: #666;">Hours</th>
+        <th style="padding: 12px 0; text-align: right; font-size: 14px; font-weight: 500; color: #666;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+    </tbody>
+  </table>
+
+  <!-- Totals -->
+  <div style="display: flex; justify-content: flex-end; margin-bottom: 40px;">
+    <div style="width: 250px;">
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;">
+        <span style="color: #666;">Subtotal</span>
+        <span style="color: #1a1a1a;">${currencySymbol}${subtotal.toFixed(2)}</span>
+      </div>
+      ${includeTax ? `
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;">
+        <span style="color: #666;">Tax (${taxPercent}%)</span>
+        <span style="color: #1a1a1a;">${currencySymbol}${taxAmount.toFixed(2)}</span>
+      </div>
+      ` : ""}
+      ${discount > 0 ? `
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; color: #dc2626;">
+        <span>Discount</span>
+        <span>-${currencySymbol}${discount.toFixed(2)}</span>
+      </div>
+      ` : ""}
+      <div style="display: flex; justify-content: space-between; padding: 12px 0; margin-top: 8px; border-top: 2px solid #1a1a1a; font-size: 18px; font-weight: 700;">
+        <span style="color: #1a1a1a;">Total</span>
+        <span style="color: #1a1a1a;">${currencySymbol}${total.toFixed(2)}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer - Two Column Layout -->
+  <div style="margin-top: auto; padding-top: 32px; border-top: 1px solid #d4d4c8; display: flex; gap: 32px;">
+    <!-- Payment Information -->
+    <div style="flex: 1;">
+      <h3 style="font-weight: 600; margin-bottom: 12px; color: #1a1a1a;">Payment Information</h3>
+      <div style="font-size: 14px; color: #666; line-height: 1.8;">
+        ${profile?.company_name ? `<p>${profile.company_name}</p>` : ""}
+        ${profile?.bank_name ? `<p>Bank: ${profile.bank_name}</p>` : ""}
+        ${profile?.bank_account_number ? `<p>Account No: ${profile.bank_account_number}</p>` : ""}
+        ${profile?.bank_routing_number ? `<p>IFSC/Routing: ${profile.bank_routing_number}</p>` : ""}
+      </div>
+    </div>
+
+    <!-- Sender Info -->
+    <div style="flex: 1;">
+      <h3 style="font-weight: 600; margin-bottom: 12px; color: #1a1a1a;">${profile?.company_name || "Your Company"}</h3>
+      <div style="font-size: 14px; color: #666; line-height: 1.8;">
+        ${profile?.company_address ? `<p>${profile.company_address}</p>` : ""}
+        ${profile?.phone ? `<p>${profile.phone}</p>` : ""}
+        ${profile?.email ? `<p>${profile.email}</p>` : ""}
+      </div>
+    </div>
   </div>
 </body>
 </html>

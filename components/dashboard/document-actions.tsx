@@ -56,6 +56,7 @@ import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import type { Document, LineItem } from "@/lib/types"
+import type { TemplateType } from "./template-selector"
 import {
   deleteDocument,
   duplicateDocument,
@@ -73,9 +74,10 @@ const STATUS_OPTIONS = [
 
 interface DocumentActionsProps {
   document: Document & { line_items: LineItem[] }
+  template?: TemplateType
 }
 
-export function DocumentActions({ document }: DocumentActionsProps) {
+export function DocumentActions({ document, template = "classic" }: DocumentActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(document.status)
@@ -164,7 +166,7 @@ export function DocumentActions({ document }: DocumentActionsProps) {
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true)
     try {
-      const response = await fetch(`/api/documents/pdf?id=${document.id}`)
+      const response = await fetch(`/api/documents/pdf?id=${document.id}&template=${template}`)
       const contentType = response.headers.get("content-type")
 
       if (contentType?.includes("application/pdf")) {

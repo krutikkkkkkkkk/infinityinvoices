@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateDocumentHTML } from "@/lib/generate-document-html"
+import { generateDocumentHTML, type TemplateType } from "@/lib/generate-document-html"
 import puppeteer from "puppeteer-core"
 import chromium from "@sparticuz/chromium"
 
 export async function GET(request: NextRequest) {
   try {
     const documentId = request.nextUrl.searchParams.get("id")
+    const template = (request.nextUrl.searchParams.get("template") || "classic") as TemplateType
 
     if (!documentId) {
       return NextResponse.json({ error: "Document ID required" }, { status: 400 })
@@ -42,8 +43,8 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .single()
 
-    // Generate HTML using shared generator
-    const baseHtml = generateDocumentHTML(document, profile)
+    // Generate HTML using shared generator with selected template
+    const baseHtml = generateDocumentHTML(document, profile, template)
     
     // Inject print styles for proper color rendering and page breaks
     const html = baseHtml.replace(

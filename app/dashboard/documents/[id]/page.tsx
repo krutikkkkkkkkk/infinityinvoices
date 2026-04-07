@@ -1,15 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
-import { DocumentPreview } from "@/components/dashboard/document-preview"
-import { DocumentActions } from "@/components/dashboard/document-actions"
+import { DocumentDetailView } from "@/components/dashboard/document-detail-view"
 import { DocumentForm } from "@/components/dashboard/document-form"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
-import type { Document, LineItem, Profile, DocumentType, Currency } from "@/lib/types"
-import { PaymentsPanel } from "@/components/dashboard/payments-panel"
+import type { Document, LineItem, Profile, DocumentType } from "@/lib/types"
 import { isAdmin } from "@/lib/admin"
 
 function getStatusBadge(status: string) {
@@ -133,41 +131,26 @@ export default async function DocumentDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/dashboard">
-              <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
-            </Link>
-          </Button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {document.type === "invoice" ? "Invoice" : "Quotation"} {document.number}
-            </h1>
-            {getStatusBadge(document.status)}
-          </div>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/dashboard">
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
+          </Link>
+        </Button>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {document.type === "invoice" ? "Invoice" : "Quotation"} {document.number}
+          </h1>
+          {getStatusBadge(document.status)}
         </div>
-        <DocumentActions document={document as Document & { line_items: LineItem[] }} />
       </div>
 
-      {/* Preview and Payments */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 print:block">
-          <DocumentPreview
-            document={document as Document & { line_items: LineItem[] }}
-            profile={profile as Profile | null}
-          />
-        </div>
-        {document.type === "invoice" && (
-          <div className="lg:col-span-1">
-            <PaymentsPanel
-              documentId={document.id}
-              grandTotal={Number(document.grand_total)}
-              currency={document.currency as Currency}
-            />
-          </div>
-        )}
-      </div>
+      {/* Preview, Actions and Payments */}
+      <DocumentDetailView
+        document={document as Document & { line_items: LineItem[] }}
+        profile={profile as Profile | null}
+        showActions={true}
+      />
     </div>
   )
 }
