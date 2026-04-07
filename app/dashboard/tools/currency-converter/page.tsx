@@ -54,7 +54,7 @@ export default function CurrencyConverterPage() {
     setError(null)
 
     try {
-      const url = `https://api.frankfurter.dev/v1/latest?amount=${amount}&from=${fromCurrency}&to=${toCurrency}`
+      const url = `https://api.frankfurter.dev/v1/latest?from=${fromCurrency}&to=${toCurrency}`
       console.log("[v0] Fetching from:", url)
       const res = await fetch(url)
       console.log("[v0] Response status:", res.status)
@@ -73,8 +73,10 @@ export default function CurrencyConverterPage() {
         throw new Error("Rate not found in response")
       }
       
+      const convertedAmount = (parseFloat(amount) || 0) * fetchedRate
+      
       setRate(fetchedRate)
-      setResult((parseFloat(amount) || 0) * fetchedRate)
+      setResult(convertedAmount)
       setLastUpdated(new Date().toLocaleString())
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error"
