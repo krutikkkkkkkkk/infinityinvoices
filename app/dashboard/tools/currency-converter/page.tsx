@@ -54,7 +54,7 @@ export default function CurrencyConverterPage() {
     setError(null)
 
     try {
-      const url = `https://api.frankfurter.app/latest?amount=${amount}&from=${fromCurrency}&to=${toCurrency}`
+      const url = `https://api.frankfurter.dev/v1/latest?amount=${amount}&from=${fromCurrency}&to=${toCurrency}`
       console.log("[v0] Fetching from:", url)
       const res = await fetch(url)
       console.log("[v0] Response status:", res.status)
@@ -277,7 +277,7 @@ export default function CurrencyConverterPage() {
           <p className="text-sm text-muted-foreground text-center">
             Exchange rates are provided by{" "}
             <a
-              href="https://www.frankfurter.app"
+              href="https://www.frankfurter.dev"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline"
