@@ -18,6 +18,7 @@ import {
   PackageIcon,
   ChartLineData01Icon,
   CreditCardIcon,
+  ExchangeIcon,
 } from "@hugeicons/core-free-icons"
 import { ChevronUp } from "lucide-react"
 import {
@@ -48,6 +49,10 @@ const mainNavItems = [
   { href: "/dashboard/quotations", label: "Quotations", icon: FileValidationIcon },
   { href: "/dashboard/clients", label: "Clients", icon: UserMultipleIcon },
   { href: "/dashboard/products", label: "Products", icon: PackageIcon },
+]
+
+const toolsNavItems = [
+  { href: "/dashboard/tools/currency-converter", label: "Currency Converter", icon: ExchangeIcon },
 ]
 
 const accountNavItems = [
@@ -100,6 +105,28 @@ export function AppSidebar({ user }: { user: User }) {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={item.label}
+                  >
+                    <Link href={item.href}>
+                      <HugeiconsIcon icon={item.icon} size={18} />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {toolsNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
