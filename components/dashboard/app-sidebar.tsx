@@ -84,9 +84,7 @@ export function AppSidebar({ user }: { user: User }) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip="Infinity Invoice">
               <Link href="/dashboard">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <HugeiconsIcon icon={InvoiceIcon} size={18} />
-                </div>
+                <img src="/logo.svg" alt="Infinity Invoice" className="size-8 shrink-0 rounded-lg" />
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Infinity Invoice</span>
                   <span className="text-xs text-muted-foreground">
