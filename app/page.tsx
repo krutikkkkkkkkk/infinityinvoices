@@ -66,9 +66,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-              <HugeiconsIcon icon={InvoiceIcon} size={18} className="text-primary-foreground" />
-            </div>
+            <img src="/brand-logo.svg" alt="Infinity Invoice" className="h-8 w-8 rounded-lg" />
             <span className="text-lg font-semibold">InfinityInvoice</span>
           </Link>
 
@@ -388,12 +386,10 @@ export default function LandingPage() {
       <footer className="py-12 border-t border-border">
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded bg-primary">
-                <HugeiconsIcon icon={InvoiceIcon} size={14} className="text-primary-foreground" />
-              </div>
-              <span className="font-semibold">InfinityInvoice</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <img src="/brand-logo.svg" alt="Infinity Invoice" className="h-6 w-6 rounded" />
+            <span className="font-semibold">InfinityInvoice</span>
+          </div>
 
             <p className="text-sm text-muted-foreground">
               {new Date().getFullYear()} InfinityInvoice. All rights reserved.
