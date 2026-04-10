@@ -12,6 +12,7 @@ import { Loading01Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { AuthLayout } from "@/components/auth/auth-layout"
 
 export default function ResetPasswordPage() {
   const [isPending, startTransition] = useTransition()
@@ -55,8 +56,8 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-        <Card className="w-full max-w-md">
+      <AuthLayout>
+        <Card>
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <HugeiconsIcon icon={CheckmarkCircle02Icon} size={48} color="#16a34a" className="mx-auto" />
@@ -67,13 +68,13 @@ export default function ResetPasswordPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md">
+    <AuthLayout>
+      <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Reset Password</CardTitle>
           <CardDescription>
@@ -120,9 +121,9 @@ export default function ResetPasswordPage() {
                 Back to login
               </Link>
             </p>
-          </form>
+            </form>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   )
 }

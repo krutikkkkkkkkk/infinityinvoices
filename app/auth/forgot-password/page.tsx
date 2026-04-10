@@ -11,6 +11,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Loading01Icon, CheckmarkCircle02Icon, ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
+import { AuthLayout } from "@/components/auth/auth-layout"
 
 export default function ForgotPasswordPage() {
   const [isPending, startTransition] = useTransition()
@@ -43,8 +44,8 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-        <Card className="w-full max-w-md">
+      <AuthLayout>
+        <Card>
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <HugeiconsIcon icon={CheckmarkCircle02Icon} size={48} color="#16a34a" className="mx-auto" />
@@ -64,13 +65,13 @@ export default function ForgotPasswordPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md">
+    <AuthLayout>
+      <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Forgot Password</CardTitle>
           <CardDescription>
@@ -105,9 +106,9 @@ export default function ForgotPasswordPage() {
                 Back to login
               </Link>
             </p>
-          </form>
+            </form>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   )
 }
