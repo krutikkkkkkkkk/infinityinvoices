@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle02Icon, Loading01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
+import { getLifetimePlanAvailability } from "@/app/actions/lifetime"
 
 export default function PricingPage() {
   const searchParams = useSearchParams()
@@ -17,9 +18,15 @@ export default function PricingPage() {
   const [subscription, setSubscription] = useState<{ plan: string; status: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [lifetimeAvailability, setLifetimeAvailability] = useState<{
+    available: boolean
+    count: number
+    limit: number
+    remaining: number
+  } | null>(null)
 
   useEffect(() => {
-    async function loadSubscription() {
+    async function loadData() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -35,9 +42,14 @@ export default function PricingPage() {
           setSubscription(data)
         }
       }
+
+      // Check lifetime plan availability
+      const availability = await getLifetimePlanAvailability()
+      setLifetimeAvailability(availability)
+
       setLoading(false)
     }
-    loadSubscription()
+    loadData()
   }, [])
 
   const currentPlan = subscription?.plan || "free"
@@ -78,11 +90,16 @@ export default function PricingPage() {
           return (
             <Card
               key={plan.id}
-              className={`relative ${isLifetime ? "border-amber-400 shadow-lg md:scale-105" : isPro ? "border-primary shadow-lg" : ""}`}
+              className={`relative ${isLifetime ? lifetimeAvailability?.available ? "border-amber-400 shadow-lg md:scale-105" : "opacity-60 md:scale-100" : isPro ? "border-primary shadow-lg" : ""}`}
             >
-              {isLifetime && (
+              {isLifetime && lifetimeAvailability?.available && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-900">
-                  Best Value
+                  Best Value - {lifetimeAvailability.remaining} Left
+                </Badge>
+              )}
+              {isLifetime && !lifetimeAvailability?.available && (
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500">
+                  Sold Out
                 </Badge>
               )}
               {isPro && !isLifetime && (
@@ -141,13 +158,19 @@ export default function PricingPage() {
                     </Button>
                   )
                 ) : (isPro || isLifetime) && process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID ? (
-                  <Button className={`w-full ${isLifetime ? "bg-amber-400 text-amber-900 hover:bg-amber-500" : ""}`} asChild>
-                    <Link 
-                      href={`/api/checkout?products=${isLifetime ? process.env.NEXT_PUBLIC_POLAR_LIFETIME_PRODUCT_ID : process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
-                    >
-                      {isLifetime ? "Get Lifetime Access" : "Upgrade to Pro"}
-                    </Link>
-                  </Button>
+                  isLifetime && !lifetimeAvailability?.available ? (
+                    <Button className="w-full bg-red-500 hover:bg-red-600" disabled>
+                      Sold Out
+                    </Button>
+                  ) : (
+                    <Button className={`w-full ${isLifetime ? "bg-amber-400 text-amber-900 hover:bg-amber-500" : ""}`} asChild>
+                      <Link 
+                        href={`/api/checkout?products=${isLifetime ? process.env.NEXT_PUBLIC_POLAR_LIFETIME_PRODUCT_ID : process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
+                      >
+                        {isLifetime ? "Get Lifetime Access" : "Upgrade to Pro"}
+                      </Link>
+                    </Button>
+                  )
                 ) : (
                   <Button className="w-full" disabled>
                     Configure Product ID
