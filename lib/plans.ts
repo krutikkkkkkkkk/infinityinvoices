@@ -3,6 +3,7 @@ export interface Plan {
   name: string
   description: string
   priceInCents: number
+  priceBillingCycle?: string // For non-recurring plans
   polarProductId?: string // Polar Product ID - set after creating in Polar dashboard
   features: string[]
   limits: {
@@ -59,6 +60,33 @@ export const PLANS: Plan[] = [
       clients: -1,
     },
   },
+  {
+    id: "lifetime",
+    name: "Lifetime",
+    description: "One-time payment, forever",
+    priceInCents: 4900, // $49 one-time
+    priceBillingCycle: "one-time",
+    features: [
+      "Unlimited invoices forever",
+      "Unlimited quotations forever",
+      "Unlimited clients forever",
+      "Email invoices to clients",
+      "Unlimited email sending",
+      "Automated payment reminders",
+      "Priority support",
+      "Custom branding",
+      "Custom invoice numbers",
+      "Advanced analytics",
+      "Bulk operations",
+      "Lifetime updates included",
+    ],
+    limits: {
+      invoicesPerMonth: -1, // -1 means unlimited
+      quotationsPerMonth: -1,
+      emailsPerMonth: -1,
+      clients: -1,
+    },
+  },
 ]
 
 export function getPlan(planId: string): Plan | undefined {
@@ -76,3 +104,4 @@ export function getProPlan(): Plan {
 // Direct exports for convenience
 export const FREE_PLAN = PLANS.find((p) => p.id === "free")!
 export const PRO_PLAN = PLANS.find((p) => p.id === "pro")!
+export const LIFETIME_PLAN = PLANS.find((p) => p.id === "lifetime")!

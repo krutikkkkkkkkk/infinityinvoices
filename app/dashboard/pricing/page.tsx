@@ -69,17 +69,23 @@ export default function PricingPage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+      <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {PLANS.map((plan) => {
           const isCurrentPlan = currentPlan === plan.id
           const isPro = plan.id === "pro"
+          const isLifetime = plan.id === "lifetime"
 
           return (
             <Card
               key={plan.id}
-              className={`relative ${isPro ? "border-primary shadow-lg" : ""}`}
+              className={`relative ${isLifetime ? "border-amber-400 shadow-lg md:scale-105" : isPro ? "border-primary shadow-lg" : ""}`}
             >
-              {isPro && (
+              {isLifetime && (
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-900">
+                  Best Value
+                </Badge>
+              )}
+              {isPro && !isLifetime && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
                   Recommended
                 </Badge>
@@ -99,7 +105,9 @@ export default function PricingPage() {
                     ${plan.priceInCents / 100}
                   </span>
                   {plan.priceInCents > 0 && (
-                    <span className="text-muted-foreground">/month</span>
+                    <span className="text-muted-foreground">
+                      /{plan.priceBillingCycle || "month"}
+                    </span>
                   )}
                 </div>
                 <ul className="space-y-3">
@@ -117,7 +125,7 @@ export default function PricingPage() {
               </CardContent>
               <CardFooter>
                 {isCurrentPlan ? (
-                  isPro ? (
+                  (isPro || isLifetime) ? (
                     <Button
                       variant="outline"
                       className="w-full bg-transparent"
@@ -132,21 +140,17 @@ export default function PricingPage() {
                       Current Plan
                     </Button>
                   )
-                ) : isPro && proProductId ? (
-                  <Button className="w-full" asChild>
+                ) : (isPro || isLifetime) && process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID ? (
+                  <Button className={`w-full ${isLifetime ? "bg-amber-400 text-amber-900 hover:bg-amber-500" : ""}`} asChild>
                     <Link 
-                      href={`/api/checkout?products=${proProductId}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
+                      href={`/api/checkout?products=${isLifetime ? process.env.NEXT_PUBLIC_POLAR_LIFETIME_PRODUCT_ID : process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
                     >
-                      Upgrade to Pro
+                      {isLifetime ? "Get Lifetime Access" : "Upgrade to Pro"}
                     </Link>
                   </Button>
-                ) : isPro ? (
+                ) : (
                   <Button className="w-full" disabled>
                     Configure Product ID
-                  </Button>
-                ) : (
-                  <Button variant="outline" className="w-full bg-transparent" disabled>
-                    Free Forever
                   </Button>
                 )}
               </CardFooter>
@@ -162,6 +166,14 @@ export default function PricingPage() {
             <Link href="/api/portal" className="text-primary hover:underline">
               Manage your billing
             </Link>
+          </p>
+        </div>
+      )}
+
+      {subscription?.plan === "lifetime" && (
+        <div className="text-center mt-8">
+          <p className="text-sm text-muted-foreground">
+            Thank you for choosing Lifetime access! You have unlimited access forever.
           </p>
         </div>
       )}
