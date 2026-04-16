@@ -29,7 +29,9 @@ export default async function AdminDashboard() {
   ])
 
   const proUsers = subscriptions?.filter(s => s.plan === "pro").length || 0
-  const freeUsers = (totalUsers || 0) - proUsers
+  const lifetimeUsers = subscriptions?.filter(s => s.plan === "lifetime").length || 0
+  const paidUsers = proUsers + lifetimeUsers
+  const freeUsers = (totalUsers || 0) - paidUsers
 
   // Get this month's new users
   const startOfMonth = new Date()
@@ -55,6 +57,13 @@ export default async function AdminDashboard() {
       icon: Crown,
       color: "text-yellow-500",
       bgColor: "bg-yellow-500/10"
+    },
+    {
+      title: "Lifetime Users",
+      value: `${lifetimeUsers}/200`,
+      icon: Crown,
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10"
     },
     {
       title: "Free Users",
@@ -87,7 +96,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {stats.map((stat) => (
           <Card key={stat.title} className="bg-gray-900 border-gray-800">
             <CardContent className="p-6">

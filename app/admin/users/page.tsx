@@ -38,8 +38,6 @@ export default async function AdminUsersPage({
 
   const { data: users, error } = await query
 
-  console.log("[v0] Admin users query result:", { usersCount: users?.length, error })
-
   // Fetch subscriptions separately for all users
   const userIds = users?.map((u: any) => u.id) || []
   const { data: subscriptions } = await supabase
@@ -58,7 +56,8 @@ export default async function AdminUsersPage({
   if (params.plan) {
     filteredUsers = filteredUsers.filter((user: any) => {
       const subscription = subscriptionMap[user.id]
-      if (params.plan === "pro") return subscription?.plan === "pro"
+      if (params.plan === "pro") return subscription?.plan === "pro" || subscription?.plan === "lifetime"
+      if (params.plan === "lifetime") return subscription?.plan === "lifetime"
       if (params.plan === "free") return !subscription || subscription.plan === "free"
       return true
     })
@@ -106,6 +105,12 @@ export default async function AdminUsersPage({
               Pro
             </Badge>
           </a>
+          <a href="/admin/users?plan=lifetime">
+            <Badge variant={params.plan === "lifetime" ? "default" : "outline"} className="cursor-pointer px-4 py-2 bg-amber-500/20 text-amber-500 border-amber-500/50">
+              <Crown className="h-3 w-3 mr-1" />
+              Lifetime
+            </Badge>
+          </a>
           <a href="/admin/users?plan=free">
             <Badge variant={params.plan === "free" ? "default" : "outline"} className="cursor-pointer px-4 py-2">
               Free
@@ -137,6 +142,7 @@ export default async function AdminUsersPage({
               {filteredUsers.map((user: any) => {
                 const subscription = subscriptionMap[user.id]
                 const isPro = subscription?.plan === "pro"
+                const isLifetime = subscription?.plan === "lifetime"
                 
                 return (
                   <TableRow key={user.id} className="border-gray-800">
@@ -149,7 +155,12 @@ export default async function AdminUsersPage({
                       {user.company_name || "-"}
                     </TableCell>
                     <TableCell>
-                      {isPro ? (
+                      {isLifetime ? (
+                        <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/50">
+                          <Crown className="h-3 w-3 mr-1" />
+                          Lifetime
+                        </Badge>
+                      ) : isPro ? (
                         <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50">
                           <Crown className="h-3 w-3 mr-1" />
                           Pro
@@ -167,7 +178,7 @@ export default async function AdminUsersPage({
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <UserActionsCell userId={user.id} isPro={isPro} />
+                      <UserActionsCell userId={user.id} isPro={isPro || isLifetime} />
                     </TableCell>
                   </TableRow>
                 )

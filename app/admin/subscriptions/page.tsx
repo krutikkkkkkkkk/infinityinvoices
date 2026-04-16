@@ -26,10 +26,13 @@ export default async function AdminSubscriptionsPage() {
   // Calculate stats
   const totalSubscriptions = subscriptions?.length || 0
   const proSubscriptions = subscriptions?.filter(s => s.plan === "pro") || []
+  const lifetimeSubscriptions = subscriptions?.filter(s => s.plan === "lifetime") || []
   const activeSubscriptions = subscriptions?.filter(s => s.status === "active") || []
   
-  // Calculate MRR (Monthly Recurring Revenue) - assuming $9.99/month for pro
-  const mrr = proSubscriptions.filter(s => s.status === "active").length * 9.99
+  // Calculate MRR (Monthly Recurring Revenue) - $5/month for pro, lifetime is one-time so not MRR
+  const mrr = proSubscriptions.filter(s => s.status === "active").length * 5
+  // Calculate lifetime revenue ($49 each)
+  const lifetimeRevenue = lifetimeSubscriptions.filter(s => s.status === "active").length * 49
 
   const stats = [
     {
@@ -45,6 +48,13 @@ export default async function AdminSubscriptionsPage() {
       icon: Crown,
       color: "text-yellow-500",
       bgColor: "bg-yellow-500/10"
+    },
+    {
+      title: "Lifetime",
+      value: `${lifetimeSubscriptions.length}/200`,
+      icon: Crown,
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10"
     },
     {
       title: "Active",
@@ -108,6 +118,7 @@ export default async function AdminSubscriptionsPage() {
               {subscriptions?.map((sub: any) => {
                 const profile = sub.profiles
                 const isPro = sub.plan === "pro"
+                const isLifetime = sub.plan === "lifetime"
                 
                 return (
                   <TableRow key={sub.id} className="border-gray-800">
@@ -118,7 +129,12 @@ export default async function AdminSubscriptionsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {isPro ? (
+                      {isLifetime ? (
+                        <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/50">
+                          <Crown className="h-3 w-3 mr-1" />
+                          Lifetime
+                        </Badge>
+                      ) : isPro ? (
                         <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50">
                           <Crown className="h-3 w-3 mr-1" />
                           Pro
@@ -144,9 +160,11 @@ export default async function AdminSubscriptionsPage() {
                       {new Date(sub.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-gray-400">
-                      {sub.current_period_end 
-                        ? new Date(sub.current_period_end).toLocaleDateString()
-                        : "-"
+                      {isLifetime 
+                        ? "Never" 
+                        : sub.current_period_end 
+                          ? new Date(sub.current_period_end).toLocaleDateString()
+                          : "-"
                       }
                     </TableCell>
                   </TableRow>
