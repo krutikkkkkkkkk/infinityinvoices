@@ -48,14 +48,14 @@ export default function UsagePage() {
           <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
-          {subscription?.plan === "pro" && (
+          {(subscription?.plan === "pro" || subscription?.plan === "lifetime") && (
             <Button variant="outline" asChild>
               <Link href="/api/portal">Manage Subscription</Link>
             </Button>
           )}
           {subscription?.plan === "free" && (
             <Button asChild>
-              <Link href="/dashboard/pricing">Upgrade to Pro</Link>
+              <Link href="/dashboard/pricing">Upgrade</Link>
             </Button>
           )}
         </div>
@@ -64,11 +64,11 @@ export default function UsagePage() {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
           <div>
-            <CardTitle>Current Plan: {subscription?.plan === "pro" ? "Pro" : "Free"}</CardTitle>
+            <CardTitle>Current Plan: {subscription?.plan === "lifetime" ? "Lifetime" : subscription?.plan === "pro" ? "Pro" : "Free"}</CardTitle>
             <CardDescription>
-              {subscription?.plan === "pro" 
+              {(subscription?.plan === "pro" || subscription?.plan === "lifetime")
                 ? "You have unlimited access to all features" 
-                : "Upgrade to Pro for unlimited usage"}
+                : "Upgrade for unlimited usage"}
             </CardDescription>
             {subscription?.current_period_end && subscription?.plan === "pro" && (
               <p className="text-xs text-muted-foreground mt-1">
@@ -76,7 +76,7 @@ export default function UsagePage() {
               </p>
             )}
           </div>
-          {subscription?.plan === "pro" && (
+          {(subscription?.plan === "pro" || subscription?.plan === "lifetime") && (
             <Button variant="outline" size="sm" asChild>
               <Link href="/api/portal">Manage</Link>
             </Button>

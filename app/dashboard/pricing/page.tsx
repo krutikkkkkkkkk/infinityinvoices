@@ -15,6 +15,7 @@ import { getLifetimePlanAvailability } from "@/app/actions/lifetime"
 export default function PricingPage() {
   const searchParams = useSearchParams()
   const success = searchParams.get("success")
+  const error = searchParams.get("error")
   const [subscription, setSubscription] = useState<{ plan: string; status: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -54,6 +55,7 @@ export default function PricingPage() {
 
   const currentPlan = subscription?.plan || "free"
   const proProductId = process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID
+  const lifetimeProductId = process.env.NEXT_PUBLIC_POLAR_LIFETIME_PRODUCT_ID
 
   if (loading) {
     return (
@@ -69,7 +71,15 @@ export default function PricingPage() {
         <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-4 mb-8 text-center">
           <HugeiconsIcon icon={CheckmarkCircle02Icon} size={24} className="text-green-600 mx-auto mb-2" />
           <p className="font-medium text-green-800 dark:text-green-200">
-            Welcome to Pro! Your subscription is now active.
+            Welcome! Your subscription is now active.
+          </p>
+        </div>
+      )}
+
+      {error === "lifetime_sold_out" && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4 mb-8 text-center">
+          <p className="font-medium text-red-800 dark:text-red-200">
+            Sorry, the Lifetime plan is now sold out. All 200 spots have been claimed.
           </p>
         </div>
       )}
@@ -157,23 +167,39 @@ export default function PricingPage() {
                       Current Plan
                     </Button>
                   )
-                ) : (isPro || isLifetime) && process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID ? (
-                  isLifetime && !lifetimeAvailability?.available ? (
+                ) : plan.id === "free" ? (
+                  <Button variant="outline" className="w-full bg-transparent" disabled>
+                    Free Forever
+                  </Button>
+                ) : isLifetime ? (
+                  !lifetimeAvailability?.available ? (
                     <Button className="w-full bg-red-500 hover:bg-red-600" disabled>
                       Sold Out
                     </Button>
-                  ) : (
-                    <Button className={`w-full ${isLifetime ? "bg-amber-400 text-amber-900 hover:bg-amber-500" : ""}`} asChild>
+                  ) : lifetimeProductId ? (
+                    <Button className="w-full bg-amber-400 text-amber-900 hover:bg-amber-500" asChild>
                       <Link 
-                        href={`/api/checkout?products=${isLifetime ? process.env.NEXT_PUBLIC_POLAR_LIFETIME_PRODUCT_ID : process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
+                        href={`/api/checkout?products=${lifetimeProductId}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
                       >
-                        {isLifetime ? "Get Lifetime Access" : "Upgrade to Pro"}
+                        Get Lifetime Access
                       </Link>
                     </Button>
+                  ) : (
+                    <Button className="w-full" disabled>
+                      Configure Lifetime Product ID
+                    </Button>
                   )
+                ) : isPro && proProductId ? (
+                  <Button className="w-full" asChild>
+                    <Link 
+                      href={`/api/checkout?products=${proProductId}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
+                    >
+                      Upgrade to Pro
+                    </Link>
+                  </Button>
                 ) : (
                   <Button className="w-full" disabled>
-                    Configure Product ID
+                    Configure Pro Product ID
                   </Button>
                 )}
               </CardFooter>

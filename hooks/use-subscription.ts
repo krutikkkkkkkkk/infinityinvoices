@@ -84,7 +84,8 @@ export function useSubscription() {
     return (usage?.emails_sent || 0) < plan.limits.emailsPerMonth
   }
 
-  const isPro = subscription?.plan === "pro" && subscription?.status === "active"
+  const isPro = (subscription?.plan === "pro" || subscription?.plan === "lifetime") && subscription?.status === "active"
+  const isLifetime = subscription?.plan === "lifetime" && subscription?.status === "active"
 
   return {
     subscription,
@@ -93,6 +94,7 @@ export function useSubscription() {
     loading: isLoading,
     isLoading,
     isPro,
+    isLifetime,
     canCreateInvoice,
     canCreateQuotation,
     canSendEmail,

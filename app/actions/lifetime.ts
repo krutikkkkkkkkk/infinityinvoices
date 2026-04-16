@@ -15,8 +15,8 @@ export async function getLifetimePlanAvailability() {
       .eq("status", "active")
     
     if (error) {
-      console.error("[v0] Error counting lifetime subscriptions:", error)
-      return { available: true, count: 0, limit: LIFETIME_PLAN_LIMIT }
+      // Return available as fallback to not block purchases due to query errors
+      return { available: true, count: 0, limit: LIFETIME_PLAN_LIMIT, remaining: LIFETIME_PLAN_LIMIT }
     }
     
     const soldCount = count || 0
@@ -28,8 +28,8 @@ export async function getLifetimePlanAvailability() {
       limit: LIFETIME_PLAN_LIMIT,
       remaining: remainingCount,
     }
-  } catch (error) {
-    console.error("[v0] Error in getLifetimePlanAvailability:", error)
-    return { available: true, count: 0, limit: LIFETIME_PLAN_LIMIT }
+  } catch {
+    // Return available as fallback to not block purchases due to errors
+    return { available: true, count: 0, limit: LIFETIME_PLAN_LIMIT, remaining: LIFETIME_PLAN_LIMIT }
   }
 }
