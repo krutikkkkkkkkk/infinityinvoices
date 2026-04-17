@@ -387,7 +387,10 @@ export async function updateDocumentStatus(id: string, status: string) {
     throw new Error(error.message)
   }
 
-  // No revalidatePath here - using optimistic updates in the UI
+  revalidatePath("/dashboard")
+  revalidatePath(`/dashboard/documents/${id}`)
+  revalidatePath("/dashboard/invoices")
+  revalidatePath("/dashboard/quotations")
 }
 
 export async function convertToInvoice(id: string) {

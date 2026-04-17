@@ -64,7 +64,7 @@ const accountNavItems = [
 export function AppSidebar({ user }: { user: User }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { isPro } = useSubscription()
+  const { isPro, isLifetime } = useSubscription()
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard"
@@ -88,7 +88,7 @@ export function AppSidebar({ user }: { user: User }) {
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Infinity Invoice</span>
                   <span className="text-xs text-muted-foreground">
-                    {isPro ? "Pro" : "Free"}
+                    {isLifetime ? "Lifetime" : isPro ? "Pro" : "Free"}
                   </span>
                 </div>
               </Link>

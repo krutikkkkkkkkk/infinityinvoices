@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user.id)
       .single()
 
-    const isPro = subscription?.plan === "pro" && subscription?.status === "active"
+    const isPro = (subscription?.plan === "pro" || subscription?.plan === "lifetime") && subscription?.status === "active"
 
     if (!isPro) {
       return NextResponse.json({ 

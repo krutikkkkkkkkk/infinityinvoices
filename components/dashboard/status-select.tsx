@@ -73,9 +73,15 @@ export function StatusSelect({ documentId, currentStatus, compact = false }: Sta
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus)
 
   const handleStatusChange = (newStatus: string) => {
+    const previousStatus = optimisticStatus
     setOptimisticStatus(newStatus)
     startTransition(async () => {
-      await updateDocumentStatus(documentId, newStatus)
+      try {
+        await updateDocumentStatus(documentId, newStatus)
+      } catch {
+        // Revert on error
+        setOptimisticStatus(previousStatus)
+      }
     })
   }
 

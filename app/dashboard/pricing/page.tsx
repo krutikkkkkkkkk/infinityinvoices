@@ -10,16 +10,24 @@ import { createClient } from "@/lib/supabase/client"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle02Icon, Loading01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
+import { getLifetimePlanAvailability } from "@/app/actions/lifetime"
 
 export default function PricingPage() {
   const searchParams = useSearchParams()
   const success = searchParams.get("success")
+  const error = searchParams.get("error")
   const [subscription, setSubscription] = useState<{ plan: string; status: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [lifetimeAvailability, setLifetimeAvailability] = useState<{
+    available: boolean
+    count: number
+    limit: number
+    remaining: number
+  } | null>(null)
 
   useEffect(() => {
-    async function loadSubscription() {
+    async function loadData() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -35,13 +43,19 @@ export default function PricingPage() {
           setSubscription(data)
         }
       }
+
+      // Check lifetime plan availability
+      const availability = await getLifetimePlanAvailability()
+      setLifetimeAvailability(availability)
+
       setLoading(false)
     }
-    loadSubscription()
+    loadData()
   }, [])
 
   const currentPlan = subscription?.plan || "free"
   const proProductId = process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID
+  const lifetimeProductId = process.env.NEXT_PUBLIC_POLAR_LIFETIME_PRODUCT_ID
 
   if (loading) {
     return (
@@ -57,7 +71,15 @@ export default function PricingPage() {
         <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-4 mb-8 text-center">
           <HugeiconsIcon icon={CheckmarkCircle02Icon} size={24} className="text-green-600 mx-auto mb-2" />
           <p className="font-medium text-green-800 dark:text-green-200">
-            Welcome to Pro! Your subscription is now active.
+            Welcome! Your subscription is now active.
+          </p>
+        </div>
+      )}
+
+      {error === "lifetime_sold_out" && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4 mb-8 text-center">
+          <p className="font-medium text-red-800 dark:text-red-200">
+            Sorry, the Lifetime plan is now sold out. All 200 spots have been claimed.
           </p>
         </div>
       )}
@@ -69,17 +91,28 @@ export default function PricingPage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+      <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {PLANS.map((plan) => {
           const isCurrentPlan = currentPlan === plan.id
           const isPro = plan.id === "pro"
+          const isLifetime = plan.id === "lifetime"
 
           return (
             <Card
               key={plan.id}
-              className={`relative ${isPro ? "border-primary shadow-lg" : ""}`}
+              className={`relative ${isLifetime ? lifetimeAvailability?.available ? "border-amber-400 shadow-lg md:scale-105" : "opacity-60 md:scale-100" : isPro ? "border-primary shadow-lg" : ""}`}
             >
-              {isPro && (
+              {isLifetime && lifetimeAvailability?.available && (
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-900">
+                  Best Value - {lifetimeAvailability.remaining} Left
+                </Badge>
+              )}
+              {isLifetime && !lifetimeAvailability?.available && (
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500">
+                  Sold Out
+                </Badge>
+              )}
+              {isPro && !isLifetime && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
                   Recommended
                 </Badge>
@@ -99,7 +132,9 @@ export default function PricingPage() {
                     ${plan.priceInCents / 100}
                   </span>
                   {plan.priceInCents > 0 && (
-                    <span className="text-muted-foreground">/month</span>
+                    <span className="text-muted-foreground">
+                      /{plan.priceBillingCycle || "month"}
+                    </span>
                   )}
                 </div>
                 <ul className="space-y-3">
@@ -117,7 +152,7 @@ export default function PricingPage() {
               </CardContent>
               <CardFooter>
                 {isCurrentPlan ? (
-                  isPro ? (
+                  (isPro || isLifetime) ? (
                     <Button
                       variant="outline"
                       className="w-full bg-transparent"
@@ -132,6 +167,28 @@ export default function PricingPage() {
                       Current Plan
                     </Button>
                   )
+                ) : plan.id === "free" ? (
+                  <Button variant="outline" className="w-full bg-transparent" disabled>
+                    Free Forever
+                  </Button>
+                ) : isLifetime ? (
+                  !lifetimeAvailability?.available ? (
+                    <Button className="w-full bg-red-500 hover:bg-red-600" disabled>
+                      Sold Out
+                    </Button>
+                  ) : lifetimeProductId ? (
+                    <Button className="w-full bg-amber-400 text-amber-900 hover:bg-amber-500" asChild>
+                      <Link 
+                        href={`/api/checkout?products=${lifetimeProductId}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
+                      >
+                        Get Lifetime Access
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button className="w-full" disabled>
+                      Configure Lifetime Product ID
+                    </Button>
+                  )
                 ) : isPro && proProductId ? (
                   <Button className="w-full" asChild>
                     <Link 
@@ -140,13 +197,9 @@ export default function PricingPage() {
                       Upgrade to Pro
                     </Link>
                   </Button>
-                ) : isPro ? (
-                  <Button className="w-full" disabled>
-                    Configure Product ID
-                  </Button>
                 ) : (
-                  <Button variant="outline" className="w-full bg-transparent" disabled>
-                    Free Forever
+                  <Button className="w-full" disabled>
+                    Configure Pro Product ID
                   </Button>
                 )}
               </CardFooter>
@@ -162,6 +215,14 @@ export default function PricingPage() {
             <Link href="/api/portal" className="text-primary hover:underline">
               Manage your billing
             </Link>
+          </p>
+        </div>
+      )}
+
+      {subscription?.plan === "lifetime" && (
+        <div className="text-center mt-8">
+          <p className="text-sm text-muted-foreground">
+            Thank you for choosing Lifetime access! You have unlimited access forever.
           </p>
         </div>
       )}
