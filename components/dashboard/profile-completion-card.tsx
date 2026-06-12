@@ -254,22 +254,16 @@ export function ProfileCompletionBanner({ profile }: { profile: Profile | null }
 
   if (percent === 100 || dismissed) return null
 
-  const progressColor =
-    "border-border bg-card"
-
-  const textColor =
-    "text-foreground"
-
   const barColor =
     percent < 35 ? "bg-foreground/45" :
     percent < 70 ? "bg-foreground/65" :
     "bg-foreground"
 
   return (
-    <div className={cn("rounded-lg border px-4 py-3 flex items-center gap-4", progressColor)}>
+    <div className="rounded-lg border border-border bg-card px-4 py-3 flex items-center gap-4">
       {/* Progress pill */}
       <div className="shrink-0 flex flex-col items-center gap-1 w-10">
-        <span className={cn("text-lg font-black leading-none tabular-nums", textColor)}>
+        <span className="text-lg font-black leading-none tabular-nums text-foreground">
           {percent}%
         </span>
         <div className="w-10 h-1.5 rounded-full bg-muted overflow-hidden">

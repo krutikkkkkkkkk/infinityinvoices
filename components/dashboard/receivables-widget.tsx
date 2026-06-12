@@ -40,11 +40,11 @@ export function ReceivablesWidget({ all, taxed, noTax, currency }: ReceivablesWi
   const data = activeTab === "all" ? all : activeTab === "taxed" ? taxed : noTax
 
   const segments = [
-    { value: data.current, color: "bg-foreground/25", label: "Current" },
+    { value: data.current, color: "bg-foreground/20", label: "Current" },
     { value: data.overdue1to15, color: "bg-foreground/35", label: "1-15 Days" },
-    { value: data.overdue16to30, color: "bg-foreground/45", label: "16-30 Days" },
-    { value: data.overdue31to45, color: "bg-foreground/55", label: "31-45 Days" },
-    { value: data.overdueAbove45, color: "bg-foreground/70", label: "Above 45" },
+    { value: data.overdue16to30, color: "bg-foreground/50", label: "16-30 Days" },
+    { value: data.overdue31to45, color: "bg-foreground/65", label: "31-45 Days" },
+    { value: data.overdueAbove45, color: "bg-foreground/80", label: "Above 45" },
   ]
 
   const total = data.total || 1
