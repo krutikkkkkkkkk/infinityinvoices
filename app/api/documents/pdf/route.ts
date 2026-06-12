@@ -95,41 +95,48 @@ export async function GET(request: NextRequest) {
   </style>`
     )
 
-    // Launch browser using @sparticuz/chromium
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    })
+    try {
+      const browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      })
 
-    const page = await browser.newPage()
-    
-    // Set content and wait for network to be idle
-    await page.setContent(html, {
-      waitUntil: "networkidle0",
-    })
+      try {
+        const page = await browser.newPage()
 
-    // Generate PDF with A4 format and background colors
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: {
-        top: "0mm",
-        right: "0mm",
-        bottom: "0mm",
-        left: "0mm",
-      },
-    })
+        await page.setContent(html, {
+          waitUntil: "networkidle0",
+        })
 
-    await browser.close()
+        const pdf = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          margin: {
+            top: "0mm",
+            right: "0mm",
+            bottom: "0mm",
+            left: "0mm",
+          },
+        })
 
-    return new NextResponse(pdf, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${document.number || document.type}-${Date.now()}.pdf"`,
-      },
-    })
+        return new NextResponse(pdf, {
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename="${document.number || document.type}-${Date.now()}.pdf"`,
+          },
+        })
+      } finally {
+        await browser.close()
+      }
+    } catch (pdfError) {
+      console.error("Server PDF generation failed, using fallback:", pdfError)
+      return NextResponse.json({
+        fallback: true,
+        html,
+      })
+    }
   } catch (error) {
     console.error("PDF generation error:", error)
     return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 })

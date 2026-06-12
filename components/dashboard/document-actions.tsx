@@ -132,12 +132,21 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
   const handleGenerateShareLink = async () => {
     setIsGeneratingLink(true)
     const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setIsGeneratingLink(false)
+      return
+    }
     
     // Check if document already has a share token
     const { data: doc } = await supabase
       .from("documents")
       .select("share_token")
       .eq("id", document.id)
+      .eq("user_id", user.id)
       .single()
 
     let token = doc?.share_token
@@ -149,6 +158,7 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
         .from("documents")
         .update({ share_token: token })
         .eq("id", document.id)
+        .eq("user_id", user.id)
     }
 
     const baseUrl = window.location.origin

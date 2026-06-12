@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
         .from("documents")
         .update({ share_token: shareToken })
         .eq("id", documentId)
+        .eq("user_id", user.id)
     }
 
     // Get site URL for portal link
@@ -360,6 +361,7 @@ export async function POST(request: NextRequest) {
         .from("documents")
         .update({ status: "sent" })
         .eq("id", documentId)
+        .eq("user_id", user.id)
     }
 
     return NextResponse.json({ success: true, messageId: data?.id })
