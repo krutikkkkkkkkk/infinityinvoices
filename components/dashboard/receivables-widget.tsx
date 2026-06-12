@@ -40,11 +40,11 @@ export function ReceivablesWidget({ all, taxed, noTax, currency }: ReceivablesWi
   const data = activeTab === "all" ? all : activeTab === "taxed" ? taxed : noTax
 
   const segments = [
-    { value: data.current, color: "bg-blue-500", label: "Current" },
-    { value: data.overdue1to15, color: "bg-amber-500", label: "1-15 Days" },
-    { value: data.overdue16to30, color: "bg-orange-500", label: "16-30 Days" },
-    { value: data.overdue31to45, color: "bg-red-500", label: "31-45 Days" },
-    { value: data.overdueAbove45, color: "bg-red-700", label: "Above 45" },
+    { value: data.current, color: "bg-foreground/20", label: "Current" },
+    { value: data.overdue1to15, color: "bg-foreground/35", label: "1-15 Days" },
+    { value: data.overdue16to30, color: "bg-foreground/50", label: "16-30 Days" },
+    { value: data.overdue31to45, color: "bg-foreground/65", label: "31-45 Days" },
+    { value: data.overdueAbove45, color: "bg-foreground/80", label: "Above 45" },
   ]
 
   const total = data.total || 1
@@ -81,7 +81,7 @@ export function ReceivablesWidget({ all, taxed, noTax, currency }: ReceivablesWi
 
       <CardContent className="space-y-4">
         {/* Total amount */}
-        <p className="text-sm font-medium text-blue-500">
+        <p className="text-sm font-medium text-foreground">
           Total Receivables {formatCurrency(data.total, currency)}
         </p>
 
@@ -104,11 +104,11 @@ export function ReceivablesWidget({ all, taxed, noTax, currency }: ReceivablesWi
         {/* Breakdown */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-1">
           <div>
-            <p className="text-xs font-semibold text-blue-500 mb-1">CURRENT</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">CURRENT</p>
             <p className="text-base font-semibold">{formatCurrency(data.current, currency)}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-red-500 mb-1">OVERDUE</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">OVERDUE</p>
             <p className="text-base font-semibold">{formatCurrency(data.overdue1to15, currency)}</p>
             <p className="text-xs text-muted-foreground">1-15 Days</p>
           </div>

@@ -73,9 +73,9 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
   const isFieldDone = (key: keyof Profile) => !!profile?.[key]
 
   const progressColor =
-    percent < 35 ? "bg-destructive" :
-    percent < 70 ? "bg-amber-500" :
-    "bg-emerald-500"
+    percent < 35 ? "bg-foreground/45" :
+    percent < 70 ? "bg-foreground/65" :
+    "bg-foreground"
 
   const missingLabels = [
     ...missingBusiness.map((f) => f.label),
@@ -84,7 +84,7 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
 
   if (compact) {
     return (
-      <Card className="border-amber-500/30 bg-amber-500/5">
+      <Card className="border-border bg-card">
         <CardContent className="flex items-center gap-4 py-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1.5">
@@ -126,9 +126,7 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
             <span
               className={cn(
                 "text-2xl font-black tabular-nums",
-                percent < 35 ? "text-destructive" :
-                percent < 70 ? "text-amber-500" :
-                "text-emerald-500"
+                "text-foreground"
               )}
             >
               {percent}%
@@ -159,13 +157,13 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
                   key={field.key}
                   className={cn(
                     "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                    done ? "bg-emerald-500/8 text-foreground" : "bg-muted/50 text-muted-foreground"
+                    done ? "bg-muted text-foreground" : "bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <Icon size={14} className={cn("shrink-0", done ? "text-emerald-500" : "text-muted-foreground/60")} />
+                  <Icon size={14} className={cn("shrink-0", done ? "text-foreground" : "text-muted-foreground/60")} />
                   <span className="flex-1 truncate">{field.label}</span>
                   {done
-                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
+                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-foreground shrink-0" />
                     : <HugeiconsIcon icon={Cancel01Icon} size={13} className="text-muted-foreground/40 shrink-0" />
                   }
                 </div>
@@ -180,13 +178,13 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
                   key={field.key}
                   className={cn(
                     "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors border border-dashed",
-                    done ? "border-emerald-500/30 bg-emerald-500/5 text-foreground" : "border-muted-foreground/20 bg-muted/30 text-muted-foreground"
+                    done ? "border-border bg-muted text-foreground" : "border-muted-foreground/20 bg-muted/30 text-muted-foreground"
                   )}
                 >
-                  <Icon size={14} className={cn("shrink-0", done ? "text-emerald-500" : "text-muted-foreground/40")} />
+                  <Icon size={14} className={cn("shrink-0", done ? "text-foreground" : "text-muted-foreground/40")} />
                   <span className="flex-1 truncate">{field.label}</span>
                   {done
-                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
+                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-foreground shrink-0" />
                     : <span className="text-[10px] text-muted-foreground/50 shrink-0">optional</span>
                   }
                 </div>
@@ -204,8 +202,8 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
             <span className={cn(
               "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
               hasPayment
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : "bg-destructive/10 text-destructive"
+                ? "bg-muted text-foreground"
+                : "bg-muted/70 text-muted-foreground"
             )}>
               {hasPayment ? "Satisfied" : "At least 1 required"}
             </span>
@@ -219,13 +217,13 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
                   key={field.key}
                   className={cn(
                     "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                    done ? "bg-emerald-500/8 text-foreground" : "bg-muted/50 text-muted-foreground"
+                    done ? "bg-muted text-foreground" : "bg-muted/50 text-muted-foreground"
                   )}
                 >
-                  <Icon size={14} className={cn("shrink-0", done ? "text-emerald-500" : "text-muted-foreground/60")} />
+                  <Icon size={14} className={cn("shrink-0", done ? "text-foreground" : "text-muted-foreground/60")} />
                   <span className="flex-1 truncate">{field.label}</span>
                   {done
-                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-emerald-500 shrink-0" />
+                    ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={13} className="text-foreground shrink-0" />
                     : <HugeiconsIcon icon={Cancel01Icon} size={13} className="text-muted-foreground/40 shrink-0" />
                   }
                 </div>
@@ -256,26 +254,16 @@ export function ProfileCompletionBanner({ profile }: { profile: Profile | null }
 
   if (percent === 100 || dismissed) return null
 
-  const progressColor =
-    percent < 35 ? "border-destructive/40 bg-destructive/5" :
-    percent < 70 ? "border-amber-500/40 bg-amber-500/5" :
-    "border-emerald-500/40 bg-emerald-500/5"
-
-  const textColor =
-    percent < 35 ? "text-destructive" :
-    percent < 70 ? "text-amber-600 dark:text-amber-400" :
-    "text-emerald-600 dark:text-emerald-400"
-
   const barColor =
-    percent < 35 ? "bg-destructive" :
-    percent < 70 ? "bg-amber-500" :
-    "bg-emerald-500"
+    percent < 35 ? "bg-foreground/45" :
+    percent < 70 ? "bg-foreground/65" :
+    "bg-foreground"
 
   return (
-    <div className={cn("rounded-lg border px-4 py-3 flex items-center gap-4", progressColor)}>
+    <div className="rounded-lg border border-border bg-card px-4 py-3 flex items-center gap-4">
       {/* Progress pill */}
       <div className="shrink-0 flex flex-col items-center gap-1 w-10">
-        <span className={cn("text-lg font-black leading-none tabular-nums", textColor)}>
+        <span className="text-lg font-black leading-none tabular-nums text-foreground">
           {percent}%
         </span>
         <div className="w-10 h-1.5 rounded-full bg-muted overflow-hidden">
