@@ -42,6 +42,14 @@ export default async function InvoicesPage({
   const tax = params.tax || "all"
 
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return null
+  }
+
   const offset = (page - 1) * PAGE_SIZE
 
   // Build query
@@ -49,6 +57,7 @@ export default async function InvoicesPage({
     .from("documents")
     .select("*", { count: "exact" })
     .eq("type", "invoice")
+    .eq("user_id", user.id)
 
   if (status !== "all") {
     query = query.eq("status", status)

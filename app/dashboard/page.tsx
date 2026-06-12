@@ -50,6 +50,7 @@ export default async function DashboardPage() {
     .select("grand_total, currency")
     .eq("type", "invoice")
     .eq("status", "paid")
+    .eq("user_id", user.id)
 
   // Group revenue by currency
   const revenueByCategory = paidInvoices?.reduce((acc, inv) => {
@@ -71,6 +72,7 @@ export default async function DashboardPage() {
     .from("documents")
     .select("grand_total, status, issue_date, currency")
     .eq("type", "invoice")
+    .eq("user_id", user.id)
     .gte("issue_date", oneYearAgo.toISOString().split("T")[0])
     .order("issue_date", { ascending: true })
 
@@ -144,6 +146,7 @@ export default async function DashboardPage() {
     .from("documents")
     .select("grand_total, currency, due_date, status, include_tax")
     .eq("type", "invoice")
+    .eq("user_id", user.id)
     .in("status", ["sent", "overdue"])
     .not("due_date", "is", null)
 
@@ -186,6 +189,7 @@ export default async function DashboardPage() {
   const { data: recentDocuments } = await supabase
     .from("documents")
     .select("*")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(5)
 
@@ -193,6 +197,7 @@ export default async function DashboardPage() {
   const { data: allDocuments } = await supabase
     .from("documents")
     .select("*")
+    .eq("user_id", user.id)
     .order("issue_date", { ascending: false })
 
   return (

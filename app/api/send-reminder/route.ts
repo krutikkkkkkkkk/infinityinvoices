@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       `
       )
       .eq("id", documentId)
+      .eq("user_id", user.id)
       .single()
 
     if (docError || !document) {
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
         .from("documents")
         .update({ share_token: shareToken })
         .eq("id", documentId)
+        .eq("user_id", user.id)
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
@@ -189,6 +191,7 @@ export async function POST(request: NextRequest) {
         reminder_count: (document.reminder_count || 0) + 1,
       })
       .eq("id", documentId)
+        .eq("user_id", user.id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

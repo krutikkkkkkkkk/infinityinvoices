@@ -64,12 +64,21 @@ export default async function QuotationsPage({
   const order = params.order || "desc"
 
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return null
+  }
+
   const offset = (page - 1) * PAGE_SIZE
 
   let query = supabase
     .from("documents")
     .select("*", { count: "exact" })
     .eq("type", "quotation")
+    .eq("user_id", user.id)
 
   if (status !== "all") {
     query = query.eq("status", status)
