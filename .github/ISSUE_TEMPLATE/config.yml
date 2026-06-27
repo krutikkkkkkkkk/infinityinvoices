@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and support
+    url: https://github.com/krutikkkkkkkkk/infinity-invoice/discussions
+    about: Ask questions or start discussions here.
+  - name: Security vulnerability report
+    url: mailto:support@infinityinvoice.app
+    about: Please report security issues privately by email.
