@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import type { Profile } from "@/lib/types"
 import { CURRENCIES } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { LogoUpload } from "./logo-upload"
 
 interface SettingsFormProps {
   profile: Profile | null
@@ -155,19 +156,13 @@ export function SettingsForm({ profile }: SettingsFormProps) {
                 rows={3}
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="logo_url">Logo URL</Label>
-              <Input
-                id="logo_url"
-                value={formData.logo_url}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, logo_url: e.target.value }))
+            <div className="sm:col-span-2">
+              <LogoUpload
+                currentLogoUrl={formData.logo_url}
+                onUploadComplete={(url) =>
+                  setFormData((prev) => ({ ...prev, logo_url: url }))
                 }
-                placeholder="https://example.com/logo.png"
               />
-              <p className="text-xs text-muted-foreground">
-                Enter a URL to your company logo. It will appear on your invoices.
-              </p>
             </div>
           </div>
 
