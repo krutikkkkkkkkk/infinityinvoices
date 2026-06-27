@@ -22,6 +22,7 @@ export interface Profile {
   created_at: string
   updated_at: string
   financial_year_start?: number // 1-12, month when financial year starts (default 4 = April)
+  default_currency?: Currency // Default currency for new documents (default 'INR')
 }
 
 export interface Client {
