@@ -77,7 +77,7 @@ export function FinancialSummaryWidget({ profile, documents }: FinancialSummaryW
     }
   }, [documents, financialYearStart])
 
-  const currencySymbol = CURRENCIES.find((c) => c.value === (profile?.currency || "INR"))?.symbol || "₹"
+  const currencySymbol = CURRENCIES.find((c) => c.value === (profile?.default_currency || "INR"))?.symbol || "₹"
 
   // Format amount in Indian number system (lakhs)
   const formatAmount = (amount: number) => {
