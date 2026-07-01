@@ -18,11 +18,11 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Choose the plan that works for you. Currently, all features are free while we build.
+            Get started with 3 free invoices per month. All current users get lifetime access to their plan.
           </p>
           <div className="mt-6 inline-block px-4 py-2 rounded-lg bg-purple-50 border border-purple-200">
             <p className="text-sm font-medium text-purple-900">
-              <span className="font-semibold">Unlimited access</span> till limited time
+              Current users: <span className="font-semibold">Lifetime access</span> guaranteed
             </p>
           </div>
         </div>
@@ -64,7 +64,7 @@ export default function PricingPage() {
                   </div>
                   {plan.priceInCents === 0 && (
                     <p className="text-sm text-muted-foreground mt-2">
-                      All features included at no cost
+                      3 invoices per month, then upgrade for unlimited
                     </p>
                   )}
                 </div>

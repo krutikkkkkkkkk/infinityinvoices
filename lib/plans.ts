@@ -18,10 +18,10 @@ export const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
-    description: "Perfect for getting started",
+    description: "3 invoices per month",
     priceInCents: 0,
     features: [
-      "Unlimited invoices",
+      "3 invoices per month",
       "Unlimited quotations",
       "Unlimited clients",
       "Email invoices to clients",
@@ -32,9 +32,9 @@ export const PLANS: Plan[] = [
       "Share invoices via link",
     ],
     limits: {
-      invoicesPerMonth: -1, // -1 means unlimited
-      quotationsPerMonth: -1,
-      emailsPerMonth: -1,
+      invoicesPerMonth: 3,
+      quotationsPerMonth: -1, // -1 means unlimited
+      emailsPerMonth: 10,
       clients: -1,
     },
   },
@@ -46,8 +46,7 @@ export const PLANS: Plan[] = [
     priceBillingCycle: "month",
     polarProductId: "prod_pro", // Will be set after creating in Polar
     features: [
-      "Everything in Free, plus:",
-      "Unlimited invoices",
+      "Unlimited invoices per month",
       "Unlimited quotations",
       "Unlimited clients",
       "Unlimited email sending",
