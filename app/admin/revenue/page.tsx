@@ -2,10 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { PRO_PLAN } from "@/lib/plans"
-import { TrendingUp, Users, DollarSign, Calendar, Crown } from "lucide-react"
-
-const PRO_PRICE = PRO_PLAN.priceInCents / 100 // 5
+import { TrendingUp, Users, DollarSign, Calendar } from "lucide-react"
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", {
@@ -46,38 +43,16 @@ export default async function AdminRevenuePage() {
   const profileMap: Record<string, any> = {}
   profiles?.forEach((p) => { profileMap[p.id] = p })
 
-  // Calculate revenue metrics
-  const activeProCount = proSubsData.length
-  const mrr = activeProCount * PRO_PRICE
-  const arr = mrr * 12
-
-  // Group subscriptions by month joined
-  const monthlyGrowth = proSubsData.reduce((acc, sub) => {
-    const month = new Date(sub.created_at).toLocaleDateString("en-IN", { month: "short", year: "2-digit" })
-    acc[month] = (acc[month] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
-
-  // Subscriptions expiring soon (within 30 days)
-  const thirtyDaysFromNow = new Date()
-  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
-  const expiringSoon = proSubsData.filter((s) => {
-    if (!s.current_period_end) return false
-    return new Date(s.current_period_end) <= thirtyDaysFromNow
-  })
-
-  // All subscriptions count (including free)
+  // All features are currently free - no revenue metrics
   const { count: totalUsers } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
 
-  const conversionRate = totalUsers ? ((activeProCount / totalUsers) * 100).toFixed(1) : "0"
-
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Revenue</h1>
-        <p className="text-gray-400 text-sm">Track earnings from Pro plan subscribers</p>
+        <h1 className="text-2xl font-bold text-white">Usage</h1>
+        <p className="text-gray-400 text-sm">All features are currently free for all users</p>
       </div>
 
       {/* Key Metrics */}
@@ -86,9 +61,24 @@ export default async function AdminRevenuePage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">MRR</p>
-                <p className="text-2xl font-bold text-white mt-1">{formatCurrency(mrr)}</p>
-                <p className="text-xs text-gray-500 mt-1">{activeProCount} active subscribers</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Total Users</p>
+                <p className="text-2xl font-bold text-white mt-1">{totalUsers}</p>
+                <p className="text-xs text-gray-500 mt-1">All on free plan</p>
+              </div>
+              <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Users className="h-5 w-5 text-blue-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Revenue</p>
+                <p className="text-2xl font-bold text-white mt-1">{formatCurrency(0)}</p>
+                <p className="text-xs text-gray-500 mt-1">No monetization yet</p>
               </div>
               <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-green-400" />
@@ -101,24 +91,9 @@ export default async function AdminRevenuePage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">ARR</p>
-                <p className="text-2xl font-bold text-white mt-1">{formatCurrency(arr)}</p>
-                <p className="text-xs text-gray-500 mt-1">Annualized revenue</p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900 border-gray-800">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Pro Users</p>
-                <p className="text-2xl font-bold text-white mt-1">{activeProCount}</p>
-                <p className="text-xs text-gray-500 mt-1">{conversionRate}% conversion rate</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Status</p>
+                <p className="text-2xl font-bold text-white mt-1">Free</p>
+                <p className="text-xs text-gray-500 mt-1">Unlimited for everyone</p>
               </div>
               <div className="h-10 w-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
                 <Crown className="h-5 w-5 text-yellow-400" />
