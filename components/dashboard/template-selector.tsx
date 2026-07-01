@@ -301,22 +301,17 @@ export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
         <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
           {TEMPLATES.map((tpl) => {
             const isSelected = value === tpl.id
-    return (
-      <Card
-        onClick={() => onChange(tpl.id)}
-        className={cn(
-          "cursor-pointer transition-all relative",
-          value === tpl.id ? "ring-2 ring-primary" : "hover:shadow-md"
-        )}
-        title={tpl.label}
+            return (
+              <button
+                key={tpl.id}
+                onClick={() => onChange(tpl.id)}
                 className={cn(
                   "relative flex-none w-28 rounded-lg border-2 p-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  isLocked
-                    ? "border-muted bg-background opacity-60 cursor-not-allowed"
-                    : isSelected
+                  isSelected
                     ? "border-primary bg-primary/5"
                     : "border-muted bg-background hover:border-primary/60 cursor-pointer"
                 )}
+                title={tpl.label}
               >
                 {/* Thumbnail */}
                 <div className="aspect-[3/4] rounded overflow-hidden border border-border w-full mb-1.5">
@@ -327,10 +322,8 @@ export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
                 <p className="text-xs font-medium text-center truncate">{tpl.label}</p>
                 <p className="text-[10px] text-muted-foreground text-center truncate">{tpl.description}</p>
 
-
-
                 {/* Selected check */}
-                {isSelected && !isLocked && (
+                {isSelected && (
                   <span className="absolute top-1 right-1 text-primary">
                     <CheckCircleIcon className="w-3.5 h-3.5 fill-primary text-primary-foreground" />
                   </span>
