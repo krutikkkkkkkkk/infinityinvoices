@@ -97,9 +97,8 @@ export default async function DashboardPage() {
     .order("issue_date", { ascending: true })
 
   // Get primary currency for chart (most used)
-  const primaryCurrency = revenueByCategory.length > 0 
-    ? revenueByCategory.reduce((a, b) => a.total > b.total ? a : b).currency 
-    : "INR"
+  // Use user's default currency from profile, fallback to INR
+  const primaryCurrency = profile?.default_currency || "INR"
 
   // Helper to process data by period
   const processDataByPeriod = (
