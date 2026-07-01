@@ -171,23 +171,23 @@ export function AnalyticsChart({ data, currencies = [], defaultCurrency, stats }
               
               {/* Currency Tabs */}
               {currencies.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Currency:</span>
-                  <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+                <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto w-full">
+                  <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Cur:</span>
+                  <div className="flex items-center gap-0.5 sm:gap-1 rounded-md bg-muted p-0.5 overflow-x-auto">
                     {currencies.map((curr) => {
                       const currencyInfo = CURRENCIES.find((c) => c.value === curr)
                       return (
                         <button
                           key={curr}
                           onClick={() => setActiveCurrency(curr)}
-                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                          className={`px-1.5 sm:px-2.5 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${
                             activeCurrency === curr
                               ? "bg-background shadow-sm text-foreground"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          <span>{currencyInfo?.symbol}</span>
-                          <span className="font-semibold ml-1">{curr}</span>
+                          <span className="hidden sm:inline">{currencyInfo?.symbol}</span>
+                          <span className="font-semibold sm:ml-1">{curr}</span>
                         </button>
                       )
                     })}
@@ -197,12 +197,12 @@ export function AnalyticsChart({ data, currencies = [], defaultCurrency, stats }
             </div>
             
             {/* Period Tabs */}
-            <div className="flex justify-end">
+            <div className="flex justify-end w-full overflow-x-auto">
               <Tabs value={period} onValueChange={(v) => setPeriod(v as TimePeriod)}>
-                <TabsList className="h-8">
-                  <TabsTrigger value="month" className="text-xs px-2">30D</TabsTrigger>
-                  <TabsTrigger value="quarter" className="text-xs px-2">90D</TabsTrigger>
-                  <TabsTrigger value="year" className="text-xs px-2">1Y</TabsTrigger>
+                <TabsList className="h-7 sm:h-8 text-xs sm:text-sm">
+                  <TabsTrigger value="month" className="text-xs px-1.5 sm:px-2">30D</TabsTrigger>
+                  <TabsTrigger value="quarter" className="text-xs px-1.5 sm:px-2">90D</TabsTrigger>
+                  <TabsTrigger value="year" className="text-xs px-1.5 sm:px-2">1Y</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
