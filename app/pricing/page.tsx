@@ -18,7 +18,7 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Get started with 3 free invoices per month. Upgrade to Pro for unlimited invoices.
+            Enjoy unlimited access for a limited time. Upgrade to Pro when you&apos;re ready for more features.
           </p>
         </div>
 

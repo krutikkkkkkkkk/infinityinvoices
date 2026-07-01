@@ -41,7 +41,7 @@ export default function UsagePage() {
       <Card>
         <CardHeader>
           <CardTitle>Plan: Free</CardTitle>
-          <CardDescription>You have unlimited access to all features</CardDescription>
+          <CardDescription>Unlimited access for a limited time</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

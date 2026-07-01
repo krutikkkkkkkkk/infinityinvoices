@@ -18,7 +18,7 @@ export const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
-    description: "Everything, forever",
+    description: "Unlimited access for a limited time",
     priceInCents: 0,
     features: [
       "Unlimited invoices",
