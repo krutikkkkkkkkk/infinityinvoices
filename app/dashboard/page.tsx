@@ -193,6 +193,19 @@ export default async function DashboardPage() {
     noTax: calcReceivables(receivableInvoices?.filter((i) => i.include_tax === false)),
   }
 
+  // Group receivables by currency
+  const receivablesByCurrency: Record<string, { all: any; taxed: any; noTax: any }> = {}
+  if (receivableInvoices) {
+    for (const currency of new Set(receivableInvoices.map(inv => inv.currency || "INR"))) {
+      const invoicesForCurrency = receivableInvoices.filter(inv => (inv.currency || "INR") === currency)
+      receivablesByCurrency[currency] = {
+        all: calcReceivables(invoicesForCurrency),
+        taxed: calcReceivables(invoicesForCurrency.filter((i) => i.include_tax !== false)),
+        noTax: calcReceivables(invoicesForCurrency.filter((i) => i.include_tax === false)),
+      }
+    }
+  }
+
   const receivablesCurrency = receivableInvoices?.[0]?.currency || primaryCurrency
 
   // Auto-update overdue documents
@@ -271,6 +284,7 @@ export default async function DashboardPage() {
         taxed={receivables.taxed}
         noTax={receivables.noTax}
         currency={receivablesCurrency}
+        receivablesByCurrency={receivablesByCurrency}
       />
 
       {/* Chart */}
