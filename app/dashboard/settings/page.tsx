@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { SettingsForm } from "@/components/dashboard/settings-form"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Zap } from "lucide-react"
 import type { Profile } from "@/lib/types"
 
 export default async function SettingsPage() {
@@ -29,6 +31,13 @@ export default async function SettingsPage() {
           Manage your business profile and preferences
         </p>
       </div>
+
+      <Alert className="border-purple-200 bg-purple-50">
+        <Zap className="h-4 w-4 text-purple-600" />
+        <AlertDescription className="text-purple-900">
+          <span className="font-semibold">Unlimited access</span> till limited time
+        </AlertDescription>
+      </Alert>
 
       <SettingsForm profile={profile as Profile | null} />
     </div>

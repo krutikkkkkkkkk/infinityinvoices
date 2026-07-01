@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Zap } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -256,6 +258,14 @@ export default async function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Unlimited Access Banner */}
+      <Alert className="border-purple-200 bg-purple-50">
+        <Zap className="h-4 w-4 text-purple-600" />
+        <AlertDescription className="text-purple-900">
+          <span className="font-semibold">Unlimited access</span> till limited time
+        </AlertDescription>
+      </Alert>
 
       {/* Profile Completion Banner */}
       <ProfileCompletionBanner profile={profile} />
