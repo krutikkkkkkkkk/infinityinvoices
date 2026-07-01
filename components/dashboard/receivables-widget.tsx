@@ -126,7 +126,7 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
       <CardContent className="space-y-4">
         {/* Total amount */}
         <p className="text-sm font-medium text-foreground">
-          Total Receivables {formatCurrency(data.total, currency)}
+          Total Receivables {formatCurrency(data.total, activeCurrency)}
         </p>
 
         {/* Progress bar */}
@@ -139,7 +139,7 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
                 key={i}
                 className={`${seg.color} transition-all`}
                 style={{ width: `${pct}%` }}
-                title={`${seg.label}: ${formatCurrency(seg.value, currency)}`}
+                title={`${seg.label}: ${formatCurrency(seg.value, activeCurrency)}`}
               />
             )
           })}
@@ -149,26 +149,26 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-1">
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-1">CURRENT</p>
-            <p className="text-base font-semibold">{formatCurrency(data.current, currency)}</p>
+            <p className="text-base font-semibold">{formatCurrency(data.current, activeCurrency)}</p>
           </div>
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-1">OVERDUE</p>
-            <p className="text-base font-semibold">{formatCurrency(data.overdue1to15, currency)}</p>
+            <p className="text-base font-semibold">{formatCurrency(data.overdue1to15, activeCurrency)}</p>
             <p className="text-xs text-muted-foreground">1-15 Days</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">&nbsp;</p>
-            <p className="text-base font-semibold">{formatCurrency(data.overdue16to30, currency)}</p>
+            <p className="text-base font-semibold">{formatCurrency(data.overdue16to30, activeCurrency)}</p>
             <p className="text-xs text-muted-foreground">16-30 Days</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">&nbsp;</p>
-            <p className="text-base font-semibold">{formatCurrency(data.overdue31to45, currency)}</p>
+            <p className="text-base font-semibold">{formatCurrency(data.overdue31to45, activeCurrency)}</p>
             <p className="text-xs text-muted-foreground">31-45 Days</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">&nbsp;</p>
-            <p className="text-base font-semibold">{formatCurrency(data.overdueAbove45, currency)}</p>
+            <p className="text-base font-semibold">{formatCurrency(data.overdueAbove45, activeCurrency)}</p>
             <p className="text-xs text-muted-foreground">Above 45 days</p>
           </div>
         </div>
