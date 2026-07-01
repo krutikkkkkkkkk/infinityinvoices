@@ -17,7 +17,7 @@ import { Add01Icon, ArrowRight01Icon, Invoice01Icon } from "@hugeicons/core-free
 import Link from "next/link"
 import { Document, CURRENCIES } from "@/lib/types"
 import { StatusSelect } from "@/components/dashboard/status-select"
-import { RevenueTabs } from "@/components/dashboard/revenue-tabs"
+
 import { AnalyticsChart } from "@/components/dashboard/analytics-chart"
 import { ReceivablesWidget } from "@/components/dashboard/receivables-widget"
 import { ProfileCompletionCard, ProfileCompletionBanner } from "@/components/dashboard/profile-completion-card"
@@ -273,9 +273,6 @@ export default async function DashboardPage() {
 
       {/* Financial Summary Widget */}
       <FinancialSummaryWidget profile={profile} documents={allDocuments || []} />
-
-      {/* Revenue Tabs - Multi-Currency Support */}
-      <RevenueTabs revenueByCategory={revenueByCategory} />
 
       {/* Receivables Widget */}
       <ReceivablesWidget
