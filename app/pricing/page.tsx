@@ -46,23 +46,14 @@ export default function PricingPage() {
                 </div>
 
                 {/* Pricing */}
-                <div className="mb-6 pb-6 border-b border-border">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold">
-                      {plan.priceInCents === 0 ? "Free" : `$${(plan.priceInCents / 100).toFixed(0)}`}
-                    </span>
-                    {plan.priceInCents > 0 && (
-                      <span className="text-muted-foreground">
-                        /{plan.priceBillingCycle || "month"}
-                      </span>
-                    )}
+                {plan.priceInCents > 0 && (
+                  <div className="mb-6 pb-6 border-b border-border">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-bold">${(plan.priceInCents / 100).toFixed(0)}</span>
+                      <span className="text-muted-foreground">/{plan.priceBillingCycle || "month"}</span>
+                    </div>
                   </div>
-                  {plan.priceInCents === 0 && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      3 invoices per month, then upgrade for unlimited
-                    </p>
-                  )}
-                </div>
+                )}
 
                 {/* CTA Button */}
                 <div className="mb-8">
