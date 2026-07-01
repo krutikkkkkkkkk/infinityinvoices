@@ -18,13 +18,13 @@ export const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
-    description: "3 invoices per month",
+    description: "Everything, forever",
     priceInCents: 0,
     features: [
-      "3 invoices per month",
+      "Unlimited invoices",
       "Unlimited quotations",
       "Unlimited clients",
-      "Email invoices to clients",
+      "Unlimited email sending",
       "All templates unlocked",
       "PDF downloads",
       "Custom branding",
@@ -32,9 +32,9 @@ export const PLANS: Plan[] = [
       "Share invoices via link",
     ],
     limits: {
-      invoicesPerMonth: 3,
-      quotationsPerMonth: -1, // -1 means unlimited
-      emailsPerMonth: 10,
+      invoicesPerMonth: -1, // -1 means unlimited
+      quotationsPerMonth: -1,
+      emailsPerMonth: -1,
       clients: -1,
     },
   },
