@@ -160,15 +160,27 @@ export default async function DashboardPage() {
     overdueInvoices: analyticsData?.filter(d => d.status === "overdue").length || 0,
   }
 
+  // Debug: Check all invoices first
+  const { data: allInvoicesCheck } = await supabase
+    .from("documents")
+    .select("id, status, due_date, grand_total")
+    .eq("type", "invoice")
+    .eq("user_id", user.id)
+    .limit(5)
+  
+  console.log("[v0] Sample invoices in DB:", allInvoicesCheck)
+
   // Fetch receivables (unpaid/overdue invoices with due dates)
   const today = new Date()
-  const { data: receivableInvoices } = await supabase
+  const { data: receivableInvoices, error: receivablesError } = await supabase
     .from("documents")
     .select("grand_total, currency, due_date, status, include_tax")
     .eq("type", "invoice")
     .eq("user_id", user.id)
-    .in("status", ["sent", "overdue"])
+    .in("status", ["draft", "sent", "overdue"])
     .not("due_date", "is", null)
+  
+  console.log("[v0] Receivables query result:", { count: receivableInvoices?.length, error: receivablesError, sample: receivableInvoices?.[0] })
 
   function calcReceivables(invoices: typeof receivableInvoices) {
     const result = { current: 0, overdue1to15: 0, overdue16to30: 0, overdue31to45: 0, overdueAbove45: 0, total: 0 }
@@ -195,7 +207,7 @@ export default async function DashboardPage() {
 
   // Group receivables by currency
   const receivablesByCurrency: Record<string, { all: any; taxed: any; noTax: any }> = {}
-  if (receivableInvoices) {
+  if (receivableInvoices && receivableInvoices.length > 0) {
     for (const currency of new Set(receivableInvoices.map(inv => inv.currency || "INR"))) {
       const invoicesForCurrency = receivableInvoices.filter(inv => (inv.currency || "INR") === currency)
       receivablesByCurrency[currency] = {
@@ -204,6 +216,9 @@ export default async function DashboardPage() {
         noTax: calcReceivables(invoicesForCurrency.filter((i) => i.include_tax === false)),
       }
     }
+    console.log("[v0] receivablesByCurrency:", receivablesByCurrency)
+  } else {
+    console.log("[v0] No receivables invoices found. receivableInvoices:", receivableInvoices)
   }
 
   const receivablesCurrency = receivableInvoices?.[0]?.currency || primaryCurrency

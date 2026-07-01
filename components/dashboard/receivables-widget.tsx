@@ -48,6 +48,13 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
   const [activeTab, setActiveTab] = useState<Tab>("all")
   const [activeCurrency, setActiveCurrency] = useState<string>(currency)
 
+  console.log("[v0] ReceivablesWidget props:", { 
+    all, 
+    currency, 
+    receivablesByCurrency,
+    currenciesToDisplay: receivablesByCurrency ? Object.keys(receivablesByCurrency) : [currency]
+  })
+
   // If multi-currency data is available, use it; otherwise fall back to single currency
   const currenciesToDisplay = receivablesByCurrency ? Object.keys(receivablesByCurrency) : [currency]
   const isMultiCurrency = currenciesToDisplay.length > 1
