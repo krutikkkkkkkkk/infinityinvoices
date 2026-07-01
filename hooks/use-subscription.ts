@@ -84,8 +84,9 @@ export function useSubscription() {
     return (usage?.emails_sent || 0) < plan.limits.emailsPerMonth
   }
 
-  const isPro = (subscription?.plan === "pro" || subscription?.plan === "lifetime") && subscription?.status === "active"
-  const isLifetime = subscription?.plan === "lifetime" && subscription?.status === "active"
+  // Everyone has pro features now
+  const isPro = true
+  const isLifetime = true
 
   return {
     subscription,

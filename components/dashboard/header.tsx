@@ -27,8 +27,6 @@ const navItems = [
   { href: "/dashboard/quotations", label: "Quotations" },
   { href: "/dashboard/clients", label: "Clients" },
   { href: "/dashboard/products", label: "Products" },
-  { href: "/dashboard/usage", label: "Usage" },
-  { href: "/dashboard/pricing", label: "Pricing" },
 ]
 
 export function DashboardHeader({ user }: { user: User }) {
@@ -80,26 +78,12 @@ export function DashboardHeader({ user }: { user: User }) {
         {/* Right: Usage, Upgrade, User */}
         <div className="flex items-center gap-3">
           {/* Usage Badge - Desktop */}
-          <Link href="/dashboard/usage" className="hidden md:block">
-            <Badge 
-              variant={isPro ? "default" : "secondary"} 
-              className={cn(
-                "cursor-pointer transition-colors",
-                isPro 
-                  ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20" 
-                  : "hover:bg-accent"
-              )}
-            >
-              {isPro ? "Pro Plan" : "Free Plan"}
-            </Badge>
-          </Link>
-
-          {/* Upgrade Button - Only for Free users */}
-          {!isPro && (
-            <Button asChild size="sm" className="hidden sm:flex">
-              <Link href="/dashboard/pricing">Upgrade</Link>
-            </Button>
-          )}
+          <Badge 
+            variant="default" 
+            className="hidden md:block bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+          >
+            Unlimited Access
+          </Badge>
 
           {/* User Dropdown */}
           <DropdownMenu>
