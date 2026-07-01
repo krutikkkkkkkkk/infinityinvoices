@@ -60,6 +60,8 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
   }
 
   const data = getReceivablesData(activeCurrency, activeTab)
+  
+  console.log("[v0] Receivables - activeCurrency:", activeCurrency, "data:", data, "receivablesByCurrency:", receivablesByCurrency)
 
   const segments = [
     { value: data.current, color: "bg-foreground/20", label: "Current" },
