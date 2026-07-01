@@ -18,13 +18,8 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Get started with 3 free invoices per month. All current users get lifetime access to their plan.
+            Get started with 3 free invoices per month. Upgrade to Pro for unlimited invoices.
           </p>
-          <div className="mt-6 inline-block px-4 py-2 rounded-lg bg-purple-50 border border-purple-200">
-            <p className="text-sm font-medium text-purple-900">
-              Current users: <span className="font-semibold">Lifetime access</span> guaranteed
-            </p>
-          </div>
         </div>
 
         {/* Pricing Cards */}
