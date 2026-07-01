@@ -18,13 +18,36 @@ export const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
-    description: "Unlimited access",
+    description: "Get started with 3 invoices per month",
     priceInCents: 0,
     features: [
-      "Unlimited invoices",
+      "3 invoices per month",
       "Unlimited quotations",
       "Unlimited clients",
       "Email invoices to clients",
+      "All templates unlocked",
+      "PDF downloads",
+      "Custom branding",
+      "Multi-currency support",
+      "Share invoices via link",
+    ],
+    limits: {
+      invoicesPerMonth: 3,
+      quotationsPerMonth: -1, // -1 means unlimited
+      emailsPerMonth: 10,
+      clients: 10,
+    },
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    description: "For growing businesses",
+    priceInCents: 99900, // $999/month - adjust as needed
+    polarProductId: "prod_pro_invoices", // Set this after creating in Polar
+    features: [
+      "Unlimited invoices per month",
+      "Unlimited quotations",
+      "Unlimited clients",
       "Unlimited email sending",
       "Automated payment reminders",
       "All templates unlocked",
@@ -35,6 +58,7 @@ export const PLANS: Plan[] = [
       "Bulk operations",
       "Share invoices via link",
       "Multi-currency support",
+      "Priority support",
     ],
     limits: {
       invoicesPerMonth: -1, // -1 means unlimited
@@ -59,3 +83,4 @@ export function getProPlan(): Plan {
 
 // Direct exports for convenience
 export const FREE_PLAN = PLANS.find((p) => p.id === "free")!
+export const PRO_PLAN = PLANS.find((p) => p.id === "pro")!
