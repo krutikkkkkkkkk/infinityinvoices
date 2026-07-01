@@ -3,10 +3,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircleIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { DocumentType } from "@/lib/types"
 
 export type TemplateType = "classic" | "minimal" | "tax" | "dark" | "executive" | "bold"
 
-export const TEMPLATES: {
+export const INVOICE_TEMPLATES: {
   id: TemplateType
   label: string
   description: string
@@ -286,12 +287,30 @@ export const TEMPLATES: {
   },
 ]
 
+export const QUOTATION_TEMPLATES: {
+  id: TemplateType
+  label: string
+  description: string
+  preview: React.ReactNode
+}[] = [
+  ...INVOICE_TEMPLATES, // Quotations can use the same template designs
+]
+
+// Export merged templates for backward compatibility
+export const TEMPLATES = INVOICE_TEMPLATES
+
+export function getTemplatesForDocumentType(type: DocumentType) {
+  return type === "quotation" ? QUOTATION_TEMPLATES : INVOICE_TEMPLATES
+}
+
 interface TemplateSelectorProps {
   value: TemplateType
   onChange: (template: TemplateType) => void
+  documentType?: DocumentType
 }
 
-export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
+export function TemplateSelector({ value, onChange, documentType = "invoice" }: TemplateSelectorProps) {
+  const templates = getTemplatesForDocumentType(documentType)
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -299,7 +318,7 @@ export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
       </CardHeader>
       <CardContent className="pb-4">
         <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-          {TEMPLATES.map((tpl) => {
+          {templates.map((tpl) => {
             const isSelected = value === tpl.id
             return (
               <button
