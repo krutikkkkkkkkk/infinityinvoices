@@ -25,8 +25,13 @@ function formatCurrency(amount: number, currency: string) {
 }
 
 export function RevenueTabs({ revenueByCategory }: RevenueTabsProps) {
-  const activeCurrencies = revenueByCategory.filter((r) => r.total > 0)
+  // Include currencies with either total or paid amounts
+  const activeCurrencies = revenueByCategory.filter((r) => r.total > 0 || r.paid > 0)
   const defaultCurrency = activeCurrencies[0]?.currency || "INR"
+
+  const getCurrencySymbol = (currency: string) => {
+    return CURRENCIES.find((c) => c.value === currency)?.symbol || ""
+  }
 
   if (activeCurrencies.length === 0) {
     return (
@@ -82,15 +87,19 @@ export function RevenueTabs({ revenueByCategory }: RevenueTabsProps) {
             <p className="text-sm text-muted-foreground mb-2">Total Revenue</p>
             <Tabs defaultValue={defaultCurrency}>
               <TabsList className="h-8 mb-2">
-                {activeCurrencies.map((revenue) => (
-                  <TabsTrigger 
-                    key={revenue.currency} 
-                    value={revenue.currency} 
-                    className="text-xs px-3"
-                  >
-                    {revenue.currency}
-                  </TabsTrigger>
-                ))}
+                {activeCurrencies.map((revenue) => {
+                  const symbol = getCurrencySymbol(revenue.currency)
+                  return (
+                    <TabsTrigger 
+                      key={revenue.currency} 
+                      value={revenue.currency} 
+                      className="text-xs px-3 gap-1"
+                    >
+                      <span>{symbol}</span>
+                      <span className="font-medium">{revenue.currency}</span>
+                    </TabsTrigger>
+                  )
+                })}
               </TabsList>
               {activeCurrencies.map((revenue) => (
                 <TabsContent key={revenue.currency} value={revenue.currency} className="mt-0">
