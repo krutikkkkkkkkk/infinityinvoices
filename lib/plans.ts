@@ -42,7 +42,7 @@ export const PLANS: Plan[] = [
     id: "pro",
     name: "Pro",
     description: "For growing businesses",
-    priceInCents: 99900, // $999/month - can be adjusted
+    priceInCents: 1000, // $10/month
     priceBillingCycle: "month",
     polarProductId: "prod_pro", // Will be set after creating in Polar
     features: [
