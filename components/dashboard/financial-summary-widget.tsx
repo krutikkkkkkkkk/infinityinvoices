@@ -113,37 +113,37 @@ export function FinancialSummaryWidget({ profile, documents }: FinancialSummaryW
   return (
     <div className="space-y-4">
       {/* Main Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
         {/* Total Invoices */}
         <Card className="border-border bg-card">
-          <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-              Total Invoices
+          <CardContent className="pt-3 sm:pt-4 pb-3 sm:pb-4 flex flex-col items-center justify-center">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Total
             </p>
-            <p className="text-2xl font-black text-foreground">{totalInvoiceCount}</p>
-            <p className="text-[10px] text-muted-foreground/80 mt-1">{financialStats.fyLabel}</p>
+            <p className="text-lg sm:text-2xl font-black text-foreground">{totalInvoiceCount}</p>
+            <p className="text-[8px] sm:text-[10px] text-muted-foreground/80 mt-1 text-center">{financialStats.fyLabel}</p>
           </CardContent>
         </Card>
 
         {/* Paid Invoices */}
         <Card className="border-border bg-card">
-          <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+          <CardContent className="pt-3 sm:pt-4 pb-3 sm:pb-4 flex flex-col items-center justify-center">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
               Paid
             </p>
-            <p className="text-2xl font-black text-emerald-600">{totalPaidCount}</p>
-            <p className="text-[10px] text-muted-foreground/80 mt-1">invoices</p>
+            <p className="text-lg sm:text-2xl font-black text-emerald-600">{totalPaidCount}</p>
+            <p className="text-[8px] sm:text-[10px] text-muted-foreground/80 mt-1">invoices</p>
           </CardContent>
         </Card>
 
         {/* Collection Rate */}
-        <Card className="border-border bg-card">
-          <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-              Collection Rate
+        <Card className="border-border bg-card col-span-2 sm:col-span-1">
+          <CardContent className="pt-3 sm:pt-4 pb-3 sm:pb-4 flex flex-col items-center justify-center">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Rate
             </p>
-            <p className="text-2xl font-black text-foreground">{collectionRate}%</p>
-            <p className="text-[10px] text-muted-foreground/80 mt-1">overall</p>
+            <p className="text-lg sm:text-2xl font-black text-foreground">{collectionRate}%</p>
+            <p className="text-[8px] sm:text-[10px] text-muted-foreground/80 mt-1">overall</p>
           </CardContent>
         </Card>
       </div>

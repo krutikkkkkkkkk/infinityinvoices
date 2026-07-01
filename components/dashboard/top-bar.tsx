@@ -76,18 +76,18 @@ export function DashboardTopBar() {
   const breadcrumbs = getBreadcrumbs()
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/50 px-6">
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/50 px-3 sm:px-6 overflow-x-auto">
       <SidebarTrigger className="-ml-2" />
       <Separator orientation="vertical" className="mr-2 !h-4" />
-      <Breadcrumb className="flex-1">
-        <BreadcrumbList>
-          <BreadcrumbItem>
+      <Breadcrumb className="flex-1 min-w-0">
+        <BreadcrumbList className="flex-wrap">
+          <BreadcrumbItem className="text-xs sm:text-sm">
             <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
           </BreadcrumbItem>
           {breadcrumbs && breadcrumbs.length > 0 && breadcrumbs.map((crumb) => (
-            <span key={crumb.href} className="flex items-center gap-1.5">
+            <span key={crumb.href} className="flex items-center gap-1.5 text-xs sm:text-sm">
               <BreadcrumbSeparator />
-              <BreadcrumbItem>
+              <BreadcrumbItem className="text-xs sm:text-sm">
                 {crumb.isLast ? (
                   <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                 ) : (

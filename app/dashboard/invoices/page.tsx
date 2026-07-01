@@ -93,8 +93,8 @@ export default async function InvoicesPage({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Invoices</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {totalCount} invoice{totalCount !== 1 ? "s" : ""} total
           </p>
         </div>
@@ -117,19 +117,19 @@ export default async function InvoicesPage({
       />
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {invoices && invoices.length > 0 ? (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Number</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Issue Date</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right w-[50px]">Actions</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Number</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Client</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Issue Date</TableHead>
+                    <TableHead className="text-xs sm:text-sm hidden md:table-cell">Due Date</TableHead>
+                    <TableHead className="text-right text-xs sm:text-sm">Amount</TableHead>
+                    <TableHead className="text-right w-12 sm:w-[50px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -141,11 +141,11 @@ export default async function InvoicesPage({
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t px-4 py-3">
-                  <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-t px-3 sm:px-4 py-3 gap-3 sm:gap-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Showing {offset + 1}-{Math.min(offset + PAGE_SIZE, totalCount)} of {totalCount}
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2">
                     <Button
                       variant="outline"
                       size="sm"

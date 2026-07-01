@@ -2,27 +2,29 @@ import Link from "next/link"
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-svh w-full flex-col items-center justify-between p-6 md:p-10">
+    <div className="flex min-h-svh w-full flex-col items-center justify-between p-4 sm:p-6 md:p-10 gap-4 sm:gap-6">
       <div className="w-full" />
       
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm px-0">
         {/* Logo */}
-        <div className="mb-8 flex justify-center">
-          <Link href="/" className="flex items-center gap-2.5">
-            <img src="/brand-logo.svg" alt="Infinity Invoice" className="h-10 w-10 rounded-lg" />
-            <span className="text-xl font-bold">InfinityInvoice</span>
+        <div className="mb-6 sm:mb-8 flex justify-center">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
+            <img src="/brand-logo.svg" alt="Infinity Invoice" className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg" />
+            <span className="text-base sm:text-xl font-bold">InfinityInvoice</span>
           </Link>
         </div>
 
         {/* Content */}
-        {children}
+        <div className="px-2 sm:px-0">
+          {children}
+        </div>
       </div>
 
       {/* Footer */}
-      <div className="text-center text-xs text-muted-foreground">
-        <p>
+      <div className="text-center text-xs sm:text-xs text-muted-foreground px-2">
+        <p className="break-words">
           Simplify your invoicing workflow — {" "}
-          <Link href="https://infinitylinkage.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+          <Link href="https://infinitylinkage.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors whitespace-nowrap">
             Developed by infinitylinkage
           </Link>
         </p>
