@@ -637,6 +637,8 @@ const addLineItem = () => {
 
       {/* Payment & Notes */}
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Payment Information - Only for Invoices */}
+        {type === "invoice" && (
         <Card>
           <CardHeader>
             <CardTitle>Payment Information</CardTitle>
@@ -786,6 +788,7 @@ const addLineItem = () => {
             )}
           </CardContent>
         </Card>
+        )}
 
         <Card>
           <CardHeader>
