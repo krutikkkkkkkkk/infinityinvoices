@@ -29,7 +29,7 @@ export default function PricingPage() {
               key={plan.id}
             className={`rounded-lg border transition-all ${
               plan.id === "pro"
-                ? "border-purple-500 bg-gradient-to-br from-purple-900/20 to-purple-900/10 shadow-lg md:scale-105"
+                ? "border-border bg-card shadow-lg md:scale-105"
                 : "border-border bg-card"
             }`}
             >
@@ -37,11 +37,11 @@ export default function PricingPage() {
                 {/* Plan Header */}
                 <div className="mb-6">
                   {plan.id === "pro" && (
-                    <div className="inline-block px-3 py-1 rounded-full bg-purple-600 text-white text-xs font-bold mb-2 shadow-md">
+                    <div className="inline-block px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold mb-2 shadow-md">
                       Most Popular
                     </div>
                   )}
-                  <h2 className={`text-2xl font-bold mb-2 ${plan.id === "pro" ? "text-purple-600" : ""}`}>{plan.name}</h2>
+                  <h2 className="text-2xl font-bold mb-2">{plan.name}</h2>
                   <p className={`text-sm ${plan.id === "pro" ? "text-foreground/70" : "text-muted-foreground"}`}>{plan.description}</p>
                 </div>
 
