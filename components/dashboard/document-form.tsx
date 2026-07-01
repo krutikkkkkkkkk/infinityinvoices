@@ -110,6 +110,7 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
     number: document?.number || nextNumber,
     issue_date: document?.issue_date || new Date().toISOString().split("T")[0],
     due_date: document?.due_date || "",
+    valid_until: document?.valid_until || "",
     status: document?.status || "draft",
     currency: document?.currency || profile?.default_currency || "INR",
     client_id: document?.client_id || null,
@@ -284,15 +285,28 @@ const addLineItem = () => {
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="due_date">Due Date</Label>
-            <Input
-              id="due_date"
-              type="date"
-              value={formData.due_date}
-              onChange={(e) => setFormData((prev) => ({ ...prev, due_date: e.target.value }))}
-            />
-          </div>
+          {type === "invoice" && (
+            <div className="space-y-2">
+              <Label htmlFor="due_date">Due Date</Label>
+              <Input
+                id="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData((prev) => ({ ...prev, due_date: e.target.value }))}
+              />
+            </div>
+          )}
+          {type === "quotation" && (
+            <div className="space-y-2">
+              <Label htmlFor="valid_until">Valid Until</Label>
+              <Input
+                id="valid_until"
+                type="date"
+                value={formData.valid_until}
+                onChange={(e) => setFormData((prev) => ({ ...prev, valid_until: e.target.value }))}
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select
@@ -623,6 +637,8 @@ const addLineItem = () => {
 
       {/* Payment & Notes */}
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Payment Information - Only for Invoices */}
+        {type === "invoice" && (
         <Card>
           <CardHeader>
             <CardTitle>Payment Information</CardTitle>
@@ -772,6 +788,7 @@ const addLineItem = () => {
             )}
           </CardContent>
         </Card>
+        )}
 
         <Card>
           <CardHeader>

@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { CURRENCIES } from "@/lib/types"
 
 const mainNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home01Icon },
@@ -59,10 +60,15 @@ const accountNavItems = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings01Icon },
 ]
 
-export function AppSidebar({ user }: { user: User }) {
+export function AppSidebar({ user, profile }: { user: User; profile?: any }) {
   const pathname = usePathname()
   const router = useRouter()
   const { isPro, isLifetime } = useSubscription()
+
+  // Get currency symbol and code for sidebar display
+  const defaultCurrency = profile?.default_currency || "INR"
+  const currencyData = CURRENCIES.find((c) => c.value === defaultCurrency)
+  const currencySymbol = currencyData?.symbol || "₹"
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard"
@@ -85,8 +91,9 @@ export function AppSidebar({ user }: { user: User }) {
                 <img src="/brand-logo.svg" alt="Infinity Invoice" className="size-8 shrink-0 rounded-lg" />
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Infinity Invoice</span>
-                  <span className="text-xs text-muted-foreground">
-                    {isLifetime ? "Lifetime" : isPro ? "Pro" : "Free"}
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span>{currencySymbol}</span>
+                    <span>{defaultCurrency}</span>
                   </span>
                 </div>
               </Link>

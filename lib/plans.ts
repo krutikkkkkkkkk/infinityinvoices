@@ -18,7 +18,7 @@ export const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
-    description: "Unlimited access",
+    description: "Unlimited access to all features",
     priceInCents: 0,
     features: [
       "Unlimited invoices",
@@ -51,10 +51,6 @@ export function getPlan(planId: string): Plan | undefined {
 
 export function getFreePlan(): Plan {
   return PLANS.find((p) => p.id === "free")!
-}
-
-export function getProPlan(): Plan {
-  return PLANS.find((p) => p.id === "pro")!
 }
 
 // Direct exports for convenience

@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Info } from "lucide-react"
+import { Zap } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import { Add01Icon, ArrowRight01Icon, Invoice01Icon } from "@hugeicons/core-free
 import Link from "next/link"
 import { Document, CURRENCIES } from "@/lib/types"
 import { StatusSelect } from "@/components/dashboard/status-select"
-import { RevenueTabs } from "@/components/dashboard/revenue-tabs"
+
 import { AnalyticsChart } from "@/components/dashboard/analytics-chart"
 import { ReceivablesWidget } from "@/components/dashboard/receivables-widget"
 import { ProfileCompletionCard, ProfileCompletionBanner } from "@/components/dashboard/profile-completion-card"
@@ -54,17 +54,35 @@ export default async function DashboardPage() {
     .eq("status", "paid")
     .eq("user_id", user.id)
 
-  // Group revenue by currency
+  const { data: allInvoices } = await supabase
+    .from("documents")
+    .select("grand_total, currency, status")
+    .eq("type", "invoice")
+    .in("status", ["sent", "paid", "overdue"])
+    .eq("user_id", user.id)
+
+  // Group revenue by currency (paid only)
   const revenueByCategory = paidInvoices?.reduce((acc, inv) => {
     const currency = inv.currency || "INR"
     const existing = acc.find((r) => r.currency === currency)
     if (existing) {
-      existing.total += Number(inv.grand_total)
+      existing.paid += Number(inv.grand_total)
     } else {
-      acc.push({ currency, total: Number(inv.grand_total) })
+      acc.push({ currency, total: 0, paid: Number(inv.grand_total) })
     }
     return acc
-  }, [] as { currency: string; total: number }[]) || []
+  }, [] as { currency: string; total: number; paid: number }[]) || []
+
+  // Add total invoices to revenue data
+  allInvoices?.forEach((inv) => {
+    const currency = inv.currency || "INR"
+    const existing = revenueByCategory.find((r) => r.currency === currency)
+    if (existing) {
+      existing.total += Number(inv.grand_total)
+    } else {
+      revenueByCategory.push({ currency, total: Number(inv.grand_total), paid: 0 })
+    }
+  })
 
   // Fetch analytics data (last year)
   const oneYearAgo = new Date()
@@ -79,9 +97,8 @@ export default async function DashboardPage() {
     .order("issue_date", { ascending: true })
 
   // Get primary currency for chart (most used)
-  const primaryCurrency = revenueByCategory.length > 0 
-    ? revenueByCategory.reduce((a, b) => a.total > b.total ? a : b).currency 
-    : "INR"
+  // Use user's default currency from profile, fallback to INR
+  const primaryCurrency = profile?.default_currency || "INR"
 
   // Helper to process data by period
   const processDataByPeriod = (
@@ -116,22 +133,69 @@ export default async function DashboardPage() {
     }, [] as { period: string; revenue: number; invoices: number; paid: number }[]) || []
   }
 
-  // Process data for different time periods
-  const chartData = {
-    month: processDataByPeriod(
-      analyticsData, 
-      (d) => d.toLocaleDateString("en-US", { day: "2-digit", month: "short" }),
-      30
-    ),
-    quarter: processDataByPeriod(
-      analyticsData, 
-      (d) => d.toLocaleDateString("en-US", { day: "2-digit", month: "short" }),
-      90
-    ),
-    year: processDataByPeriod(
-      analyticsData, 
-      (d) => d.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
-    ),
+  // Get unique currencies from analytics data
+  const uniqueCurrencies = analyticsData 
+    ? Array.from(new Set(analyticsData.map(doc => doc.currency || "INR")))
+    : ["INR"]
+
+  // Helper to process data by period and currency
+  const processDataByPeriodAndCurrency = (
+    data: typeof analyticsData, 
+    currency: string,
+    periodFn: (date: Date) => string,
+    filterDays?: number
+  ) => {
+    const cutoffDate = filterDays ? new Date(Date.now() - filterDays * 24 * 60 * 60 * 1000) : null
+    
+    return data?.filter(doc => {
+      if ((doc.currency || "INR") !== currency) return false
+      if (!cutoffDate) return true
+      return new Date(doc.issue_date) >= cutoffDate
+    }).reduce((acc, doc) => {
+      const date = new Date(doc.issue_date)
+      const periodKey = periodFn(date)
+      const amount = Number(doc.grand_total)
+      
+      const existing = acc.find((m) => m.period === periodKey)
+      if (existing) {
+        existing.revenue += amount
+        existing.invoices += 1
+        if (doc.status === "paid") existing.paid += amount
+      } else {
+        acc.push({
+          period: periodKey,
+          revenue: amount,
+          invoices: 1,
+          paid: doc.status === "paid" ? amount : 0,
+        })
+      }
+      return acc
+    }, [] as { period: string; revenue: number; invoices: number; paid: number }[]) || []
+  }
+
+  // Process data for different time periods and currencies
+  const chartData: Record<string, any> = {}
+  for (const currency of uniqueCurrencies) {
+    chartData[currency] = {
+      month: processDataByPeriodAndCurrency(
+        analyticsData, 
+        currency,
+        (date) => date.toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+        30
+      ),
+      quarter: processDataByPeriodAndCurrency(
+        analyticsData,
+        currency,
+        (date) => date.toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+        90
+      ),
+      year: processDataByPeriodAndCurrency(
+        analyticsData,
+        currency,
+        (date) => date.toLocaleDateString("en-IN", { year: "2-digit", month: "short" }),
+        365
+      ),
+    }
   }
 
   // Calculate stats based on invoice counts
@@ -149,7 +213,7 @@ export default async function DashboardPage() {
     .select("grand_total, currency, due_date, status, include_tax")
     .eq("type", "invoice")
     .eq("user_id", user.id)
-    .in("status", ["sent", "overdue"])
+    .in("status", ["draft", "sent", "overdue"])
     .not("due_date", "is", null)
 
   function calcReceivables(invoices: typeof receivableInvoices) {
@@ -173,6 +237,19 @@ export default async function DashboardPage() {
     all: calcReceivables(receivableInvoices),
     taxed: calcReceivables(receivableInvoices?.filter((i) => i.include_tax !== false)),
     noTax: calcReceivables(receivableInvoices?.filter((i) => i.include_tax === false)),
+  }
+
+  // Group receivables by currency
+  const receivablesByCurrency: Record<string, { all: any; taxed: any; noTax: any }> = {}
+  if (receivableInvoices && receivableInvoices.length > 0) {
+    for (const currency of new Set(receivableInvoices.map(inv => inv.currency || "INR"))) {
+      const invoicesForCurrency = receivableInvoices.filter(inv => (inv.currency || "INR") === currency)
+      receivablesByCurrency[currency] = {
+        all: calcReceivables(invoicesForCurrency),
+        taxed: calcReceivables(invoicesForCurrency.filter((i) => i.include_tax !== false)),
+        noTax: calcReceivables(invoicesForCurrency.filter((i) => i.include_tax === false)),
+      }
+    }
   }
 
   const receivablesCurrency = receivableInvoices?.[0]?.currency || primaryCurrency
@@ -228,15 +305,11 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-
-
-      {/* Free Plan Notice */}
-      <Alert className="border-green-200 bg-green-50">
-        <Info className="h-4 w-4 text-green-600" />
-        <AlertDescription className="text-green-900">
-          You have unlimited access to all features. Premium features may be introduced in the future.
-        </AlertDescription>
-      </Alert>
+      {/* Unlimited Access Banner */}
+      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 border border-purple-200">
+        <Zap className="h-4 w-4 text-purple-600 flex-shrink-0" />
+        <span className="text-sm text-purple-900"><span className="font-semibold">Unlimited access</span> till limited time</span>
+      </div>
 
       {/* Profile Completion Banner */}
       <ProfileCompletionBanner profile={profile} />
@@ -253,10 +326,16 @@ export default async function DashboardPage() {
         taxed={receivables.taxed}
         noTax={receivables.noTax}
         currency={receivablesCurrency}
+        receivablesByCurrency={receivablesByCurrency}
       />
 
       {/* Chart */}
-      <AnalyticsChart data={chartData} currency={primaryCurrency} stats={analyticsStats} />
+      <AnalyticsChart 
+        data={chartData} 
+        currencies={uniqueCurrencies}
+        defaultCurrency={primaryCurrency}
+        stats={analyticsStats} 
+      />
 
       {/* Recent Documents */}
       <Card>

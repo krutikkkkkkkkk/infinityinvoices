@@ -9,6 +9,7 @@ import { MoneyBag02Icon } from "@hugeicons/core-free-icons"
 interface RevenueData {
   currency: string
   total: number
+  paid: number
 }
 
 interface RevenueTabsProps {
@@ -24,8 +25,13 @@ function formatCurrency(amount: number, currency: string) {
 }
 
 export function RevenueTabs({ revenueByCategory }: RevenueTabsProps) {
-  const activeCurrencies = revenueByCategory.filter((r) => r.total > 0)
+  // Include currencies with either total or paid amounts
+  const activeCurrencies = revenueByCategory.filter((r) => r.total > 0 || r.paid > 0)
   const defaultCurrency = activeCurrencies[0]?.currency || "INR"
+
+  const getCurrencySymbol = (currency: string) => {
+    return CURRENCIES.find((c) => c.value === currency)?.symbol || ""
+  }
 
   if (activeCurrencies.length === 0) {
     return (
@@ -50,13 +56,19 @@ export function RevenueTabs({ revenueByCategory }: RevenueTabsProps) {
     return (
       <Card className="col-span-full">
         <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-1/10">
-              <HugeiconsIcon icon={MoneyBag02Icon} size={20} className="text-chart-1" />
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-chart-1/10">
+                <HugeiconsIcon icon={MoneyBag02Icon} size={20} className="text-chart-1" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Invoices</p>
+                <p className="text-2xl font-semibold">{formatCurrency(revenue.total, revenue.currency)}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Revenue</p>
-              <p className="text-2xl font-semibold">{formatCurrency(revenue.total, revenue.currency)}</p>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Paid</p>
+              <p className="text-2xl font-semibold text-emerald-600">{formatCurrency(revenue.paid, revenue.currency)}</p>
             </div>
           </div>
         </CardContent>
@@ -75,19 +87,36 @@ export function RevenueTabs({ revenueByCategory }: RevenueTabsProps) {
             <p className="text-sm text-muted-foreground mb-2">Total Revenue</p>
             <Tabs defaultValue={defaultCurrency}>
               <TabsList className="h-8 mb-2">
-                {activeCurrencies.map((revenue) => (
-                  <TabsTrigger 
-                    key={revenue.currency} 
-                    value={revenue.currency} 
-                    className="text-xs px-3"
-                  >
-                    {revenue.currency}
-                  </TabsTrigger>
-                ))}
+                {activeCurrencies.map((revenue) => {
+                  const symbol = getCurrencySymbol(revenue.currency)
+                  return (
+                    <TabsTrigger 
+                      key={revenue.currency} 
+                      value={revenue.currency} 
+                      className="text-xs px-3 gap-1"
+                    >
+                      <span>{symbol}</span>
+                      <span className="font-medium">{revenue.currency}</span>
+                    </TabsTrigger>
+                  )
+                })}
               </TabsList>
               {activeCurrencies.map((revenue) => (
                 <TabsContent key={revenue.currency} value={revenue.currency} className="mt-0">
-                  <p className="text-2xl font-semibold">{formatCurrency(revenue.total, revenue.currency)}</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Total Invoices:</span>
+                      <p className="text-2xl font-semibold">{formatCurrency(revenue.total, revenue.currency)}</p>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-sm text-muted-foreground">Paid:</span>
+                      <p className="text-xl font-semibold text-emerald-600">{formatCurrency(revenue.paid, revenue.currency)}</p>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-sm text-muted-foreground">Outstanding:</span>
+                      <p className="text-xl font-semibold text-orange-600">{formatCurrency(revenue.total - revenue.paid, revenue.currency)}</p>
+                    </div>
+                  </div>
                 </TabsContent>
               ))}
             </Tabs>

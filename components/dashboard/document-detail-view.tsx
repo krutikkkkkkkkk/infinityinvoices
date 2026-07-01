@@ -49,15 +49,8 @@ export function DocumentDetailView({ document, profile, showActions = false }: D
         <div className="lg:col-span-2 print:block">
           {renderPreview()}
         </div>
-        <div className="lg:col-span-1 space-y-4">
-          {document.type === "invoice" && (
-            <PaymentsPanel
-              documentId={document.id}
-              grandTotal={Number(document.grand_total)}
-              currency={document.currency as Currency}
-            />
-          )}
-          <TemplateSelector value={template} onChange={setTemplate} />
+        <div className="lg:col-span-1 space-y-4 print:hidden">
+          <TemplateSelector value={template} onChange={setTemplate} documentType={document.type} />
         </div>
       </div>
     </div>

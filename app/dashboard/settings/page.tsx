@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { SettingsForm } from "@/components/dashboard/settings-form"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Info } from "lucide-react"
+import { Zap } from "lucide-react"
 import type { Profile } from "@/lib/types"
 
 export default async function SettingsPage() {
@@ -32,12 +32,10 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <Alert className="border-blue-200 bg-blue-50">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-900">
-          All features are currently free and unlimited. Premium features may be introduced in the future to support development.
-        </AlertDescription>
-      </Alert>
+      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 border border-purple-200">
+        <Zap className="h-4 w-4 text-purple-600 flex-shrink-0" />
+        <span className="text-sm text-purple-900"><span className="font-semibold">Unlimited access</span> till limited time</span>
+      </div>
 
       <SettingsForm profile={profile as Profile | null} />
     </div>

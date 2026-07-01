@@ -61,86 +61,125 @@ export function FinancialSummaryWidget({ profile, documents }: FinancialSummaryW
       )
     })
 
-    const totalPaidAmount = paidInvoices.reduce((sum, doc) => sum + Number(doc.grand_total || 0), 0)
-    const totalOverallAmount = allInvoices.reduce((sum, doc) => sum + Number(doc.grand_total || 0), 0)
-    const paidCount = paidInvoices.length
-    const totalCount = allInvoices.length
+    // Group by currency
+    const paidByCurrency: Record<string, { total: number; count: number }> = {}
+    const totalByCurrency: Record<string, { total: number; count: number }> = {}
+
+    paidInvoices.forEach((doc) => {
+      const currency = doc.currency || "INR"
+      if (!paidByCurrency[currency]) {
+        paidByCurrency[currency] = { total: 0, count: 0 }
+      }
+      paidByCurrency[currency].total += Number(doc.grand_total || 0)
+      paidByCurrency[currency].count += 1
+    })
+
+    allInvoices.forEach((doc) => {
+      const currency = doc.currency || "INR"
+      if (!totalByCurrency[currency]) {
+        totalByCurrency[currency] = { total: 0, count: 0 }
+      }
+      totalByCurrency[currency].total += Number(doc.grand_total || 0)
+      totalByCurrency[currency].count += 1
+    })
 
     const fyLabel = getFinancialYearLabel(financialYearStart, startYear, endYear)
 
     return {
-      totalPaidAmount,
-      totalOverallAmount,
-      paidCount,
-      totalCount,
+      paidByCurrency,
+      totalByCurrency,
       fyLabel,
     }
   }, [documents, financialYearStart])
-
-  const currencySymbol = CURRENCIES.find((c) => c.value === (profile?.default_currency || "INR"))?.symbol || "₹"
 
   // Format amount in Indian number system (lakhs)
   const formatAmount = (amount: number) => {
     return amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
+  const getCurrencySymbol = (currency: string) => {
+    return CURRENCIES.find((c) => c.value === currency)?.symbol || "₹"
+  }
+
+  const allCurrencies = Array.from(
+    new Set([...Object.keys(financialStats.paidByCurrency), ...Object.keys(financialStats.totalByCurrency)])
+  ).sort()
+
+  // Calculate totals across all currencies
+  const totalPaidCount = Object.values(financialStats.paidByCurrency).reduce((sum, data) => sum + data.count, 0)
+  const totalInvoiceCount = Object.values(financialStats.totalByCurrency).reduce((sum, data) => sum + data.count, 0)
+  const collectionRate = totalInvoiceCount > 0 ? Math.round((totalPaidCount / totalInvoiceCount) * 100) : 0
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Total Paid */}
-      <Card className="border-border bg-card">
-        <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-32">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-            Total Receipts
-          </p>
-          <p className="text-2xl md:text-3xl font-black text-foreground">
-            {currencySymbol}{formatAmount(financialStats.totalPaidAmount)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {financialStats.paidCount} paid invoice{financialStats.paidCount !== 1 ? "s" : ""}
-          </p>
-          <p className="text-[10px] text-muted-foreground/80 mt-1">
-            {financialStats.fyLabel}
-          </p>
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      {/* Main Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {/* Total Invoices */}
+        <Card className="border-border bg-card">
+          <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Total Invoices
+            </p>
+            <p className="text-2xl font-black text-foreground">{totalInvoiceCount}</p>
+            <p className="text-[10px] text-muted-foreground/80 mt-1">{financialStats.fyLabel}</p>
+          </CardContent>
+        </Card>
 
-      {/* Total Sales */}
-      <Card className="border-border bg-card">
-        <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-32">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-            Total Sales
-          </p>
-          <p className="text-2xl md:text-3xl font-black text-foreground">
-            {currencySymbol}{formatAmount(financialStats.totalOverallAmount)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {financialStats.totalCount} invoice{financialStats.totalCount !== 1 ? "s" : ""}
-          </p>
-          <p className="text-[10px] text-muted-foreground/80 mt-1">
-            {financialStats.fyLabel}
-          </p>
-        </CardContent>
-      </Card>
+        {/* Paid Invoices */}
+        <Card className="border-border bg-card">
+          <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Paid
+            </p>
+            <p className="text-2xl font-black text-emerald-600">{totalPaidCount}</p>
+            <p className="text-[10px] text-muted-foreground/80 mt-1">invoices</p>
+          </CardContent>
+        </Card>
 
-      {/* Collection Rate */}
-      <Card className="border-border bg-card">
-        <CardContent className="pt-6 pb-6 flex flex-col items-center justify-center min-h-32">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-            Collection Rate
-          </p>
-          <p className="text-2xl md:text-3xl font-black text-foreground">
-            {financialStats.totalCount > 0
-              ? Math.round((financialStats.paidCount / financialStats.totalCount) * 100)
-              : 0}%
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {financialStats.paidCount} of {financialStats.totalCount} paid
-          </p>
-          <p className="text-[10px] text-muted-foreground/80 mt-1">
-            {financialStats.fyLabel}
-          </p>
-        </CardContent>
-      </Card>
+        {/* Collection Rate */}
+        <Card className="border-border bg-card">
+          <CardContent className="pt-4 pb-4 flex flex-col items-center justify-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Collection Rate
+            </p>
+            <p className="text-2xl font-black text-foreground">{collectionRate}%</p>
+            <p className="text-[10px] text-muted-foreground/80 mt-1">overall</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Currency Breakdown */}
+      {allCurrencies.length > 0 && (
+        <Card className="border-border bg-card">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Revenue by Currency
+            </p>
+            <div className="space-y-2">
+              {allCurrencies.map((currency) => {
+                const paidData = financialStats.paidByCurrency[currency] || { total: 0, count: 0 }
+                const totalData = financialStats.totalByCurrency[currency] || { total: 0, count: 0 }
+                const symbol = getCurrencySymbol(currency)
+                const currencyRate = totalData.count > 0 ? Math.round((paidData.count / totalData.count) * 100) : 0
+
+                return (
+                  <div key={currency} className="flex items-center justify-between p-2 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm font-semibold text-foreground">{currency}</span>
+                        <span className="text-xs text-muted-foreground">{symbol}{formatAmount(totalData.total)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {paidData.count} of {totalData.count} paid ({currencyRate}%)
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

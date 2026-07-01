@@ -62,6 +62,7 @@ export interface Document {
   number: string
   issue_date: string
   due_date: string | null
+  valid_until: string | null // For quotations - expiry date
   status: DocumentStatus
   currency: Currency
   subtotal: number
@@ -97,6 +98,7 @@ export interface DocumentFormData {
   number: string
   issue_date: string
   due_date: string
+  valid_until: string
   status: DocumentStatus
   currency: Currency
   client_id: string | null
