@@ -5,10 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
+  --card: oklch(0.96 0.001 0);
+  --card-foreground: oklch(0.12 0.006 285.823);
+  --popover: oklch(0.96 0.001 0);
+  --popover-foreground: oklch(0.12 0.006 285.823);
   --primary: oklch(0.457 0.24 277.023);
   --primary-foreground: oklch(0.962 0.018 272.314);
   --secondary: oklch(0.967 0.001 286.375);
@@ -49,10 +49,10 @@
 .dark {
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
+  --card: oklch(0.18 0.007 285.885);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.18 0.007 285.885);
+  --popover-foreground: oklch(0.95 0 0);
   --primary: oklch(0.398 0.195 277.366);
   --primary-foreground: oklch(0.962 0.018 272.314);
   --secondary: oklch(0.274 0.006 286.033);
