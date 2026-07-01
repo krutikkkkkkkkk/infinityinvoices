@@ -34,11 +34,14 @@ interface ChartDataPoint {
 
 interface AnalyticsChartProps {
   data: {
-    month: ChartDataPoint[]
-    quarter: ChartDataPoint[]
-    year: ChartDataPoint[]
+    [currency: string]: {
+      month: ChartDataPoint[]
+      quarter: ChartDataPoint[]
+      year: ChartDataPoint[]
+    }
   }
-  currency: string
+  currencies: string[]
+  defaultCurrency: string
   stats?: {
     totalInvoices: number
     paidInvoices: number
@@ -49,10 +52,11 @@ interface AnalyticsChartProps {
 
 type TimePeriod = "month" | "quarter" | "year"
 
-export function AnalyticsChart({ data, currency, stats }: AnalyticsChartProps) {
+export function AnalyticsChart({ data, currencies, defaultCurrency, stats }: AnalyticsChartProps) {
   const [period, setPeriod] = useState<TimePeriod>("month")
+  const [activeCurrency, setActiveCurrency] = useState(defaultCurrency)
   
-  const currencyData = CURRENCIES.find((c) => c.value === currency)
+  const currencyData = CURRENCIES.find((c) => c.value === activeCurrency)
   const symbol = currencyData?.symbol || ""
 
   const chartConfig = {
@@ -70,7 +74,7 @@ export function AnalyticsChart({ data, currency, stats }: AnalyticsChartProps) {
     },
   }
 
-  const currentData = data[period] || []
+  const currentData = data[activeCurrency]?.[period] || []
   const hasData = currentData.length > 0
 
   const customTooltip = ({ active, payload, label }: any) => {
@@ -158,18 +162,50 @@ export function AnalyticsChart({ data, currency, stats }: AnalyticsChartProps) {
       <div className="grid gap-4 md:grid-cols-2">
         {/* Revenue Area Chart */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardTitle className="text-base font-medium">Revenue</CardTitle>
-              <CardDescription>Total vs paid in {currency}</CardDescription>
+          <CardHeader className="space-y-4">
+            <div className="flex flex-col gap-4">
+              <div>
+                <CardTitle className="text-base font-medium">Revenue</CardTitle>
+                <CardDescription>Total vs paid in {activeCurrency}</CardDescription>
+              </div>
+              
+              {/* Currency Tabs */}
+              {currencies.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Currency:</span>
+                  <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+                    {currencies.map((curr) => {
+                      const currencyInfo = CURRENCIES.find((c) => c.value === curr)
+                      return (
+                        <button
+                          key={curr}
+                          onClick={() => setActiveCurrency(curr)}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                            activeCurrency === curr
+                              ? "bg-background shadow-sm text-foreground"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <span>{currencyInfo?.symbol}</span>
+                          <span className="font-semibold ml-1">{curr}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <Tabs value={period} onValueChange={(v) => setPeriod(v as TimePeriod)}>
-              <TabsList className="h-8">
-                <TabsTrigger value="month" className="text-xs px-2">30D</TabsTrigger>
-                <TabsTrigger value="quarter" className="text-xs px-2">90D</TabsTrigger>
-                <TabsTrigger value="year" className="text-xs px-2">1Y</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            
+            {/* Period Tabs */}
+            <div className="flex justify-end">
+              <Tabs value={period} onValueChange={(v) => setPeriod(v as TimePeriod)}>
+                <TabsList className="h-8">
+                  <TabsTrigger value="month" className="text-xs px-2">30D</TabsTrigger>
+                  <TabsTrigger value="quarter" className="text-xs px-2">90D</TabsTrigger>
+                  <TabsTrigger value="year" className="text-xs px-2">1Y</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </CardHeader>
           <CardContent>
             {hasData ? (

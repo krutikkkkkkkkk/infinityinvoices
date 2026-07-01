@@ -133,22 +133,69 @@ export default async function DashboardPage() {
     }, [] as { period: string; revenue: number; invoices: number; paid: number }[]) || []
   }
 
-  // Process data for different time periods
-  const chartData = {
-    month: processDataByPeriod(
-      analyticsData, 
-      (d) => d.toLocaleDateString("en-US", { day: "2-digit", month: "short" }),
-      30
-    ),
-    quarter: processDataByPeriod(
-      analyticsData, 
-      (d) => d.toLocaleDateString("en-US", { day: "2-digit", month: "short" }),
-      90
-    ),
-    year: processDataByPeriod(
-      analyticsData, 
-      (d) => d.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
-    ),
+  // Get unique currencies from analytics data
+  const uniqueCurrencies = analyticsData 
+    ? Array.from(new Set(analyticsData.map(doc => doc.currency || "INR")))
+    : ["INR"]
+
+  // Helper to process data by period and currency
+  const processDataByPeriodAndCurrency = (
+    data: typeof analyticsData, 
+    currency: string,
+    periodFn: (date: Date) => string,
+    filterDays?: number
+  ) => {
+    const cutoffDate = filterDays ? new Date(Date.now() - filterDays * 24 * 60 * 60 * 1000) : null
+    
+    return data?.filter(doc => {
+      if ((doc.currency || "INR") !== currency) return false
+      if (!cutoffDate) return true
+      return new Date(doc.issue_date) >= cutoffDate
+    }).reduce((acc, doc) => {
+      const date = new Date(doc.issue_date)
+      const periodKey = periodFn(date)
+      const amount = Number(doc.grand_total)
+      
+      const existing = acc.find((m) => m.period === periodKey)
+      if (existing) {
+        existing.revenue += amount
+        existing.invoices += 1
+        if (doc.status === "paid") existing.paid += amount
+      } else {
+        acc.push({
+          period: periodKey,
+          revenue: amount,
+          invoices: 1,
+          paid: doc.status === "paid" ? amount : 0,
+        })
+      }
+      return acc
+    }, [] as { period: string; revenue: number; invoices: number; paid: number }[]) || []
+  }
+
+  // Process data for different time periods and currencies
+  const chartData: Record<string, any> = {}
+  for (const currency of uniqueCurrencies) {
+    chartData[currency] = {
+      month: processDataByPeriodAndCurrency(
+        analyticsData, 
+        currency,
+        (date) => date.toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+        30
+      ),
+      quarter: processDataByPeriodAndCurrency(
+        analyticsData,
+        currency,
+        (date) => date.toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
+        90
+      ),
+      year: processDataByPeriodAndCurrency(
+        analyticsData,
+        currency,
+        (date) => date.toLocaleDateString("en-IN", { year: "2-digit", month: "short" }),
+        365
+      ),
+    }
   }
 
   // Calculate stats based on invoice counts
@@ -283,7 +330,12 @@ export default async function DashboardPage() {
       />
 
       {/* Chart */}
-      <AnalyticsChart data={chartData} currency={primaryCurrency} stats={analyticsStats} />
+      <AnalyticsChart 
+        data={chartData} 
+        currencies={uniqueCurrencies}
+        defaultCurrency={primaryCurrency}
+        stats={analyticsStats} 
+      />
 
       {/* Recent Documents */}
       <Card>
