@@ -171,8 +171,9 @@ export async function POST(request: NextRequest) {
 `
 
     // Send email with proper headers for deliverability
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@infinityinvoices.com"
-    const replyToEmail = profile?.email || process.env.RESEND_REPLY_TO || "support@infinityinvoices.com"
+    // Use custom verified domain for best deliverability
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@new.infinityinvoices.com"
+    const replyToEmail = profile?.email || process.env.RESEND_REPLY_TO || "support@new.infinityinvoices.com"
     
     const { error: emailError } = await resend.emails.send({
       from: fromEmail,
