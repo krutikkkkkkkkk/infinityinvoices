@@ -54,17 +54,35 @@ export default async function DashboardPage() {
     .eq("status", "paid")
     .eq("user_id", user.id)
 
-  // Group revenue by currency
+  const { data: allInvoices } = await supabase
+    .from("documents")
+    .select("grand_total, currency, status")
+    .eq("type", "invoice")
+    .in("status", ["sent", "paid", "overdue"])
+    .eq("user_id", user.id)
+
+  // Group revenue by currency (paid only)
   const revenueByCategory = paidInvoices?.reduce((acc, inv) => {
     const currency = inv.currency || "INR"
     const existing = acc.find((r) => r.currency === currency)
     if (existing) {
-      existing.total += Number(inv.grand_total)
+      existing.paid += Number(inv.grand_total)
     } else {
-      acc.push({ currency, total: Number(inv.grand_total) })
+      acc.push({ currency, total: 0, paid: Number(inv.grand_total) })
     }
     return acc
-  }, [] as { currency: string; total: number }[]) || []
+  }, [] as { currency: string; total: number; paid: number }[]) || []
+
+  // Add total invoices to revenue data
+  allInvoices?.forEach((inv) => {
+    const currency = inv.currency || "INR"
+    const existing = revenueByCategory.find((r) => r.currency === currency)
+    if (existing) {
+      existing.total += Number(inv.grand_total)
+    } else {
+      revenueByCategory.push({ currency, total: Number(inv.grand_total), paid: 0 })
+    }
+  })
 
   // Fetch analytics data (last year)
   const oneYearAgo = new Date()
