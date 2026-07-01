@@ -274,6 +274,9 @@ export default async function DashboardPage() {
       {/* Financial Summary Widget */}
       <FinancialSummaryWidget profile={profile} documents={allDocuments || []} />
 
+      {/* Revenue Tabs - Multi-Currency Support */}
+      <RevenueTabs revenueByCategory={revenueByCategory} />
+
       {/* Receivables Widget */}
       <ReceivablesWidget
         all={receivables.all}
