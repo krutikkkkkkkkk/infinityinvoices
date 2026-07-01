@@ -170,13 +170,21 @@ export async function POST(request: NextRequest) {
 </html>
 `
 
-    // Send email
-    // Use RESEND_FROM_EMAIL env var, or fallback to Resend test email for development
+    // Send email with proper headers for deliverability
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@infinityinvoices.com"
+    const replyToEmail = profile?.email || process.env.RESEND_REPLY_TO || "support@infinityinvoices.com"
+    
     const { error: emailError } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "Infinity Invoices <onboarding@resend.dev>",
+      from: fromEmail,
       to: document.client_email,
+      replyTo: replyToEmail,
       subject: `${daysOverdue > 0 ? "OVERDUE: " : "Reminder: "}Invoice ${document.number} - ${symbol}${remaining.toLocaleString()} Due`,
       html: emailHtml,
+      headers: {
+        "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_SITE_URL}/unsubscribe>`,
+        "X-Mailer": "Infinity Invoices",
+        "Precedence": "bulk",
+      },
     })
 
     if (emailError) {
