@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { SettingsForm } from "@/components/dashboard/settings-form"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { InfoIcon } from "@hugeicons/react"
+import { Info } from "lucide-react"
 import type { Profile } from "@/lib/types"
 
 export default async function SettingsPage() {
@@ -33,7 +33,7 @@ export default async function SettingsPage() {
       </div>
 
       <Alert className="border-blue-200 bg-blue-50">
-        <InfoIcon className="h-4 w-4 text-blue-600" />
+        <Info className="h-4 w-4 text-blue-600" />
         <AlertDescription className="text-blue-900">
           All features are currently free and unlimited. Premium features may be introduced in the future to support development.
         </AlertDescription>

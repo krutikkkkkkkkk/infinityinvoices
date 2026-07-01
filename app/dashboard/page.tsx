@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { InfoIcon } from "@hugeicons/react"
+import { Info } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -232,7 +232,7 @@ export default async function DashboardPage() {
 
       {/* Free Plan Notice */}
       <Alert className="border-green-200 bg-green-50">
-        <InfoIcon className="h-4 w-4 text-green-600" />
+        <Info className="h-4 w-4 text-green-600" />
         <AlertDescription className="text-green-900">
           You have unlimited access to all features. Premium features may be introduced in the future.
         </AlertDescription>
