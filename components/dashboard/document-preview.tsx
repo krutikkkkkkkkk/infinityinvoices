@@ -79,10 +79,20 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
                 day: "numeric",
               })}
             </p>
-            {document.due_date && (
+            {document.type === "invoice" && document.due_date && (
               <p className="text-sm text-gray-600">
-                <span className="font-medium">{getDueDateLabel(document.type)}:</span>{" "}
+                <span className="font-medium">Due Date:</span>{" "}
                 {new Date(document.due_date).toLocaleDateString("en-IN", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            )}
+            {document.type === "quotation" && document.valid_until && (
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Valid Until:</span>{" "}
+                {new Date(document.valid_until).toLocaleDateString("en-IN", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -210,8 +220,8 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
           </div>
         </div>
 
-        {/* Payment Information */}
-        {(profile?.bank_name || profile?.upi_id || profile?.paypal_email) && (
+        {/* Payment Information - Only for Invoices */}
+        {document.type === "invoice" && (profile?.bank_name || profile?.upi_id || profile?.paypal_email) && (
           <div className="mb-8 p-4 border border-gray-200 rounded-lg">
             <h3 className="text-sm font-semibold text-gray-600 mb-3">
               Payment Information
@@ -280,11 +290,11 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
           </div>
         )}
 
-        {/* Terms */}
+        {/* Terms - Different label for quotations */}
         {document.terms && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-600 mb-1">
-              Terms & Conditions
+              {document.type === "quotation" ? "Quote Terms & Validity" : "Terms & Conditions"}
             </h3>
             <p className="text-sm text-gray-800 whitespace-pre-line">
               {document.terms}
