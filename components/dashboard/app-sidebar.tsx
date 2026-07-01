@@ -56,8 +56,6 @@ const toolsNavItems = [
 ]
 
 const accountNavItems = [
-  { href: "/dashboard/usage", label: "Usage", icon: ChartLineData01Icon },
-  { href: "/dashboard/pricing", label: "Pricing", icon: CreditCardIcon },
   { href: "/dashboard/settings", label: "Settings", icon: Settings01Icon },
 ]
 

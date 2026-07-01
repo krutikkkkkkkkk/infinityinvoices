@@ -13,7 +13,9 @@ import { Loading01Icon } from "@hugeicons/core-free-icons"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { Profile } from "@/lib/types"
+import { CURRENCIES } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { LogoUpload } from "./logo-upload"
 
 interface SettingsFormProps {
   profile: Profile | null
@@ -37,6 +39,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
     bank_routing_number: profile?.bank_routing_number || "",
     bank_swift_code: profile?.bank_swift_code || "",
     financial_year_start: String(profile?.financial_year_start || 4),
+    default_currency: profile?.default_currency || "INR",
   })
   const [resetMessage, setResetMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -72,6 +75,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
           bank_routing_number: formData.bank_routing_number || null,
           bank_swift_code: formData.bank_swift_code || null,
           financial_year_start: parseInt(formData.financial_year_start),
+          default_currency: formData.default_currency,
         })
         .eq("id", user.id)
 
@@ -152,19 +156,13 @@ export function SettingsForm({ profile }: SettingsFormProps) {
                 rows={3}
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="logo_url">Logo URL</Label>
-              <Input
-                id="logo_url"
-                value={formData.logo_url}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, logo_url: e.target.value }))
+            <div className="sm:col-span-2">
+              <LogoUpload
+                currentLogoUrl={formData.logo_url}
+                onUploadComplete={(url) =>
+                  setFormData((prev) => ({ ...prev, logo_url: url }))
                 }
-                placeholder="https://example.com/logo.png"
               />
-              <p className="text-xs text-muted-foreground">
-                Enter a URL to your company logo. It will appear on your invoices.
-              </p>
             </div>
           </div>
 
@@ -271,31 +269,53 @@ export function SettingsForm({ profile }: SettingsFormProps) {
             </div>
           </div>
 
-          {/* Financial Year */}
+          {/* Financial & Currency Settings */}
           <div className="space-y-4 pt-4 border-t">
             <h4 className="text-sm font-medium">Financial Settings</h4>
-            <div className="space-y-2 max-w-xs">
-              <Label htmlFor="financial_year_start">Financial Year Start Month</Label>
-              <Select value={formData.financial_year_start} onValueChange={(value) => setFormData((prev) => ({ ...prev, financial_year_start: value }))}>
-                <SelectTrigger id="financial_year_start">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">January</SelectItem>
-                  <SelectItem value="2">February</SelectItem>
-                  <SelectItem value="3">March</SelectItem>
-                  <SelectItem value="4">April</SelectItem>
-                  <SelectItem value="5">May</SelectItem>
-                  <SelectItem value="6">June</SelectItem>
-                  <SelectItem value="7">July</SelectItem>
-                  <SelectItem value="8">August</SelectItem>
-                  <SelectItem value="9">September</SelectItem>
-                  <SelectItem value="10">October</SelectItem>
-                  <SelectItem value="11">November</SelectItem>
-                  <SelectItem value="12">December</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">Used to calculate financial year for reporting</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="financial_year_start">Financial Year Start Month</Label>
+                <Select value={formData.financial_year_start} onValueChange={(value) => setFormData((prev) => ({ ...prev, financial_year_start: value }))}>
+                  <SelectTrigger id="financial_year_start">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">January</SelectItem>
+                    <SelectItem value="2">February</SelectItem>
+                    <SelectItem value="3">March</SelectItem>
+                    <SelectItem value="4">April</SelectItem>
+                    <SelectItem value="5">May</SelectItem>
+                    <SelectItem value="6">June</SelectItem>
+                    <SelectItem value="7">July</SelectItem>
+                    <SelectItem value="8">August</SelectItem>
+                    <SelectItem value="9">September</SelectItem>
+                    <SelectItem value="10">October</SelectItem>
+                    <SelectItem value="11">November</SelectItem>
+                    <SelectItem value="12">December</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Used to calculate financial year for reporting</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_currency">Default Currency</Label>
+                <Select value={formData.default_currency} onValueChange={(value) => setFormData((prev) => ({ ...prev, default_currency: value }))}>
+                  <SelectTrigger id="default_currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency.value} value={currency.value}>
+                        <span className="flex items-center gap-2">
+                          <span>{currency.symbol}</span>
+                          <span className="font-medium">{currency.value}</span>
+                          <span className="text-muted-foreground text-sm">({currency.label})</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Auto-filled when creating new invoices</p>
+              </div>
             </div>
           </div>
 

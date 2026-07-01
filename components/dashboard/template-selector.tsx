@@ -11,7 +11,6 @@ export const TEMPLATES: {
   label: string
   description: string
   preview: React.ReactNode
-  pro?: boolean
 }[] = [
   {
     id: "classic",
@@ -290,10 +289,9 @@ export const TEMPLATES: {
 interface TemplateSelectorProps {
   value: TemplateType
   onChange: (template: TemplateType) => void
-  isPro?: boolean
 }
 
-export function TemplateSelector({ value, onChange, isPro = true }: TemplateSelectorProps) {
+export function TemplateSelector({ value, onChange }: TemplateSelectorProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -303,14 +301,14 @@ export function TemplateSelector({ value, onChange, isPro = true }: TemplateSele
         <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
           {TEMPLATES.map((tpl) => {
             const isSelected = value === tpl.id
-            const isLocked = tpl.pro && !isPro
-            return (
-              <button
-                key={tpl.id}
-                type="button"
-                onClick={() => !isLocked && onChange(tpl.id)}
-                disabled={isLocked}
-                title={isLocked ? "Pro template — upgrade to unlock" : tpl.label}
+    return (
+      <Card
+        onClick={() => onChange(tpl.id)}
+        className={cn(
+          "cursor-pointer transition-all relative",
+          value === tpl.id ? "ring-2 ring-primary" : "hover:shadow-md"
+        )}
+        title={tpl.label}
                 className={cn(
                   "relative flex-none w-28 rounded-lg border-2 p-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   isLocked
@@ -329,12 +327,7 @@ export function TemplateSelector({ value, onChange, isPro = true }: TemplateSele
                 <p className="text-xs font-medium text-center truncate">{tpl.label}</p>
                 <p className="text-[10px] text-muted-foreground text-center truncate">{tpl.description}</p>
 
-                {/* PRO badge */}
-                {tpl.pro && (
-                  <span className="absolute top-1 left-1 bg-amber-400 text-[#0d0d0d] text-[9px] font-black px-1 py-0.5 rounded leading-none uppercase tracking-wide">
-                    Pro
-                  </span>
-                )}
+
 
                 {/* Selected check */}
                 {isSelected && !isLocked && (

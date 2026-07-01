@@ -111,7 +111,7 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
     issue_date: document?.issue_date || new Date().toISOString().split("T")[0],
     due_date: document?.due_date || "",
     status: document?.status || "draft",
-    currency: document?.currency || "INR",
+    currency: document?.currency || profile?.default_currency || "INR",
     client_id: document?.client_id || null,
     client_name: document?.client_name || "",
     client_email: document?.client_email || "",
