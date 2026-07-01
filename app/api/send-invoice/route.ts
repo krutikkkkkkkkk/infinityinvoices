@@ -326,12 +326,15 @@ export async function POST(request: NextRequest) {
     </div>
 
     <!-- Footer -->
-    <div style="text-align: center; padding: 24px 20px;">
+    <div style="text-align: center; padding: 24px 20px; border-top: 1px solid #e2e8f0;">
       <p style="color: #64748b; margin: 0 0 8px 0; font-size: 13px;">
         Thank you for your business!
       </p>
-      <p style="color: #94a3b8; margin: 0; font-size: 12px;">
+      <p style="color: #94a3b8; margin: 0 0 12px 0; font-size: 12px;">
         ${profile?.company_name || "Your Company"}${profile?.email ? ` | ${profile.email}` : ""}${profile?.phone ? ` | ${profile.phone}` : ""}
+      </p>
+      <p style="color: #cbd5e1; margin: 0; font-size: 11px;">
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL || ""}/unsubscribe" style="color: #64748b; text-decoration: none;">Unsubscribe</a> from these emails
       </p>
     </div>
 
@@ -340,14 +343,23 @@ export async function POST(request: NextRequest) {
 </html>
 `
 
-    // Send email via Resend
-    // Use RESEND_FROM_EMAIL env var, or fallback to Resend test email for development
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "Infinity Invoices <onboarding@resend.dev>"
+    // Send email via Resend with proper headers for deliverability
+    // Use custom verified domain for best deliverability
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@new.infinityinvoices.com"
+    const replyToEmail = profile?.email
+    
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: recipientEmail,
+      replyTo: replyToEmail,
       subject: `${document.type === "invoice" ? "Invoice" : "Quotation"} ${document.number} from ${profile?.company_name || "Your Company"}`,
       html: emailHtml,
+      // Add headers for better deliverability
+      headers: {
+        "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_SITE_URL}/unsubscribe>`,
+        "X-Mailer": "Infinity Invoices",
+        "Precedence": "bulk",
+      },
     })
 
     if (error) {

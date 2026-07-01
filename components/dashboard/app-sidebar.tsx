@@ -19,6 +19,7 @@ import {
   ChartLineData01Icon,
   CreditCardIcon,
   ExchangeIcon,
+  Activity01Icon,
 } from "@hugeicons/core-free-icons"
 import { ChevronUp } from "lucide-react"
 import {
@@ -54,6 +55,7 @@ const mainNavItems = [
 
 const toolsNavItems = [
   { href: "/dashboard/tools/currency-converter", label: "Currency Converter", icon: ExchangeIcon },
+  { href: "/dashboard/usage", label: "Usage", icon: Activity01Icon },
 ]
 
 const accountNavItems = [

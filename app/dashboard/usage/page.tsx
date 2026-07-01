@@ -4,11 +4,12 @@ import { useSubscription } from "@/hooks/use-subscription"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { useState } from "react"
 
 export default function UsagePage() {
-  const { subscription, usage, plan, isLoading, refresh } = useSubscription()
+  const { usage, isLoading, refresh } = useSubscription()
   const [refreshing, setRefreshing] = useState(false)
 
   const handleRefresh = async () => {
@@ -25,143 +26,70 @@ export default function UsagePage() {
     )
   }
 
-  const invoicePercent = plan?.limits.invoicesPerMonth === -1 
-    ? 0 
-    : Math.min(100, ((usage?.invoices_created || 0) / (plan?.limits.invoicesPerMonth || 1)) * 100)
-  
-  const quotationPercent = plan?.limits.quotationsPerMonth === -1 
-    ? 0 
-    : Math.min(100, ((usage?.quotations_created || 0) / (plan?.limits.quotationsPerMonth || 1)) * 100)
-
-  const emailPercent = plan?.limits.emailsPerMonth === -1 
-    ? 0 
-    : Math.min(100, ((usage?.emails_sent || 0) / (plan?.limits.emailsPerMonth || 1)) * 100)
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Usage</h1>
-          <p className="text-muted-foreground">Monitor your monthly usage and limits</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Usage</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Track your activity - everything is unlimited</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </Button>
-          {(subscription?.plan === "pro" || subscription?.plan === "lifetime") && (
-            <Button variant="outline" asChild>
-              <Link href="/api/portal">Manage Subscription</Link>
-            </Button>
-          )}
-          {subscription?.plan === "free" && (
-            <Button asChild>
-              <Link href="/dashboard/pricing">Upgrade</Link>
-            </Button>
-          )}
-        </div>
+        <Button variant="outline" onClick={handleRefresh} disabled={refreshing} className="w-full sm:w-auto">
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </Button>
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between">
-          <div>
-            <CardTitle>Current Plan: {subscription?.plan === "lifetime" ? "Lifetime" : subscription?.plan === "pro" ? "Pro" : "Free"}</CardTitle>
-            <CardDescription>
-              {(subscription?.plan === "pro" || subscription?.plan === "lifetime")
-                ? "You have unlimited access to all features" 
-                : "Upgrade for unlimited usage"}
-            </CardDescription>
-            {subscription?.current_period_end && subscription?.plan === "pro" && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Renews on {new Date(subscription.current_period_end).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-          {(subscription?.plan === "pro" || subscription?.plan === "lifetime") && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/api/portal">Manage</Link>
-            </Button>
-          )}
+        <CardHeader>
+          <CardTitle>Plan: Free</CardTitle>
+          <CardDescription>Unlimited access for a limited time</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Invoices */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span>Invoices this month</span>
-              <span className="font-medium">
-                {usage?.invoices_created || 0} / {plan?.limits.invoicesPerMonth === -1 ? "Unlimited" : plan?.limits.invoicesPerMonth}
-              </span>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Invoices */}
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Invoices Created</p>
+              <p className="text-lg sm:text-xl font-bold">{usage?.invoices_created || 0}</p>
             </div>
-            {plan?.limits.invoicesPerMonth !== -1 && (
-              <Progress value={invoicePercent} className="h-2" />
-            )}
-            {plan?.limits.invoicesPerMonth === -1 && (
-              <div className="h-2 bg-primary/20 rounded-full">
-                <div className="h-full bg-primary rounded-full w-full" />
-              </div>
-            )}
+
+            {/* Quotations */}
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Quotations Created</p>
+              <p className="text-lg sm:text-xl font-bold">{usage?.quotations_created || 0}</p>
+            </div>
+
+            {/* Emails */}
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Emails Sent</p>
+              <p className="text-lg sm:text-xl font-bold">{usage?.emails_sent || 0}</p>
+            </div>
+
+            {/* Downloads */}
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">PDFs Downloaded</p>
+              <p className="text-lg sm:text-xl font-bold">{usage?.pdfs_downloaded || 0}</p>
+            </div>
           </div>
 
-          {/* Quotations */}
-          <div className="space-y-2">
+          <div className="pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="flex items-center justify-between text-sm">
-              <span>Quotations this month</span>
-              <span className="font-medium">
-                {usage?.quotations_created || 0} / {plan?.limits.quotationsPerMonth === -1 ? "Unlimited" : plan?.limits.quotationsPerMonth}
-              </span>
+              <span>Invoices</span>
+              <Badge variant="secondary">Unlimited</Badge>
             </div>
-            {plan?.limits.quotationsPerMonth !== -1 && (
-              <Progress value={quotationPercent} className="h-2" />
-            )}
-            {plan?.limits.quotationsPerMonth === -1 && (
-              <div className="h-2 bg-primary/20 rounded-full">
-                <div className="h-full bg-primary rounded-full w-full" />
-              </div>
-            )}
-          </div>
-
-          {/* Emails */}
-          <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span>Emails sent this month</span>
-              <span className="font-medium">
-                {usage?.emails_sent || 0} / {plan?.limits.emailsPerMonth === -1 ? "Unlimited" : plan?.limits.emailsPerMonth}
-              </span>
+              <span>Quotations</span>
+              <Badge variant="secondary">Unlimited</Badge>
             </div>
-            {plan?.limits.emailsPerMonth !== -1 && (
-              <Progress value={emailPercent} className="h-2" />
-            )}
-            {plan?.limits.emailsPerMonth === -1 && (
-              <div className="h-2 bg-primary/20 rounded-full">
-                <div className="h-full bg-primary rounded-full w-full" />
-              </div>
-            )}
-          </div>
-
-          {/* Clients */}
-          <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span>Clients</span>
-              <span className="font-medium">
-                {plan?.limits.clients === -1 ? "Unlimited" : `Up to ${plan?.limits.clients}`}
-              </span>
+              <span>Emails</span>
+              <Badge variant="secondary">Unlimited</Badge>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span>Downloads</span>
+              <Badge variant="secondary">Unlimited</Badge>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {subscription?.plan === "free" && (
-        <Card className="border-primary/50 bg-primary/5">
-          <CardHeader>
-            <CardTitle>Upgrade to Pro</CardTitle>
-            <CardDescription>Get unlimited invoices, quotations, emails, and more</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link href="/dashboard/pricing">View Pricing</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

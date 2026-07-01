@@ -3,7 +3,21 @@ import Link from "next/link"
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-svh w-full flex-col items-center justify-between p-4 sm:p-6 md:p-10 gap-4 sm:gap-6">
-      <div className="w-full" />
+      {/* Header Navigation */}
+      <div className="w-full flex items-center justify-between">
+        <div></div>
+        <nav className="flex items-center gap-6 text-sm">
+          <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+            Pricing
+          </Link>
+          <Link 
+            href="/auth/login" 
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Login
+          </Link>
+        </nav>
+      </div>
       
       <div className="w-full max-w-sm px-0">
         {/* Logo */}
