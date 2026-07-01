@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import { CURRENCIES } from "@/lib/types"
 import { Add01Icon } from "@hugeicons/core-free-icons"
@@ -17,11 +18,20 @@ interface ReceivablesData {
   total: number
 }
 
+interface ReceivablesByCurrency {
+  [currency: string]: {
+    all: ReceivablesData
+    taxed: ReceivablesData
+    noTax: ReceivablesData
+  }
+}
+
 interface ReceivablesWidgetProps {
   all: ReceivablesData
   taxed: ReceivablesData
   noTax: ReceivablesData
   currency: string
+  receivablesByCurrency?: ReceivablesByCurrency
 }
 
 type Tab = "all" | "taxed" | "no-tax"
@@ -34,10 +44,22 @@ function formatCurrency(amount: number, currency: string) {
   })}`
 }
 
-export function ReceivablesWidget({ all, taxed, noTax, currency }: ReceivablesWidgetProps) {
+export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCurrency }: ReceivablesWidgetProps) {
   const [activeTab, setActiveTab] = useState<Tab>("all")
+  const [activeCurrency, setActiveCurrency] = useState<string>(currency)
 
-  const data = activeTab === "all" ? all : activeTab === "taxed" ? taxed : noTax
+  // If multi-currency data is available, use it; otherwise fall back to single currency
+  const currenciesToDisplay = receivablesByCurrency ? Object.keys(receivablesByCurrency) : [currency]
+  const isMultiCurrency = currenciesToDisplay.length > 1
+
+  const getReceivablesData = (curr: string, tab: Tab) => {
+    if (receivablesByCurrency && receivablesByCurrency[curr]) {
+      return tab === "all" ? receivablesByCurrency[curr].all : tab === "taxed" ? receivablesByCurrency[curr].taxed : receivablesByCurrency[curr].noTax
+    }
+    return tab === "all" ? all : tab === "taxed" ? taxed : noTax
+  }
+
+  const data = getReceivablesData(activeCurrency, activeTab)
 
   const segments = [
     { value: data.current, color: "bg-foreground/20", label: "Current" },
@@ -51,11 +73,39 @@ export function ReceivablesWidget({ all, taxed, noTax, currency }: ReceivablesWi
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <div className="flex items-center gap-4">
+      <CardHeader className="space-y-3 pb-3">
+        <div className="flex flex-row items-center justify-between">
           <h3 className="font-semibold text-base">Total Receivables</h3>
-          {/* Tabs */}
-          <div className="flex items-center gap-1 rounded-md bg-muted p-0.5 text-sm">
+          <Button asChild size="sm" variant="outline" className="gap-1 h-7 text-xs">
+            <Link href="/dashboard/documents/new?type=invoice">
+              <HugeiconsIcon icon={Add01Icon} size={12} />
+              New
+            </Link>
+          </Button>
+        </div>
+
+        {/* Currency and Type Tabs */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {isMultiCurrency && (
+            <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+              {currenciesToDisplay.map((curr) => (
+                <button
+                  key={curr}
+                  onClick={() => setActiveCurrency(curr)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    activeCurrency === curr
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {curr}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Type Tabs */}
+          <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
             {(["all", "taxed", "no-tax"] as Tab[]).map((tab) => (
               <button
                 key={tab}
@@ -71,12 +121,6 @@ export function ReceivablesWidget({ all, taxed, noTax, currency }: ReceivablesWi
             ))}
           </div>
         </div>
-        <Button asChild size="sm" variant="outline" className="gap-1 h-7 text-xs">
-          <Link href="/dashboard/documents/new?type=invoice">
-            <HugeiconsIcon icon={Add01Icon} size={12} />
-            New
-          </Link>
-        </Button>
       </CardHeader>
 
       <CardContent className="space-y-4">
