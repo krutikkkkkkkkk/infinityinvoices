@@ -52,9 +52,9 @@ interface AnalyticsChartProps {
 
 type TimePeriod = "month" | "quarter" | "year"
 
-export function AnalyticsChart({ data, currencies, defaultCurrency, stats }: AnalyticsChartProps) {
+export function AnalyticsChart({ data, currencies = [], defaultCurrency, stats }: AnalyticsChartProps) {
   const [period, setPeriod] = useState<TimePeriod>("month")
-  const [activeCurrency, setActiveCurrency] = useState(defaultCurrency)
+  const [activeCurrency, setActiveCurrency] = useState(defaultCurrency || currencies?.[0] || "INR")
   
   const currencyData = CURRENCIES.find((c) => c.value === activeCurrency)
   const symbol = currencyData?.symbol || ""
