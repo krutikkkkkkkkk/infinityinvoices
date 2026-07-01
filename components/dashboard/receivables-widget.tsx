@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { CURRENCIES } from "@/lib/types"
 import { Add01Icon } from "@hugeicons/core-free-icons"
@@ -48,13 +48,6 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
   const [activeTab, setActiveTab] = useState<Tab>("all")
   const [activeCurrency, setActiveCurrency] = useState<string>(currency)
 
-  console.log("[v0] ReceivablesWidget props:", { 
-    all, 
-    currency, 
-    receivablesByCurrency,
-    currenciesToDisplay: receivablesByCurrency ? Object.keys(receivablesByCurrency) : [currency]
-  })
-
   // If multi-currency data is available, use it; otherwise fall back to single currency
   const currenciesToDisplay = receivablesByCurrency ? Object.keys(receivablesByCurrency) : [currency]
   const isMultiCurrency = currenciesToDisplay.length > 1
@@ -92,22 +85,39 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
         </div>
 
         {/* Currency and Type Tabs */}
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
+          {/* Currency Selection */}
           {isMultiCurrency && (
-            <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
-              {currenciesToDisplay.map((curr) => (
-                <button
-                  key={curr}
-                  onClick={() => setActiveCurrency(curr)}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                    activeCurrency === curr
-                      ? "bg-background shadow-sm text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {curr}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">Currency:</span>
+              <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+                {currenciesToDisplay.map((curr) => {
+                  const currencySymbol = CURRENCIES.find((c) => c.value === curr)?.symbol || ""
+                  const currencyData = getReceivablesData(curr, activeTab)
+                  const hasData = currencyData.total > 0
+
+                  return (
+                    <button
+                      key={curr}
+                      onClick={() => setActiveCurrency(curr)}
+                      className={`px-3 py-1.5 rounded text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        activeCurrency === curr
+                          ? "bg-background shadow-sm text-foreground border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                      } ${!hasData ? "opacity-60" : ""}`}
+                      title={`${curr} ${currencySymbol} - ${hasData ? "Has receivables" : "No receivables"}`}
+                    >
+                      <span>{currencySymbol}</span>
+                      <span className="font-semibold">{curr}</span>
+                      {hasData && activeCurrency === curr && (
+                        <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-0.5">
+                          Active
+                        </Badge>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
 
@@ -117,13 +127,13 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                   activeTab === tab
                     ? "bg-background shadow-sm text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {tab === "all" ? "All" : tab === "taxed" ? "With Tax" : "No Tax"}
+                {tab === "all" ? "All" : tab === "taxed" ? "Tax" : "No Tax"}
               </button>
             ))}
           </div>
