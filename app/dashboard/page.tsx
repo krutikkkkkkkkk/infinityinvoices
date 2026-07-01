@@ -284,22 +284,24 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Overview of your invoicing activity
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild>
+        <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/dashboard/documents/new?type=invoice">
               <HugeiconsIcon icon={Add01Icon} size={16} data-icon="inline-start" />
-              New Invoice
+              <span className="hidden sm:inline">New Invoice</span>
+              <span className="sm:hidden">Invoice</span>
             </Link>
           </Button>
-          <Button variant="secondary" asChild>
+          <Button variant="secondary" asChild className="w-full sm:w-auto">
             <Link href="/dashboard/documents/new?type=quotation">
               <HugeiconsIcon icon={Add01Icon} size={16} data-icon="inline-start" />
-              New Quotation
+              <span className="hidden sm:inline">New Quotation</span>
+              <span className="sm:hidden">Quote</span>
             </Link>
           </Button>
         </div>

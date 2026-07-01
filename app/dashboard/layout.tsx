@@ -29,9 +29,9 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar user={user} profile={profile} />
-      <SidebarInset className="bg-background flex flex-col h-screen">
+      <SidebarInset className="bg-background flex flex-col h-screen w-full">
         <DashboardTopBar />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 w-full">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )

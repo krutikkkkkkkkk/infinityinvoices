@@ -85,12 +85,12 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
         </div>
 
         {/* Currency and Type Tabs */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-start sm:items-center flex-wrap w-full overflow-x-auto">
           {/* Currency Selection */}
           {isMultiCurrency && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Currency:</span>
-              <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Cur:</span>
+              <div className="flex items-center gap-0.5 sm:gap-1 rounded-md bg-muted p-0.5 overflow-x-auto">
                 {currenciesToDisplay.map((curr) => {
                   const currencySymbol = CURRENCIES.find((c) => c.value === curr)?.symbol || ""
                   const currencyData = getReceivablesData(curr, activeTab)
@@ -100,17 +100,17 @@ export function ReceivablesWidget({ all, taxed, noTax, currency, receivablesByCu
                     <button
                       key={curr}
                       onClick={() => setActiveCurrency(curr)}
-                      className={`px-3 py-1.5 rounded text-xs font-medium transition-all flex items-center gap-1.5 ${
+                      className={`px-1.5 sm:px-3 py-1 sm:py-1.5 rounded text-xs font-medium transition-all flex items-center gap-0.5 sm:gap-1.5 whitespace-nowrap ${
                         activeCurrency === curr
                           ? "bg-background shadow-sm text-foreground border border-primary/20"
                           : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                       } ${!hasData ? "opacity-60" : ""}`}
                       title={`${curr} ${currencySymbol} - ${hasData ? "Has receivables" : "No receivables"}`}
                     >
-                      <span>{currencySymbol}</span>
+                      <span className="hidden sm:inline">{currencySymbol}</span>
                       <span className="font-semibold">{curr}</span>
                       {hasData && activeCurrency === curr && (
-                        <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-0.5">
+                        <Badge variant="secondary" className="h-3 sm:h-4 px-0.5 sm:px-1 text-[8px] sm:text-[10px] ml-0 sm:ml-0.5">
                           Active
                         </Badge>
                       )}
