@@ -64,9 +64,6 @@ export default function PricingPage() {
                   >
                     <Link href="/auth/signup">Get Started</Link>
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    No credit card required
-                  </p>
                 </div>
 
                 {/* Features */}
@@ -118,13 +115,7 @@ export default function PricingPage() {
                 if we introduce paid plans in the future. Your data and invoices are always yours.
               </p>
             </div>
-            <div>
-              <h3 className="font-semibold mb-2">Do I need a credit card to sign up?</h3>
-              <p className="text-muted-foreground text-sm">
-                No. You can sign up completely free with just an email and password. No credit card
-                required at any time.
-              </p>
-            </div>
+
             <div>
               <h3 className="font-semibold mb-2">Can I change plans later?</h3>
               <p className="text-muted-foreground text-sm">
