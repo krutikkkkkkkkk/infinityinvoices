@@ -20,6 +20,7 @@ import {
   CreditCardIcon,
   ExchangeIcon,
   Activity01Icon,
+  Bug01Icon,
 } from "@hugeicons/core-free-icons"
 import { ChevronUp } from "lucide-react"
 import {
@@ -56,6 +57,7 @@ const mainNavItems = [
 const toolsNavItems = [
   { href: "/dashboard/tools/currency-converter", label: "Currency Converter", icon: ExchangeIcon },
   { href: "/dashboard/usage", label: "Usage", icon: Activity01Icon },
+  { href: "/dashboard/bug-report", label: "Report Bug", icon: Bug01Icon },
 ]
 
 const accountNavItems = [
