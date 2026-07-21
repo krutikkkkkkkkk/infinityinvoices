@@ -2,10 +2,8 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Users, 
-  CreditCard, 
   FileText, 
   TrendingUp,
-  Crown,
   UserCheck
 } from "lucide-react"
 
@@ -15,23 +13,20 @@ export default async function AdminDashboard() {
   // Fetch stats
   const [
     { count: totalUsers },
-    { data: subscriptions },
     { count: totalDocuments },
+    { count: totalInvoices },
+    { count: totalQuotations },
     { data: recentUsers }
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }),
-    supabase.from("subscriptions").select("plan"),
     supabase.from("documents").select("*", { count: "exact", head: true }),
+    supabase.from("documents").select("*", { count: "exact", head: true }).eq("type", "invoice"),
+    supabase.from("documents").select("*", { count: "exact", head: true }).eq("type", "quotation"),
     supabase.from("profiles")
       .select("id, email, full_name, company_name, created_at")
       .order("created_at", { ascending: false })
       .limit(5)
   ])
-
-  const proUsers = subscriptions?.filter(s => s.plan === "pro").length || 0
-  const lifetimeUsers = subscriptions?.filter(s => s.plan === "lifetime").length || 0
-  const paidUsers = proUsers + lifetimeUsers
-  const freeUsers = (totalUsers || 0) - paidUsers
 
   // Get this month's new users
   const startOfMonth = new Date()
@@ -52,37 +47,30 @@ export default async function AdminDashboard() {
       bgColor: "bg-blue-500/10"
     },
     {
-      title: "Pro Users",
-      value: proUsers,
-      icon: Crown,
-      color: "text-yellow-500",
-      bgColor: "bg-yellow-500/10"
-    },
-    {
-      title: "Lifetime Users",
-      value: `${lifetimeUsers}/200`,
-      icon: Crown,
-      color: "text-amber-500",
-      bgColor: "bg-amber-500/10"
-    },
-    {
-      title: "Free Users",
-      value: freeUsers,
-      icon: UserCheck,
+      title: "Total Invoices",
+      value: totalInvoices || 0,
+      icon: FileText,
       color: "text-green-500",
       bgColor: "bg-green-500/10"
     },
     {
-      title: "Total Documents",
-      value: totalDocuments || 0,
+      title: "Total Quotations",
+      value: totalQuotations || 0,
       icon: FileText,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10"
     },
     {
-      title: "New This Month",
-      value: newUsersThisMonth || 0,
+      title: "Total Documents",
+      value: totalDocuments || 0,
       icon: TrendingUp,
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10"
+    },
+    {
+      title: "New Users This Month",
+      value: newUsersThisMonth || 0,
+      icon: UserCheck,
       color: "text-cyan-500",
       bgColor: "bg-cyan-500/10"
     }
