@@ -23,7 +23,7 @@ export default async function AdminDashboard() {
     supabase.from("documents").select("id", { count: "exact", head: true }).eq("type", "quotation"),
     supabase
       .from("profiles")
-      .select("id, email, full_name, company_name, created_at")
+      .select("id, email, company_name, created_at")
       .order("created_at", { ascending: false })
       .limit(5),
     supabase
@@ -112,8 +112,8 @@ export default async function AdminDashboard() {
               recentUsers.map((user) => (
                 <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{user.full_name || user.email}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.company_name || "No company"}</p>
+                    <p className="font-medium text-sm truncate">{user.company_name || "No company"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email || "No email"}</p>
                   </div>
                   <div className="text-right ml-4 flex-shrink-0">
                     <p className="text-xs text-muted-foreground whitespace-nowrap">
