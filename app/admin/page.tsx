@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
+import { requireAdmin } from "@/lib/admin"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Users, 
@@ -8,35 +9,43 @@ import {
 } from "lucide-react"
 
 export default async function AdminDashboard() {
-  const supabase = await createClient()
+  await requireAdmin()
 
-  // Fetch stats
+  const supabase = createAdminClient()
+  const startOfMonth = new Date()
+  startOfMonth.setUTCDate(1)
+  startOfMonth.setUTCHours(0, 0, 0, 0)
+
+  const results = await Promise.all([
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
+    supabase.from("documents").select("id", { count: "exact", head: true }),
+    supabase.from("documents").select("id", { count: "exact", head: true }).eq("type", "invoice"),
+    supabase.from("documents").select("id", { count: "exact", head: true }).eq("type", "quotation"),
+    supabase
+      .from("profiles")
+      .select("id, email, full_name, company_name, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", startOfMonth.toISOString()),
+  ])
+
+  const queryError = results.find((result) => result.error)?.error
+
+  if (queryError) {
+    throw new Error(`Unable to load admin dashboard data: ${queryError.message}`)
+  }
+
   const [
     { count: totalUsers },
     { count: totalDocuments },
     { count: totalInvoices },
     { count: totalQuotations },
-    { data: recentUsers }
-  ] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }),
-    supabase.from("documents").select("*", { count: "exact", head: true }),
-    supabase.from("documents").select("*", { count: "exact", head: true }).eq("type", "invoice"),
-    supabase.from("documents").select("*", { count: "exact", head: true }).eq("type", "quotation"),
-    supabase.from("profiles")
-      .select("id, email, full_name, company_name, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5)
-  ])
-
-  // Get this month's new users
-  const startOfMonth = new Date()
-  startOfMonth.setDate(1)
-  startOfMonth.setHours(0, 0, 0, 0)
-  
-  const { count: newUsersThisMonth } = await supabase
-    .from("profiles")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", startOfMonth.toISOString())
+    { data: recentUsers },
+    { count: newUsersThisMonth },
+  ] = results
 
   const stats = [
     {
