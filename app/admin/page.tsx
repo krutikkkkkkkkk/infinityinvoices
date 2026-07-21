@@ -43,58 +43,48 @@ export default async function AdminDashboard() {
       title: "Total Users",
       value: totalUsers || 0,
       icon: Users,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10"
     },
     {
       title: "Total Invoices",
       value: totalInvoices || 0,
       icon: FileText,
-      color: "text-green-500",
-      bgColor: "bg-green-500/10"
     },
     {
       title: "Total Quotations",
       value: totalQuotations || 0,
       icon: FileText,
-      color: "text-purple-500",
-      bgColor: "bg-purple-500/10"
     },
     {
       title: "Total Documents",
       value: totalDocuments || 0,
       icon: TrendingUp,
-      color: "text-amber-500",
-      bgColor: "bg-amber-500/10"
     },
     {
       title: "New Users This Month",
       value: newUsersThisMonth || 0,
       icon: UserCheck,
-      color: "text-cyan-500",
-      bgColor: "bg-cyan-500/10"
     }
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Dashboard Overview</h1>
-        <p className="text-gray-400 mt-1">Monitor your platform metrics and user activity</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground mt-1">Monitor your platform metrics and user activity</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="bg-gray-900 border-gray-800">
+          <Card key={stat.title}>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-400">{stat.title}</p>
-                  <p className="text-3xl font-bold text-white mt-1">{stat.value}</p>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">{stat.title}</p>
+                  <p className="text-2xl sm:text-3xl font-bold tracking-tight mt-2">{stat.value.toLocaleString()}</p>
                 </div>
-                <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                <div className="p-2.5 rounded-lg bg-primary/10">
+                  <stat.icon className="h-5 w-5 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -103,25 +93,29 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Recent Users */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white">Recent Users</CardTitle>
+          <CardTitle>Recent Users</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentUsers?.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                <div>
-                  <p className="font-medium text-white">{user.full_name || user.email}</p>
-                  <p className="text-sm text-gray-400">{user.company_name || "No company"}</p>
+          <div className="space-y-3">
+            {recentUsers && recentUsers.length > 0 ? (
+              recentUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{user.full_name || user.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.company_name || "No company"}</p>
+                  </div>
+                  <div className="text-right ml-4 flex-shrink-0">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-400">
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">No users yet</p>
+            )}
           </div>
         </CardContent>
       </Card>

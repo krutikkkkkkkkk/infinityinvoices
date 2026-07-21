@@ -48,15 +48,15 @@ export default async function AdminLayout({
   ]
 
   return (
-    <div className="flex min-h-screen bg-gray-950">
+    <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="p-4 border-b border-gray-800">
+      <aside className="w-64 bg-sidebar border-r border-border flex flex-col">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-red-500" />
-            <span className="font-bold text-white text-lg">Super Admin</span>
+            <Shield className="h-6 w-6 text-primary" />
+            <span className="font-bold text-sidebar-foreground text-lg">Admin</span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">{adminRecord.email}</p>
+          <p className="text-xs text-muted-foreground mt-2">{adminRecord.email}</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -64,23 +64,23 @@ export default async function AdminLayout({
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-lg transition-colors text-sm font-medium"
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-4 w-4" />
               <span>{item.label}</span>
             </Link>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-800 space-y-2">
-          <Link href="/dashboard">
-            <Button variant="ghost" className="w-full justify-start text-gray-400 hover:text-white">
+        <div className="p-4 border-t border-border space-y-2">
+          <Link href="/dashboard" className="block">
+            <Button variant="outline" className="w-full justify-start">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to App
             </Button>
           </Link>
           <form action="/api/auth/logout" method="POST">
-            <Button variant="ghost" className="w-full justify-start text-gray-400 hover:text-red-400">
+            <Button variant="outline" className="w-full justify-start">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -89,8 +89,8 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
+      <main className="flex-1 overflow-auto bg-background">
+        <div className="p-6 sm:p-8">
           {children}
         </div>
       </main>
