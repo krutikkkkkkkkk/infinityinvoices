@@ -56,6 +56,7 @@ interface DocumentFormProps {
   clients?: Client[]
   nextNumber: string
   profile?: Profile | null
+  preset?: Partial<DocumentFormData>
 }
 
 const emptyLineItem: NewLineItem = {
@@ -66,8 +67,9 @@ const emptyLineItem: NewLineItem = {
   tax_percent: 0,
 }
 
-export function DocumentForm({ type, document, clients = [], nextNumber, profile }: DocumentFormProps) {
+export function DocumentForm({ type, document, clients = [], nextNumber, profile, preset }: DocumentFormProps) {
   const [isPending, startTransition] = useTransition()
+  const source = (document || preset || {}) as Partial<Document> & Partial<DocumentFormData>
   const [products, setProducts] = useState<Product[]>([])
   const [showUsageLimitDialog, setShowUsageLimitDialog] = useState(false)
   const [usageLimitMessage, setUsageLimitMessage] = useState("")
@@ -88,11 +90,11 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
   
   // Determine default payment methods from profile
   const getDefaultPaymentMethods = (): PaymentMethodType[] => {
-    if (document?.payment_methods?.length) {
-      return document.payment_methods as PaymentMethodType[]
+    if (source?.payment_methods?.length) {
+      return source.payment_methods as PaymentMethodType[]
     }
-    if (document?.payment_method_type) {
-      return [document.payment_method_type as PaymentMethodType]
+    if (source?.payment_method_type) {
+      return [source.payment_method_type as PaymentMethodType]
     }
     // For new documents, auto-select methods that have data in profile
     if (!document && profile) {
@@ -106,34 +108,34 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
   }
 
   const [formData, setFormData] = useState<DocumentFormData>({
-    type: document?.type || type,
+    type: source?.type || type,
     number: document?.number || nextNumber,
     issue_date: document?.issue_date || new Date().toISOString().split("T")[0],
     due_date: document?.due_date || "",
     valid_until: document?.valid_until || "",
     status: document?.status || "draft",
-    currency: document?.currency || profile?.default_currency || "INR",
-    client_id: document?.client_id || null,
-    client_name: document?.client_name || "",
-    client_email: document?.client_email || "",
-    client_address: document?.client_address || "",
-    client_gst_id: document?.client_gst_id || "",
-    notes: document?.notes || "",
-    terms: document?.terms || "",
+    currency: source?.currency || profile?.default_currency || "INR",
+    client_id: source?.client_id || null,
+    client_name: source?.client_name || "",
+    client_email: source?.client_email || "",
+    client_address: source?.client_address || "",
+    client_gst_id: source?.client_gst_id || "",
+    notes: source?.notes || "",
+    terms: source?.terms || "",
     payment_methods: getDefaultPaymentMethods(),
-    payment_method_type: (document?.payment_method_type as PaymentMethodType) || null,
-    payment_method: document?.payment_method || "",
-    upi_id: document?.upi_id || profile?.upi_id || "",
-    paypal_email: document?.paypal_email || profile?.paypal_email || "",
-    bank_name: document?.bank_name || profile?.bank_name || "",
-    bank_account_name: document?.bank_account_name || profile?.bank_account_name || "",
-    bank_account_number: document?.bank_account_number || profile?.bank_account_number || "",
-    bank_routing_number: document?.bank_routing_number || profile?.bank_routing_number || "",
-    bank_swift_code: document?.bank_swift_code || profile?.bank_swift_code || "",
-    discount_type: document?.discount_type || null,
-    discount_value: document?.discount_value || 0,
-    include_tax: document?.include_tax ?? true,
-    line_items: document?.line_items?.map((item) => ({
+    payment_method_type: (source?.payment_method_type as PaymentMethodType) || null,
+    payment_method: source?.payment_method || "",
+    upi_id: source?.upi_id || profile?.upi_id || "",
+    paypal_email: source?.paypal_email || profile?.paypal_email || "",
+    bank_name: source?.bank_name || profile?.bank_name || "",
+    bank_account_name: source?.bank_account_name || profile?.bank_account_name || "",
+    bank_account_number: source?.bank_account_number || profile?.bank_account_number || "",
+    bank_routing_number: source?.bank_routing_number || profile?.bank_routing_number || "",
+    bank_swift_code: source?.bank_swift_code || profile?.bank_swift_code || "",
+    discount_type: source?.discount_type || null,
+    discount_value: source?.discount_value || 0,
+    include_tax: source?.include_tax ?? true,
+    line_items: source?.line_items?.map((item) => ({
       name: item.name,
       description: item.description || "",
       quantity: Number(item.quantity),

@@ -79,6 +79,10 @@ export interface Document {
   client_address: string | null
   client_gst_id: string | null
   include_tax: boolean
+  amount_paid?: number
+  late_fee_type?: 'fixed' | 'percentage' | null
+  late_fee_value?: number | null
+  parent_document_id?: string | null
   created_at: string
   updated_at: string
   line_items?: LineItem[]
