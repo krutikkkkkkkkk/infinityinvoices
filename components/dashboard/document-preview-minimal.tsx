@@ -113,7 +113,7 @@ export function DocumentPreviewMinimal({ document, profile }: DocumentPreviewMin
         </div>
 
         {/* Line Items Table */}
-        <table className="w-full mb-8">
+        <table className="mb-8 w-full table-fixed">
           <thead>
             <tr style={{ borderBottom: "2px solid #d4d4c8" }}>
               <th className="text-left py-3 text-sm font-semibold" style={{ color: "#666" }}>

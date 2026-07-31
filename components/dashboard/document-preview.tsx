@@ -124,7 +124,7 @@ export function DocumentPreview({ document, profile }: DocumentPreviewProps) {
         </div>
 
         {/* Line Items Table */}
-        <table className="w-full mb-8">
+        <table className="mb-8 w-full table-fixed">
           <thead>
             <tr className="border-b-2 border-gray-200">
               <th className="text-left py-3 px-2 text-sm font-semibold text-gray-600">

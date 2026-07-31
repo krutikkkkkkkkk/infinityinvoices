@@ -101,31 +101,45 @@ export function DocumentPreviewTax({ document, profile }: DocumentPreviewTaxProp
         </div>
 
         {/* Items Table */}
-        <table className="w-full mb-6 border-collapse">
+        <table className="mb-6 w-full table-fixed border-collapse">
           <thead>
-            <tr className="bg-gray-100 border-b-2 border-gray-800">
-              <th className="text-left py-2 px-3 text-xs font-bold text-gray-800">Description</th>
-              <th className="text-right py-2 px-3 text-xs font-bold text-gray-800">Qty</th>
-              <th className="text-right py-2 px-3 text-xs font-bold text-gray-800">Rate</th>
-              <th className="text-right py-2 px-3 text-xs font-bold text-gray-800">GST %</th>
-              <th className="text-right py-2 px-3 text-xs font-bold text-gray-800">Amount</th>
+            <tr className="border-b-2 border-gray-800 bg-gray-100">
+              <th className="w-[42%] px-3 py-2 text-left text-xs font-bold text-gray-800">Item</th>
+              <th className="w-[10%] px-2 py-2 text-right text-xs font-bold text-gray-800">Qty</th>
+              <th className="w-[18%] px-2 py-2 text-right text-xs font-bold text-gray-800">Rate</th>
+              {document.include_tax !== false && (
+                <th className="w-[12%] px-2 py-2 text-right text-xs font-bold text-gray-800">Tax</th>
+              )}
+              <th className="w-[18%] px-3 py-2 text-right text-xs font-bold text-gray-800">Amount</th>
             </tr>
           </thead>
           <tbody>
             {document.line_items?.map((item: LineItem, i: number) => {
-              const itemTotal = item.quantity * item.rate
-              const tax = (itemTotal * item.tax_percent) / 100
-              const lineTotal = itemTotal + tax
+              const itemTotal = Number(item.quantity) * Number(item.rate)
+              const tax = document.include_tax !== false
+                ? (itemTotal * Number(item.tax_percent)) / 100
+                : 0
               return (
-                <tr key={i} className="border-b border-gray-200">
-                  <td className="py-3 px-3 text-sm text-gray-800">{item.description}</td>
-                  <td className="text-right py-3 px-3 text-sm text-gray-600">{item.quantity}</td>
-                  <td className="text-right py-3 px-3 text-sm text-gray-600">
-                    {formatCurrency(item.rate, document.currency)}
+                <tr key={item.id || i} className="break-inside-avoid border-b border-gray-200 align-top">
+                  <td className="min-w-0 px-3 py-3 text-sm text-gray-800">
+                    <p className="break-words font-semibold">{item.name}</p>
+                    {item.description && (
+                      <p className="mt-1 whitespace-pre-line break-words text-xs text-gray-600">
+                        {item.description}
+                      </p>
+                    )}
                   </td>
-                  <td className="text-right py-3 px-3 text-sm text-gray-600">{item.tax_percent}%</td>
-                  <td className="text-right py-3 px-3 text-sm font-semibold text-gray-800">
-                    {formatCurrency(lineTotal, document.currency)}
+                  <td className="px-2 py-3 text-right text-sm tabular-nums text-gray-600">{Number(item.quantity)}</td>
+                  <td className="px-2 py-3 text-right text-sm tabular-nums text-gray-600">
+                    {formatCurrency(Number(item.rate), document.currency)}
+                  </td>
+                  {document.include_tax !== false && (
+                    <td className="px-2 py-3 text-right text-sm tabular-nums text-gray-600">
+                      {Number(item.tax_percent)}%
+                    </td>
+                  )}
+                  <td className="px-3 py-3 text-right text-sm font-semibold tabular-nums text-gray-800">
+                    {formatCurrency(itemTotal + tax, document.currency)}
                   </td>
                 </tr>
               )

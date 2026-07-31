@@ -128,7 +128,7 @@ export function DocumentPreviewBold({ document, profile }: DocumentPreviewProps)
           </div>
 
           {/* Line Items */}
-          <table className="w-full mb-8 border-collapse">
+          <table className="mb-8 w-full table-fixed border-collapse">
             <thead>
               <tr className="border-y-2 border-[#0d0d0d]">
                 <th className="text-left py-3 text-xs font-black uppercase tracking-widest text-gray-900">
