@@ -13,6 +13,7 @@ import {
   mainMenu,
   renderDocuments,
   resolvePendingAction,
+  sendInvoiceReminder,
 } from "@/lib/telegram/service"
 import { createAdminClient } from "@/lib/supabase/admin"
 
@@ -128,7 +129,11 @@ async function handleCallback(callback: TelegramCallback) {
     const summary = await getDashboardSummary(account.user_id)
     await sendTelegramMessage(chatId, `<b>Business summary</b>\nInvoices: ${summary.invoices}\nQuotations: ${summary.quotations}\nOverdue: ${summary.overdue}\nOutstanding (all currencies combined): ${summary.outstanding.toLocaleString()}`, { replyMarkup: { inline_keyboard: [[{ text: "Full reports", url: `${appUrl}/dashboard/reports` }], [{ text: "Main menu", callback_data: "menu" }]] } })
   } else if (action === "remind" && value) {
-    await sendTelegramMessage(chatId, "Open the invoice and choose Send Reminder. Telegram reminder delivery is connected next through the shared email service.", { replyMarkup: { inline_keyboard: [[{ text: "Open reminder screen", url: `${appUrl}/dashboard/documents/${value}` }]] } })
+    const result = await sendInvoiceReminder(account.user_id, value)
+    await auditTelegramAction(account.user_id, callback.from.id, "reminder.send", "success", { email: result.email }, "document", value)
+    await sendTelegramMessage(chatId, `Reminder sent for <b>${escapeTelegramHtml(result.number)}</b> to ${escapeTelegramHtml(result.email)}.`, {
+      replyMarkup: { inline_keyboard: [[{ text: "Back to invoices", callback_data: "list:invoice" }], [{ text: "Main menu", callback_data: "menu" }]] },
+    })
   } else {
     await showMenu(chatId, account.first_name || undefined)
   }
@@ -140,7 +145,17 @@ export async function POST(request: Request) {
     const update = (await request.json()) as TelegramUpdate
     if (!(await claimTelegramUpdate(update.update_id))) return NextResponse.json({ ok: true })
     if (update.message) await handleCommand(update.message)
-    if (update.callback_query) await handleCallback(update.callback_query)
+    if (update.callback_query) {
+      try {
+        await handleCallback(update.callback_query)
+      } catch (error) {
+        const chatId = update.callback_query.message?.chat.id
+        if (chatId) {
+          const message = error instanceof Error ? error.message : "The action could not be completed"
+          await sendTelegramMessage(chatId, `Unable to complete that action: ${escapeTelegramHtml(message)}`)
+        }
+      }
+    }
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("Telegram webhook error", error)
