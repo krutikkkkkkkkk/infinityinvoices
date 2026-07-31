@@ -95,7 +95,7 @@ export async function listDocuments(userId: string, type: "invoice" | "quotation
   const admin = createAdminClient()
   const { data, error } = await admin
     .from("documents")
-    .select("id,number,client_name,status,currency,grand_total,amount_paid,due_date,valid_until")
+    .select("id,number,client_name,status,currency,grand_total,amount_paid,due_date")
     .eq("user_id", userId)
     .eq("type", type)
     .order("created_at", { ascending: false })
