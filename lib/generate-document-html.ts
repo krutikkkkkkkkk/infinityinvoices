@@ -267,6 +267,11 @@ function generateTaxTemplate(
     }
     .page-break { break-after: page; }
     .no-break { break-inside: avoid; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    thead { display: table-header-group; }
+    tbody tr { break-inside: avoid; page-break-inside: avoid; }
+    th, td { overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+    .totals, .payment-info, .footer { break-inside: avoid; page-break-inside: avoid; }
     
     .tax-header {
       text-align: center;
@@ -506,6 +511,11 @@ function generateMinimalTemplate(
     }
     .page-break { break-after: page; }
     .no-break { break-inside: avoid; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    thead { display: table-header-group; }
+    tbody tr { break-inside: avoid; page-break-inside: avoid; }
+    th, td { overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+    .totals, .payment-info, .footer { break-inside: avoid; page-break-inside: avoid; }
   </style>
 </head>
 <body>
@@ -653,6 +663,11 @@ function generateDarkTemplate(
     }
     .page-break { break-after: page; }
     .no-break { break-inside: avoid; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    thead { display: table-header-group; }
+    tbody tr { break-inside: avoid; page-break-inside: avoid; }
+    th, td { overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+    .totals, .payment-info, .footer { break-inside: avoid; page-break-inside: avoid; }
     
     .header {
       display: flex;
@@ -1021,6 +1036,11 @@ function generateExecutiveTemplate(
     @page { margin: 0; size: A4; }
     .page-break { break-after: page; }
     .no-break { break-inside: avoid; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    thead { display: table-header-group; }
+    tbody tr { break-inside: avoid; page-break-inside: avoid; }
+    th, td { overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+    .totals, .payment-info, .footer { break-inside: avoid; page-break-inside: avoid; }
   </style>
 </head>
 <body>
@@ -1174,6 +1194,11 @@ function generateBoldTemplate(
     @page { margin: 0; size: A4; }
     .page-break { break-after: page; }
     .no-break { break-inside: avoid; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    thead { display: table-header-group; }
+    tbody tr { break-inside: avoid; page-break-inside: avoid; }
+    th, td { overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+    .totals, .payment-info, .footer { break-inside: avoid; page-break-inside: avoid; }
   </style>
 </head>
 <body>

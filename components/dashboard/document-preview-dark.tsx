@@ -114,7 +114,7 @@ export function DocumentPreviewDark({ document, profile }: DocumentPreviewDarkPr
         </div>
 
         {/* Line Items Table */}
-        <table className="w-full mb-8">
+        <table className="mb-8 w-full table-fixed">
           <thead>
             <tr style={{ borderBottom: "2px solid #3f3f46" }}>
               <th className="text-left py-3 px-2 text-sm font-semibold" style={{ color: "#6b7280" }}>
