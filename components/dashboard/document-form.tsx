@@ -432,9 +432,14 @@ const addLineItem = () => {
 
       {/* Line Items */}
 <Card>
-  <CardHeader className="flex flex-row items-center justify-between">
-  <div className="space-y-1">
-    <CardTitle>Line Items</CardTitle>
+  <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+  <div className="space-y-2">
+    <div>
+      <CardTitle>Line Items</CardTitle>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Add a clear item title and an optional description for extra details.
+      </p>
+    </div>
     <div className="flex items-center gap-2">
       <Switch
         id="include_tax"
@@ -443,18 +448,18 @@ const addLineItem = () => {
           setFormData((prev) => ({ ...prev, include_tax: checked }))
         }
       />
-      <Label htmlFor="include_tax" className="text-sm font-normal text-muted-foreground cursor-pointer">
-        Include Tax
+      <Label htmlFor="include_tax" className="cursor-pointer text-sm font-normal text-muted-foreground">
+        Include tax columns and totals
       </Label>
     </div>
   </div>
-  <div className="flex items-center gap-2">
+  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
     {products.length > 0 && (
       <Select onValueChange={(productId) => {
         const product = products.find(p => p.id === productId)
         if (product) addProductAsLineItem(product)
       }}>
-        <SelectTrigger className="w-[180px] h-9">
+        <SelectTrigger className="h-9 w-full sm:w-[180px]">
           <HugeiconsIcon icon={Package01Icon} size={16} className="mr-2" />
           <SelectValue placeholder="Add from catalog" />
         </SelectTrigger>
@@ -473,10 +478,10 @@ const addLineItem = () => {
   </div>
   </CardHeader>
         <CardContent className="space-y-4">
-          <div className={`hidden lg:grid gap-2 text-sm font-medium text-muted-foreground px-1 ${formData.include_tax ? "lg:grid-cols-12" : "lg:grid-cols-10"}`}>
-            <div className={formData.include_tax ? "col-span-4" : "col-span-4"}>Item</div>
-            <div className={formData.include_tax ? "col-span-2" : "col-span-2"}>Quantity</div>
-            <div className={formData.include_tax ? "col-span-2" : "col-span-2"}>Rate</div>
+          <div className={`hidden gap-2 px-1 text-sm font-medium text-muted-foreground lg:grid ${formData.include_tax ? "lg:grid-cols-12" : "lg:grid-cols-10"}`}>
+            <div className="col-span-4">Item title & description</div>
+            <div className="col-span-2">Quantity</div>
+            <div className="col-span-2">Rate</div>
             {formData.include_tax && <div className="col-span-2">Tax %</div>}
             <div className="col-span-1 text-right">Total</div>
             <div className="col-span-1" />
@@ -486,20 +491,28 @@ const addLineItem = () => {
             const lineTotal = item.quantity * item.rate * taxMultiplier
             return (
               <div key={index} className={`grid gap-2 items-start border p-3 rounded-lg lg:border-0 lg:p-0 ${formData.include_tax ? "lg:grid-cols-12" : "lg:grid-cols-10"}`}>
-                <div className="lg:col-span-4 space-y-2">
-                  <Label className="lg:hidden">Item Name</Label>
-                  <Input
-                    value={item.name}
-                    onChange={(e) => updateLineItem(index, "name", e.target.value)}
-                    placeholder="Item name"
-                    required
-                  />
-                  <Input
-                    value={item.description}
-                    onChange={(e) => updateLineItem(index, "description", e.target.value)}
-                    placeholder="Description (optional)"
-                    className="text-sm"
-                  />
+                <div className="space-y-2 lg:col-span-4">
+                  <div className="space-y-1">
+                    <Label htmlFor={`item-title-${index}`} className="lg:hidden">Item title</Label>
+                    <Input
+                      id={`item-title-${index}`}
+                      value={item.name}
+                      onChange={(e) => updateLineItem(index, "name", e.target.value)}
+                      placeholder="e.g. Website design"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`item-description-${index}`} className="lg:hidden">Description (optional)</Label>
+                    <Textarea
+                      id={`item-description-${index}`}
+                      value={item.description}
+                      onChange={(e) => updateLineItem(index, "description", e.target.value)}
+                      placeholder="Scope, specifications, or other helpful details"
+                      className="min-h-16 resize-y text-sm"
+                      rows={2}
+                    />
+                  </div>
                 </div>
                 <div className="lg:col-span-2 space-y-1">
                   <Label className="lg:hidden">Quantity</Label>
