@@ -151,7 +151,12 @@ export async function POST(request: Request) {
       } catch (error) {
         const chatId = update.callback_query.message?.chat.id
         if (chatId) {
-          const message = error instanceof Error ? error.message : "The action could not be completed"
+          const message = error instanceof Error
+            ? error.message
+            : typeof error === "object" && error && "message" in error
+              ? String(error.message)
+              : "The action could not be completed"
+          console.error("Telegram callback error", { action: update.callback_query.data, error })
           await sendTelegramMessage(chatId, `Unable to complete that action: ${escapeTelegramHtml(message)}`)
         }
       }
