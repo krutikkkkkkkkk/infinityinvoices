@@ -130,18 +130,3 @@ export async function createRecurringSchedule(input: {
   if (error) throw new Error(error.message)
   revalidatePath(`/dashboard/documents/${input.documentId}`)
 }
-
-export async function saveInvoicePreset(name: string, data: Record<string, unknown>) {
-  const { supabase, user } = await authenticatedClient()
-  if (!name.trim()) throw new Error("Preset name is required")
-  const { error } = await supabase.from("invoice_presets").upsert({ user_id: user.id, name: name.trim(), data, updated_at: new Date().toISOString() }, { onConflict: "user_id,name" })
-  if (error) throw new Error(error.message)
-  revalidatePath("/dashboard/documents/new")
-}
-
-export async function deleteInvoicePreset(id: string) {
-  const { supabase, user } = await authenticatedClient()
-  const { error } = await supabase.from("invoice_presets").delete().eq("id", id).eq("user_id", user.id)
-  if (error) throw new Error(error.message)
-  revalidatePath("/dashboard/documents/new")
-}

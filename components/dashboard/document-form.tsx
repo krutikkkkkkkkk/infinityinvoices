@@ -56,7 +56,6 @@ interface DocumentFormProps {
   clients?: Client[]
   nextNumber: string
   profile?: Profile | null
-  preset?: Partial<DocumentFormData>
 }
 
 const emptyLineItem: NewLineItem = {
@@ -67,9 +66,9 @@ const emptyLineItem: NewLineItem = {
   tax_percent: 0,
 }
 
-export function DocumentForm({ type, document, clients = [], nextNumber, profile, preset }: DocumentFormProps) {
+export function DocumentForm({ type, document, clients = [], nextNumber, profile }: DocumentFormProps) {
   const [isPending, startTransition] = useTransition()
-  const source = (document || preset || {}) as Partial<Document> & Partial<DocumentFormData>
+  const source = (document || {}) as Partial<Document> & Partial<DocumentFormData>
   const [products, setProducts] = useState<Product[]>([])
   const [showUsageLimitDialog, setShowUsageLimitDialog] = useState(false)
   const [usageLimitMessage, setUsageLimitMessage] = useState("")

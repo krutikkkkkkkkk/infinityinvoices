@@ -11,7 +11,6 @@ import type { Document, LineItem, Profile, DocumentType } from "@/lib/types"
 import { isAdmin } from "@/lib/admin"
 import { InvoiceSettlementPanel } from "@/components/dashboard/invoice-settlement-panel"
 import { InvoiceAutomationPanel } from "@/components/dashboard/invoice-automation-panel"
-import { SaveAsPresetButton } from "@/components/dashboard/invoice-preset-controls"
 
 function getStatusBadge(status: string) {
   const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -36,7 +35,7 @@ export default async function DocumentDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ type?: string; preset?: string }>
+  searchParams: Promise<{ type?: string }>
 }) {
   const { id } = await params
   const queryParams = await searchParams
@@ -71,13 +70,11 @@ export default async function DocumentDetailPage({
       .eq("user_id", user.id)
       .order("name")
 
-    // Get profile and optional reusable preset
-    const [{ data: profile }, { data: selectedPreset }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).single(),
-      queryParams.preset
-        ? supabase.from("invoice_presets").select("data").eq("id", queryParams.preset).eq("user_id", user.id).maybeSingle()
-        : Promise.resolve({ data: null }),
-    ])
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single()
 
     return (
       <div className="space-y-6">
@@ -96,7 +93,7 @@ export default async function DocumentDetailPage({
             </p>
           </div>
         </div>
-        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} preset={(selectedPreset?.data as Partial<import("@/lib/types").DocumentFormData>) || undefined} />
+        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} />
       </div>
     )
   }
@@ -153,7 +150,6 @@ export default async function DocumentDetailPage({
             {document.type === "invoice" ? "Invoice" : "Quotation"} {document.number}
           </h1>
           {getStatusBadge(document.status)}
-          {document.type === "invoice" && <SaveAsPresetButton document={document as Document & { line_items: LineItem[] }} />}
         </div>
       </div>
 

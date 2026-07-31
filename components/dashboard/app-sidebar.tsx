@@ -7,7 +7,6 @@ import { useSubscription } from "@/hooks/use-subscription"
 import { User } from "@supabase/supabase-js"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  InvoiceIcon,
   Logout03Icon,
   Settings01Icon,
   UserIcon,
@@ -49,7 +48,6 @@ import { CURRENCIES } from "@/lib/types"
 const mainNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home01Icon },
   { href: "/dashboard/invoices", label: "Invoices", icon: Invoice01Icon },
-  { href: "/dashboard/presets", label: "Invoice Presets", icon: InvoiceIcon },
   { href: "/dashboard/quotations", label: "Quotations", icon: FileValidationIcon },
   { href: "/dashboard/clients", label: "Clients", icon: UserMultipleIcon },
   { href: "/dashboard/products", label: "Products", icon: PackageIcon },

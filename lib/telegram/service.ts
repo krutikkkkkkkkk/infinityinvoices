@@ -230,7 +230,7 @@ export function mainMenu(appUrl: string): InlineButton[][] {
     [{ text: "Invoices", callback_data: "list:invoice" }, { text: "Quotations", callback_data: "list:quotation" }],
     [{ text: "Clients", callback_data: "list:clients" }, { text: "Products", callback_data: "list:products" }],
     [{ text: "Reports", callback_data: "summary" }, { text: "Recurring", url: `${appUrl}/dashboard/recurring` }],
-    [{ text: "Credit notes", url: `${appUrl}/dashboard/credit-notes` }, { text: "Presets", url: `${appUrl}/dashboard/presets` }],
+    [{ text: "Credit notes", url: `${appUrl}/dashboard/credit-notes` }],
     [{ text: "Create invoice", url: `${appUrl}/dashboard/documents/new?type=invoice` }, { text: "Create quote", url: `${appUrl}/dashboard/documents/new?type=quotation` }],
   ]
 }
