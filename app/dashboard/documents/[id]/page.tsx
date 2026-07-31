@@ -9,6 +9,9 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import type { Document, LineItem, Profile, DocumentType } from "@/lib/types"
 import { isAdmin } from "@/lib/admin"
+import { InvoiceSettlementPanel } from "@/components/dashboard/invoice-settlement-panel"
+import { InvoiceAutomationPanel } from "@/components/dashboard/invoice-automation-panel"
+import { SaveAsPresetButton } from "@/components/dashboard/invoice-preset-controls"
 
 function getStatusBadge(status: string) {
   const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -33,7 +36,7 @@ export default async function DocumentDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ type?: string }>
+  searchParams: Promise<{ type?: string; preset?: string }>
 }) {
   const { id } = await params
   const queryParams = await searchParams
@@ -68,12 +71,13 @@ export default async function DocumentDetailPage({
       .eq("user_id", user.id)
       .order("name")
 
-    // Get profile for pre-filling payment details
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single()
+    // Get profile and optional reusable preset
+    const [{ data: profile }, { data: selectedPreset }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", user.id).single(),
+      queryParams.preset
+        ? supabase.from("invoice_presets").select("data").eq("id", queryParams.preset).eq("user_id", user.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
 
     return (
       <div className="space-y-6">
@@ -92,7 +96,7 @@ export default async function DocumentDetailPage({
             </p>
           </div>
         </div>
-        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} />
+        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} preset={(selectedPreset?.data as Partial<import("@/lib/types").DocumentFormData>) || undefined} />
       </div>
     )
   }
@@ -122,12 +126,19 @@ export default async function DocumentDetailPage({
     notFound()
   }
 
-  // Fetch profile for header info
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single()
+  // Fetch profile and invoice settlement history
+  const [{ data: profile }, { data: paymentRecords }, { data: creditNotes }, { data: recurringSchedule }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    document.type === "invoice"
+      ? supabase.from("payment_records").select("id, amount, paid_at, method, reference").eq("document_id", id).eq("user_id", document.user_id).order("paid_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    document.type === "invoice"
+      ? supabase.from("credit_notes").select("id, number, amount, reason, issued_at").eq("document_id", id).eq("user_id", document.user_id).order("issued_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    document.type === "invoice"
+      ? supabase.from("recurring_schedules").select("frequency, next_run_at, active").eq("source_document_id", id).eq("user_id", document.user_id).eq("active", true).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
 
   return (
     <div className="space-y-6">
@@ -137,11 +148,12 @@ export default async function DocumentDetailPage({
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
           </Link>
         </Button>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-1 flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight">
             {document.type === "invoice" ? "Invoice" : "Quotation"} {document.number}
           </h1>
           {getStatusBadge(document.status)}
+          {document.type === "invoice" && <SaveAsPresetButton document={document as Document & { line_items: LineItem[] }} />}
         </div>
       </div>
 
@@ -151,6 +163,23 @@ export default async function DocumentDetailPage({
         profile={profile as Profile | null}
         showActions={true}
       />
+      {document.type === "invoice" && (
+        <>
+          <InvoiceSettlementPanel
+            documentId={document.id}
+            grandTotal={Number(document.grand_total)}
+            currency={document.currency}
+            payments={paymentRecords || []}
+            credits={creditNotes || []}
+          />
+          <InvoiceAutomationPanel
+            documentId={document.id}
+            lateFeeType={document.late_fee_type || null}
+            lateFeeValue={document.late_fee_value ? Number(document.late_fee_value) : null}
+            schedule={recurringSchedule || null}
+          />
+        </>
+      )}
     </div>
   )
 }
