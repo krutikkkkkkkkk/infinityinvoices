@@ -44,7 +44,7 @@ export default function Home() {
           Infinity Invoice
         </Link>
         <nav className="flex items-center gap-2 text-sm">
-          <a href={`${APP_URL}/auth/login`} className="rounded-md px-3 py-2 text-muted-foreground hover:text-foreground">
+          <a href={`${APP_URL}/dashboard`} className="rounded-md px-3 py-2 text-muted-foreground hover:text-foreground">
             Log in
           </a>
           <a

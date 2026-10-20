@@ -9,10 +9,11 @@
     "start": "next start"
   },
   "dependencies": {
+    "@dodopayments/nextjs": "^0.3.9",
     "@hookform/resolvers": "^3.10.0",
-    "@infinity/ui": "workspace:*",
     "@hugeicons/core-free-icons": "3.1.1",
     "@hugeicons/react": "1.1.4",
+    "@infinity/ui": "workspace:*",
     "@polar-sh/nextjs": "0.9.3",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -47,6 +48,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "4.1.0",
+    "dodopayments": "^2.54.2",
     "html2canvas": "1.4.1",
     "jspdf": "4.1.0",
     "lucide-react": "^0.454.0",

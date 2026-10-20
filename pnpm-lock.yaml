@@ -69,6 +69,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@dodopayments/nextjs':
+        specifier: ^0.3.9
+        version: 0.3.9(next@16.2.10(@babel/core@7.29.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(zod@3.25.76)
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.71.1(react@19.2.0))
@@ -183,6 +186,9 @@ importers:
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
+      dodopayments:
+        specifier: ^2.54.2
+        version: 2.54.2
       html2canvas:
         specifier: 1.4.1
         version: 1.4.1
@@ -440,6 +446,17 @@ packages:
 
   '@date-fns/tz@1.2.0':
     resolution: {integrity: sha512-LBrd7MiJZ9McsOgxqWX7AaxrDjcFVjWH/tIKJd7pnR7McaslGYOP1QmmiBXdJH/H/yLCT+rcQ7FaPBUxRGUtrg==}
+
+  '@dodopayments/core@0.3.15':
+    resolution: {integrity: sha512-xbBqfY7Ytq6c0jR1qmV8UqqyA7qGnOoP5g02NpDOWyCgkeXLxcAfr6z/g8FkPNCiFcI405oIwi0AlFDVUKm6SA==}
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+
+  '@dodopayments/nextjs@0.3.9':
+    resolution: {integrity: sha512-AxKISyMwvtUxaNU9QYSIehLXYwG/cWlciQsg0ddfvQXS/jXD/0ArR7/Iys9tOOnXkBbORHbWyljzE1AlXqtk6w==}
+    peerDependencies:
+      next: ^14.0.0 || ^15.0.0 || ^16.0.0
+      zod: ^3.25.0 || ^4.0.0
 
   '@dotenvx/dotenvx@1.59.0':
     resolution: {integrity: sha512-+LthcJBVj18x5B1Quua4XditjxYdafOmrXT6xxq+wnUldFQ41hfv/vrP/Z4CZkAk1OTdQSqgFIlVc/pUU+pIzQ==}
@@ -2718,6 +2735,10 @@ packages:
     resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
     engines: {node: '>=0.3.1'}
 
+  dodopayments@2.54.2:
+    resolution: {integrity: sha512-xL0Q3lxgGWT9TBq59sWFsUA4B6GiBd7aHUoLv5n72W5JeGJb3wzV6Y3GSomh35cqJIp+q15CkoRFW+1a3t9/aw==}
+    hasBin: true
+
   dom-helpers@5.2.1:
     resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
 
@@ -4422,6 +4443,18 @@ snapshots:
       '@babel/helper-validator-identifier': 7.28.5
 
   '@date-fns/tz@1.2.0': {}
+
+  '@dodopayments/core@0.3.15(zod@3.25.76)':
+    dependencies:
+      dodopayments: 2.54.2
+      standardwebhooks: 1.0.0
+      zod: 3.25.76
+
+  '@dodopayments/nextjs@0.3.9(next@16.2.10(@babel/core@7.29.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(zod@3.25.76)':
+    dependencies:
+      '@dodopayments/core': 0.3.15(zod@3.25.76)
+      next: 16.2.10(@babel/core@7.29.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      zod: 3.25.76
 
   '@dotenvx/dotenvx@1.59.0':
     dependencies:
@@ -6655,6 +6688,10 @@ snapshots:
   devtools-protocol@0.0.1581282: {}
 
   diff@8.0.4: {}
+
+  dodopayments@2.54.2:
+    dependencies:
+      standardwebhooks: 1.0.0
 
   dom-helpers@5.2.1:
     dependencies:

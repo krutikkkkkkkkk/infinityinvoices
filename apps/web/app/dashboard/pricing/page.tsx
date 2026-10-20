@@ -9,7 +9,6 @@ import { PLANS } from "@/lib/plans"
 import { createClient } from "@/lib/supabase/client"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { CheckmarkCircle02Icon, Loading01Icon } from "@hugeicons/core-free-icons"
-import Link from "next/link"
 import { getLifetimePlanAvailability } from "@/app/actions/lifetime"
 
 export default function PricingPage() {
@@ -18,7 +17,6 @@ export default function PricingPage() {
   const error = searchParams.get("error")
   const [subscription, setSubscription] = useState<{ plan: string; status: string } | null>(null)
   const [loading, setLoading] = useState(true)
-  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [lifetimeAvailability, setLifetimeAvailability] = useState<{
     available: boolean
     count: number
@@ -32,7 +30,6 @@ export default function PricingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        setUserEmail(user.email || null)
         const { data } = await supabase
           .from("subscriptions")
           .select("plan, status")
@@ -54,8 +51,8 @@ export default function PricingPage() {
   }, [])
 
   const currentPlan = subscription?.plan || "free"
-  const proProductId = process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID
-  const lifetimeProductId = process.env.NEXT_PUBLIC_POLAR_LIFETIME_PRODUCT_ID
+  const proProductId = process.env.NEXT_PUBLIC_DODO_PRO_PRODUCT_ID
+  const lifetimeProductId = process.env.NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID
 
   if (loading) {
     return (
@@ -80,6 +77,16 @@ export default function PricingPage() {
         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4 mb-8 text-center">
           <p className="font-medium text-red-800 dark:text-red-200">
             Sorry, the Lifetime plan is now sold out. All 200 spots have been claimed.
+          </p>
+        </div>
+      )}
+
+      {(error === "checkout_failed" || error === "portal_failed") && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4 mb-8 text-center">
+          <p className="font-medium text-red-800 dark:text-red-200">
+            {error === "checkout_failed"
+              ? "We couldn't start checkout. Please try again in a moment."
+              : "We couldn't open the billing portal. Please try again in a moment."}
           </p>
         </div>
       )}
@@ -158,9 +165,9 @@ export default function PricingPage() {
                       className="w-full bg-transparent"
                       asChild
                     >
-                      <Link href="/api/portal">
+                      <a href="/api/portal">
                         Manage Billing
-                      </Link>
+                      </a>
                     </Button>
                   ) : (
                     <Button variant="outline" className="w-full bg-transparent" disabled>
@@ -178,11 +185,9 @@ export default function PricingPage() {
                     </Button>
                   ) : lifetimeProductId ? (
                     <Button className="w-full bg-amber-400 text-amber-900 hover:bg-amber-500" asChild>
-                      <Link 
-                        href={`/api/checkout?products=${lifetimeProductId}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
-                      >
+                      <a href="/api/checkout?plan=lifetime">
                         Get Lifetime Access
-                      </Link>
+                      </a>
                     </Button>
                   ) : (
                     <Button className="w-full" disabled>
@@ -191,11 +196,9 @@ export default function PricingPage() {
                   )
                 ) : isPro && proProductId ? (
                   <Button className="w-full" asChild>
-                    <Link 
-                      href={`/api/checkout?products=${proProductId}${userEmail ? `&customerEmail=${encodeURIComponent(userEmail)}` : ""}`}
-                    >
+                    <a href="/api/checkout?plan=pro">
                       Upgrade to Pro
-                    </Link>
+                    </a>
                   </Button>
                 ) : (
                   <Button className="w-full" disabled>
@@ -212,9 +215,9 @@ export default function PricingPage() {
         <div className="text-center mt-8">
           <p className="text-sm text-muted-foreground">
             Thank you for being a Pro subscriber!{" "}
-            <Link href="/api/portal" className="text-primary hover:underline">
+            <a href="/api/portal" className="text-primary hover:underline">
               Manage your billing
-            </Link>
+            </a>
           </p>
         </div>
       )}
