@@ -1,0 +1,16 @@
+{
+  "name": "infinityinvoices",
+  "private": true,
+  "packageManager": "pnpm@11.28.5",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:landing": "turbo run dev --filter=landing",
+    "lint": "turbo run lint",
+    "start": "turbo run start"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  }
+}

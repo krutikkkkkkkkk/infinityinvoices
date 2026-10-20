@@ -1,0 +1,48 @@
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { SettingsForm } from "@/components/dashboard/settings-form"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Zap } from "lucide-react"
+import type { Profile } from "@/lib/types"
+import { TelegramSettingsCard } from "@/components/dashboard/telegram-settings-card"
+
+export default async function SettingsPage() {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/auth/login")
+  }
+
+  // Fetch profile
+  const [{ data: profile }, { data: telegramAccount }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    supabase
+      .from("telegram_accounts")
+      .select("telegram_username,first_name,linked_at")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ])
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your business profile and preferences
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 border border-purple-200">
+        <Zap className="h-4 w-4 text-purple-600 flex-shrink-0" />
+        <span className="text-sm text-purple-900"><span className="font-semibold">Unlimited access</span> till limited time</span>
+      </div>
+
+      <SettingsForm profile={profile as Profile | null} />
+      <TelegramSettingsCard account={telegramAccount} />
+    </div>
+  )
+}

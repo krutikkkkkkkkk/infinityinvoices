@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Dependency install scripts we don't need (sharp ships prebuilt binaries).
+allowBuilds:
+  core-js: false
+  msw: false
+  sharp: false
