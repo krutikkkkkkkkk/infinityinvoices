@@ -26,6 +26,7 @@ import { duplicateDocument, deleteDocument } from "@/app/dashboard/documents/act
 import { useRouter } from "next/navigation"
 import type { Document } from "@/lib/types"
 import { CURRENCIES } from "@/lib/types"
+import { formatDate } from "@/lib/format"
 
 function formatCurrency(amount: number, currency: string) {
   const currencyData = CURRENCIES.find((c) => c.value === currency)
@@ -77,12 +78,10 @@ export function InvoiceTableRow({ invoice }: { invoice: Document }) {
         <StatusSelect documentId={invoice.id} currentStatus={invoice.status} compact />
       </TableCell>
       <TableCell>
-        {new Date(invoice.issue_date).toLocaleDateString()}
+        {formatDate(invoice.issue_date)}
       </TableCell>
       <TableCell>
-        {invoice.due_date
-          ? new Date(invoice.due_date).toLocaleDateString()
-          : "-"}
+        {formatDate(invoice.due_date)}
       </TableCell>
       <TableCell className="text-right">
         {formatCurrency(Number(invoice.grand_total), invoice.currency)}

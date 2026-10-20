@@ -3,7 +3,9 @@
     "allow": [
       "PowerShell(pnpm dev -- --ui=stream)",
       "PowerShell(pnpm turbo run build --filter=landing --ui=stream 2>&1 | Select -Last 3; $html = \\(Get-ChildItem -Recurse apps/landing/.next/server/app -Filter index.html | Select -First 1 | Get-Content -Raw\\); \\([regex]::Matches\\($html, 'href=\"\\(https?://[^\"]+\\)\"'\\) | % { $_.Groups[1].Value } | Sort -Unique\\); \"dev:\"; \\([regex]::Matches\\(\\(Invoke-WebRequest http://localhost:3001 -UseBasicParsing\\).Content, 'href=\"\\(https?://[^\"]+\\)\"'\\) | % { $_.Groups[1].Value } | Sort -Unique\\))",
-      "PowerShell($c = Get-NetTCPConnection -LocalPort 3000,3001 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { $c | % { $p = Get-Process -Id $_.OwningProcess; \"port $\\($_.LocalPort\\): $\\($p.ProcessName\\) pid $\\($p.Id\\)\"; Stop-Process -Id $p.Id -Force -Confirm:$false } } else { \"ports free\" })"
+      "PowerShell($c = Get-NetTCPConnection -LocalPort 3000,3001 -State Listen -ErrorAction SilentlyContinue; if \\($c\\) { $c | % { $p = Get-Process -Id $_.OwningProcess; \"port $\\($_.LocalPort\\): $\\($p.ProcessName\\) pid $\\($p.Id\\)\"; Stop-Process -Id $p.Id -Force -Confirm:$false } } else { \"ports free\" })",
+      "Bash(LOGIN_EMAIL=krutik@infinitylinkage.com LOGIN_PASSWORD=Test@123 timeout 60 node C:/Users/common/AppData/Local/Temp/claude/c--Users-common-Documents-infinityinvoices/9d856171-b9f6-4013-a6c5-1692781a5ba8/scratchpad/q.mjs)",
+      "Bash(python -)"
     ]
   }
 }

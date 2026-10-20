@@ -19,7 +19,8 @@ interface InvoiceFiltersProps {
   to: string
   sort: string
   order: string
-  tax: string
+  /** Omit to hide the tax filter (e.g. quotations). */
+  tax?: string
 }
 
 export function InvoiceFilters({ status, search, from, to, sort, order, tax }: InvoiceFiltersProps) {
@@ -63,7 +64,7 @@ export function InvoiceFilters({ status, search, from, to, sort, order, tax }: I
     })
   }
 
-  const hasFilters = status !== "all" || tax !== "all" || search || from || to
+  const hasFilters = status !== "all" || (tax ?? "all") !== "all" || search || from || to
 
   return (
     <div className="space-y-3">
@@ -100,6 +101,7 @@ export function InvoiceFilters({ status, search, from, to, sort, order, tax }: I
         </Select>
 
         {/* Tax Filter */}
+        {tax !== undefined && (
         <Select
           value={tax}
           onValueChange={(value) => updateFilters({ tax: value })}
@@ -113,6 +115,7 @@ export function InvoiceFilters({ status, search, from, to, sort, order, tax }: I
             <SelectItem value="no-tax">No Tax</SelectItem>
           </SelectContent>
         </Select>
+        )}
 
         {/* Sort */}
         <Select

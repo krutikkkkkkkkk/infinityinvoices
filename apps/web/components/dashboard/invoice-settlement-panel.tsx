@@ -67,7 +67,7 @@ export function InvoiceSettlementPanel({ documentId, grandTotal, currency, payme
           <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
             <DialogTrigger asChild><Button size="sm" disabled={remaining <= 0}>Record payment</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Record payment</DialogTitle><DialogDescription>{symbol}{remaining.toLocaleString()} remains on this invoice.</DialogDescription></DialogHeader>
+              <DialogHeader><DialogTitle>Record payment</DialogTitle><DialogDescription>{symbol}{remaining.toLocaleString("en-IN")} remains on this invoice.</DialogDescription></DialogHeader>
               <div className="grid gap-4 py-2 sm:grid-cols-2">
                 <div className="flex flex-col gap-2"><Label htmlFor="payment-amount">Amount</Label><Input id="payment-amount" type="number" min="0.01" max={remaining} step="0.01" value={payment.amount} onChange={(event) => setPayment({ ...payment, amount: event.target.value })} /></div>
                 <div className="flex flex-col gap-2"><Label htmlFor="payment-date">Date</Label><Input id="payment-date" type="date" value={payment.paidAt} onChange={(event) => setPayment({ ...payment, paidAt: event.target.value })} /></div>
@@ -81,13 +81,13 @@ export function InvoiceSettlementPanel({ documentId, grandTotal, currency, payme
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Settled {symbol}{(paid + credited).toLocaleString()}</span><strong>{symbol}{remaining.toLocaleString()} remaining</strong></div>
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Settled {symbol}{(paid + credited).toLocaleString("en-IN")}</span><strong>{symbol}{remaining.toLocaleString("en-IN")} remaining</strong></div>
           <Progress value={Math.min(100, progress)} />
-          <div className="flex gap-4 text-xs text-muted-foreground"><span>Payments: {symbol}{paid.toLocaleString()}</span><span>Credits: {symbol}{credited.toLocaleString()}</span></div>
+          <div className="flex gap-4 text-xs text-muted-foreground"><span>Payments: {symbol}{paid.toLocaleString("en-IN")}</span><span>Credits: {symbol}{credited.toLocaleString("en-IN")}</span></div>
         </div>
         {(payments.length > 0 || credits.length > 0) && <div className="flex flex-col gap-2 border-t pt-4">
-          {payments.map((item) => <div key={item.id} className="flex items-center justify-between rounded-lg border p-3 text-sm"><div><p className="font-medium">Payment · {symbol}{Number(item.amount).toLocaleString()}</p><p className="text-xs text-muted-foreground">{new Date(item.paid_at).toLocaleDateString()} {item.method ? `· ${item.method}` : ""}</p></div><Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => deletePayment(item.id, documentId))}>Delete</Button></div>)}
-          {credits.map((item) => <div key={item.id} className="rounded-lg border p-3 text-sm"><div className="flex justify-between gap-4"><p className="font-medium">{item.number} · {symbol}{Number(item.amount).toLocaleString()}</p><span className="text-xs text-muted-foreground">{new Date(item.issued_at).toLocaleDateString()}</span></div><p className="mt-1 text-xs text-muted-foreground">{item.reason}</p></div>)}
+          {payments.map((item) => <div key={item.id} className="flex items-center justify-between rounded-lg border p-3 text-sm"><div><p className="font-medium">Payment · {symbol}{Number(item.amount).toLocaleString("en-IN")}</p><p className="text-xs text-muted-foreground">{new Date(item.paid_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} {item.method ? `· ${item.method}` : ""}</p></div><Button variant="ghost" size="sm" disabled={pending} onClick={() => run(() => deletePayment(item.id, documentId))}>Delete</Button></div>)}
+          {credits.map((item) => <div key={item.id} className="rounded-lg border p-3 text-sm"><div className="flex justify-between gap-4"><p className="font-medium">{item.number} · {symbol}{Number(item.amount).toLocaleString("en-IN")}</p><span className="text-xs text-muted-foreground">{new Date(item.issued_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span></div><p className="mt-1 text-xs text-muted-foreground">{item.reason}</p></div>)}
         </div>}
       </CardContent>
     </Card>

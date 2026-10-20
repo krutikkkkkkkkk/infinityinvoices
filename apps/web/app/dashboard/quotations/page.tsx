@@ -15,6 +15,7 @@ import { Files01Icon, InvoiceIcon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { Document, CURRENCIES } from "@/lib/types"
 import { InvoiceFilters } from "@/components/dashboard/invoice-filters"
+import { formatDate } from "@/lib/format"
 
 const PAGE_SIZE = 20
 
@@ -159,12 +160,10 @@ export default async function QuotationsPage({
                       <TableCell>{quotation.client_name || "-"}</TableCell>
                       <TableCell>{getStatusBadge(quotation.status)}</TableCell>
                       <TableCell>
-                        {new Date(quotation.issue_date).toLocaleDateString()}
+                        {formatDate(quotation.issue_date)}
                       </TableCell>
                       <TableCell>
-                        {quotation.due_date
-                          ? new Date(quotation.due_date).toLocaleDateString()
-                          : "-"}
+                        {formatDate(quotation.due_date)}
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(Number(quotation.grand_total), quotation.currency)}

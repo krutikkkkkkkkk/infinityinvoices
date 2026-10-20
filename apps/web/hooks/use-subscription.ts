@@ -2,7 +2,7 @@
 
 import useSWR from "swr"
 import { createClient } from "@/lib/supabase/client"
-import { getPlan, getFreePlan, type Plan } from "@/lib/plans"
+import { getPlanForSubscription, hasPaidPlan, type Plan } from "@/lib/plans"
 
 interface Subscription {
   plan: string
@@ -37,7 +37,7 @@ const fetchSubscriptionData = async (): Promise<SubscriptionData> => {
     .from("subscriptions")
     .select("*")
     .eq("user_id", user.id)
-    .single()
+    .maybeSingle()
 
   // Fetch usage for current month
   const monthYear = new Date().toISOString().slice(0, 7)
@@ -46,7 +46,7 @@ const fetchSubscriptionData = async (): Promise<SubscriptionData> => {
     .select("*")
     .eq("user_id", user.id)
     .eq("month_year", monthYear)
-    .single()
+    .maybeSingle()
 
   return {
     subscription: sub || { plan: "free", status: "active" },
@@ -67,7 +67,7 @@ export function useSubscription() {
 
   const subscription = data?.subscription || null
   const usage = data?.usage || null
-  const plan: Plan = getPlan(subscription?.plan || "free") || getFreePlan()
+  const plan: Plan = getPlanForSubscription(subscription)
 
   const canCreateInvoice = () => {
     if (plan.limits.invoicesPerMonth === -1) return true
@@ -84,9 +84,8 @@ export function useSubscription() {
     return (usage?.emails_sent || 0) < plan.limits.emailsPerMonth
   }
 
-  // Everyone has pro features now
-  const isPro = true
-  const isLifetime = true
+  const isPro = hasPaidPlan(subscription)
+  const isLifetime = isPro && subscription?.plan === "lifetime"
 
   return {
     subscription,

@@ -1,5 +1,6 @@
 import { headers } from "next/headers"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { consumeUsage } from "@/lib/usage"
 
 function advanceDate(date: Date, frequency: string) {
   const next = new Date(date)
@@ -27,10 +28,18 @@ export async function GET() {
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
   let draftsCreated = 0
+  let skippedOverLimit = 0
   for (const schedule of schedules || []) {
     const source = schedule.documents
     if (!source || (schedule.ends_at && new Date(schedule.ends_at) < now)) {
       await supabase.from("recurring_schedules").update({ active: false }).eq("id", schedule.id)
+      continue
+    }
+    // Recurring drafts count toward the monthly invoice limit. Over the limit, leave the
+    // schedule due so it runs once the month resets or the user upgrades.
+    const { allowed } = await consumeUsage(supabase, schedule.user_id, "invoice")
+    if (!allowed) {
+      skippedOverLimit++
       continue
     }
     const { count } = await supabase.from("documents").select("id", { count: "exact", head: true }).eq("user_id", schedule.user_id).eq("type", "invoice")
@@ -75,5 +84,5 @@ export async function GET() {
     }
   }
 
-  return Response.json({ draftsCreated, lateFeesApplied })
+  return Response.json({ draftsCreated, skippedOverLimit, lateFeesApplied })
 }

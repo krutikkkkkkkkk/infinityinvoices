@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { SettingsForm } from "@/components/dashboard/settings-form"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Zap } from "lucide-react"
 import type { Profile } from "@/lib/types"
 import { TelegramSettingsCard } from "@/components/dashboard/telegram-settings-card"
 
@@ -36,10 +35,6 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 border border-purple-200">
-        <Zap className="h-4 w-4 text-purple-600 flex-shrink-0" />
-        <span className="text-sm text-purple-900"><span className="font-semibold">Unlimited access</span> till limited time</span>
-      </div>
 
       <SettingsForm profile={profile as Profile | null} />
       <TelegramSettingsCard account={telegramAccount} />

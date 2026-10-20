@@ -1,8 +1,9 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { Fragment, useEffect, useState } from "react"
+import Link from "next/link"
+import { usePathname, useSearchParams } from "next/navigation"
 import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
@@ -14,22 +15,36 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { CommandMenu } from "@/components/dashboard/command-menu"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Sun01Icon, Moon02Icon } from "@hugeicons/core-free-icons"
+import { Sun01Icon, Moon02Icon, ComputerIcon } from "@hugeicons/core-free-icons"
 
 const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
   "/dashboard/invoices": "Invoices",
   "/dashboard/quotations": "Quotations",
+  "/dashboard/presets": "Invoice Presets",
   "/dashboard/clients": "Clients",
   "/dashboard/products": "Products",
-  "/dashboard/usage": "Usage",
-  "/dashboard/pricing": "Pricing",
+  "/dashboard/plan": "Plan & usage",
   "/dashboard/settings": "Settings",
+  "/dashboard/bug-report": "Report Bug",
+  "/dashboard/tools/currency-converter": "Currency Converter",
 }
 
+// Segments that exist only as path prefixes (no page of their own) are shown but not linked.
+const NON_PAGE_SEGMENTS = new Set(["/dashboard/documents", "/dashboard/tools"])
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => setMounted(true), [])
@@ -37,67 +52,91 @@ function ThemeToggle() {
   if (!mounted) return <div className="size-8" />
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="size-8"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label="Toggle theme"
-    >
-      {theme === "dark" ? (
-        <HugeiconsIcon icon={Sun01Icon} size={16} />
-      ) : (
-        <HugeiconsIcon icon={Moon02Icon} size={16} />
-      )}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon" className="size-9" aria-label="Change theme">
+          <HugeiconsIcon icon={resolvedTheme === "dark" ? Moon02Icon : Sun01Icon} size={16} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-36">
+        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+          <DropdownMenuRadioItem value="light">
+            <HugeiconsIcon icon={Sun01Icon} size={14} /> Light
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">
+            <HugeiconsIcon icon={Moon02Icon} size={14} /> Dark
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">
+            <HugeiconsIcon icon={ComputerIcon} size={14} /> System
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
-export function DashboardTopBar() {
+function useBreadcrumbs() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const segments = pathname.split("/").filter(Boolean)
+  if (segments.length <= 1) return []
 
-  const getBreadcrumbs = () => {
-    const segments = pathname.split("/").filter(Boolean)
-    if (segments.length <= 1) return null
+  return segments.slice(1).map((segment, index) => {
+    const href = "/" + segments.slice(0, index + 2).join("/")
+    let label = pageTitles[href] ?? segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ")
 
-    return segments.slice(1).map((segment, index) => {
-      const href = "/" + segments.slice(0, index + 2).join("/")
-      let label = pageTitles[href] || segment.charAt(0).toUpperCase() + segment.slice(1)
+    if (UUID_RE.test(segment)) label = "Details"
+    if (segment === "new") {
+      const type = searchParams.get("type")
+      label = type === "quotation" ? "New quotation" : type === "invoice" ? "New invoice" : "New"
+    }
 
-      if (segment === "new") label = "New"
-      if (segment === "edit") label = "Edit"
-      if (segment === "documents") label = "Documents"
+    return {
+      href,
+      label,
+      isLast: index === segments.length - 2,
+      linkable: !NON_PAGE_SEGMENTS.has(href),
+    }
+  })
+}
 
-      const isLast = index === segments.length - 2
-      return { href, label, isLast }
-    })
-  }
-
-  const breadcrumbs = getBreadcrumbs()
+export function DashboardTopBar() {
+  const breadcrumbs = useBreadcrumbs()
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/50 px-3 sm:px-6 overflow-x-auto">
+    <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 bg-background/85 px-3 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-6">
       <SidebarTrigger className="-ml-2" />
-      <Separator orientation="vertical" className="mr-2 !h-4" />
-      <Breadcrumb className="flex-1 min-w-0">
-        <BreadcrumbList className="flex-wrap">
-          <BreadcrumbItem className="text-xs sm:text-sm">
-            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+      <Separator orientation="vertical" className="mr-1 h-4!" />
+      <Breadcrumb className="min-w-0 flex-1">
+        <BreadcrumbList className="flex-nowrap text-xs sm:text-sm">
+          <BreadcrumbItem className={breadcrumbs.length > 1 ? "hidden sm:inline-flex" : undefined}>
+            {breadcrumbs.length === 0 ? (
+              <BreadcrumbPage>Dashboard</BreadcrumbPage>
+            ) : (
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </BreadcrumbLink>
+            )}
           </BreadcrumbItem>
-          {breadcrumbs && breadcrumbs.length > 0 && breadcrumbs.map((crumb) => (
-            <span key={crumb.href} className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <BreadcrumbSeparator />
-              <BreadcrumbItem className="text-xs sm:text-sm">
+          {breadcrumbs.map((crumb, i) => (
+            <Fragment key={crumb.href}>
+              <BreadcrumbSeparator className={i === 0 && breadcrumbs.length > 1 ? "hidden sm:inline-flex" : undefined} />
+              <BreadcrumbItem className="min-w-0">
                 {crumb.isLast ? (
-                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                  <BreadcrumbPage className="truncate">{crumb.label}</BreadcrumbPage>
+                ) : crumb.linkable ? (
+                  <BreadcrumbLink asChild>
+                    <Link href={crumb.href}>{crumb.label}</Link>
+                  </BreadcrumbLink>
                 ) : (
-                  <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
+                  <span className="text-muted-foreground">{crumb.label}</span>
                 )}
               </BreadcrumbItem>
-            </span>
+            </Fragment>
           ))}
         </BreadcrumbList>
       </Breadcrumb>
+      <CommandMenu />
       <ThemeToggle />
     </header>
   )

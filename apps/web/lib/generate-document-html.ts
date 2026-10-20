@@ -534,7 +534,6 @@ function generateMinimalTemplate(
   <div style="margin-bottom: 40px; padding: 20px; background: #e8e8e0; border-radius: 8px;">
     <p style="font-size: 14px; font-weight: 500; color: #3b82f6; margin-bottom: 8px;">Billed to:</p>
     <p style="font-weight: 500; color: #1a1a1a;">${document.client_name || "Client Name"}</p>
-    ${document.client_phone ? `<p style="font-size: 14px; color: #666;">${document.client_phone}</p>` : ""}
     ${document.client_address ? `<p style="font-size: 14px; color: #666;">${document.client_address}</p>` : ""}
   </div>
 

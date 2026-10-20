@@ -309,7 +309,7 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
   }
 
   const handleStatusChange = (newStatus: string) => {
-    setCurrentStatus(newStatus)
+    setCurrentStatus(newStatus as Document["status"])
     startTransition(async () => {
       await updateDocumentStatus(document.id, newStatus)
     })
@@ -582,7 +582,7 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction asChild>
-              <Link href="/dashboard/pricing">Upgrade to Pro</Link>
+              <Link href="/dashboard/plan">Upgrade to Pro</Link>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

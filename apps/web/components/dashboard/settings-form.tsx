@@ -12,7 +12,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Loading01Icon } from "@hugeicons/core-free-icons"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import type { Profile } from "@/lib/types"
+import type { Currency, Profile } from "@/lib/types"
 import { CURRENCIES } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LogoUpload } from "./logo-upload"
@@ -298,7 +298,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="default_currency">Default Currency</Label>
-                <Select value={formData.default_currency} onValueChange={(value) => setFormData((prev) => ({ ...prev, default_currency: value }))}>
+                <Select value={formData.default_currency} onValueChange={(value) => setFormData((prev) => ({ ...prev, default_currency: value as Currency }))}>
                   <SelectTrigger id="default_currency">
                     <SelectValue />
                   </SelectTrigger>

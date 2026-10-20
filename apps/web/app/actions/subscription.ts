@@ -18,8 +18,7 @@ export async function refreshSubscription() {
     .eq("user_id", user.id)
     .single()
 
-  revalidatePath("/dashboard/usage")
-  revalidatePath("/dashboard/pricing")
+  revalidatePath("/dashboard/plan")
   
   return { subscription, error: error?.message }
 }
@@ -54,8 +53,7 @@ export async function createFreeSubscription() {
     .select()
     .single()
 
-  revalidatePath("/dashboard/usage")
-  revalidatePath("/dashboard/pricing")
+  revalidatePath("/dashboard/plan")
   
   return { subscription: data, error: error?.message }
 }

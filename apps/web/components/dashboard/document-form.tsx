@@ -858,7 +858,7 @@ const addLineItem = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction asChild>
-              <Link href="/dashboard/pricing">Upgrade to Pro</Link>
+              <Link href="/dashboard/plan">Upgrade to Pro</Link>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

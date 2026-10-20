@@ -41,12 +41,12 @@ export async function GET(req: NextRequest) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin
     try {
       const session = await getDodo().customers.customerPortal.create(subscription.dodo_customer_id, {
-        return_url: `${siteUrl}/dashboard/pricing`,
+        return_url: `${siteUrl}/dashboard/plan`,
       })
       return NextResponse.redirect(session.link)
     } catch (error) {
       console.error("[Dodo] Error creating customer portal session:", error)
-      return NextResponse.redirect(new URL("/dashboard/pricing?error=portal_failed", req.url))
+      return NextResponse.redirect(new URL("/dashboard/plan?error=portal_failed", req.url))
     }
   }
 
@@ -54,5 +54,5 @@ export async function GET(req: NextRequest) {
     return polarPortal(req)
   }
 
-  return NextResponse.redirect(new URL("/dashboard/pricing", req.url))
+  return NextResponse.redirect(new URL("/dashboard/plan", req.url))
 }

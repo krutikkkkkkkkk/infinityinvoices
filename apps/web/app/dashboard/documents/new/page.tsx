@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default async function NewDocumentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>
+  searchParams: Promise<{ type?: string; client?: string }>
 }) {
   const params = await searchParams
   const type = (params.type === "quotation" ? "quotation" : "invoice") as DocumentType
@@ -44,6 +44,18 @@ export default async function NewDocumentPage({
     .eq("user_id", user.id)
     .order("name")
 
+  // ?client=<id> (from a client page) pre-selects that client
+  const presetClient = params.client ? clients?.find((c) => c.id === params.client) : undefined
+  const clientPreset = presetClient
+    ? {
+        client_id: presetClient.id,
+        client_name: presetClient.name,
+        client_email: presetClient.email || "",
+        client_address: presetClient.address || "",
+        client_gst_id: presetClient.gst_id || "",
+      }
+    : undefined
+
   // Get profile for auto-filling payment methods
   const { data: profile } = await supabase
     .from("profiles")
@@ -59,7 +71,7 @@ export default async function NewDocumentPage({
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/dashboard">
+          <Link href={presetClient ? `/dashboard/clients/${presetClient.id}` : "/dashboard"}>
             <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
           </Link>
         </Button>
@@ -87,16 +99,16 @@ export default async function NewDocumentPage({
             </p>
             <div className="flex gap-2">
               <Button asChild>
-                <Link href="/dashboard/pricing">Upgrade to Pro</Link>
+                <Link href="/dashboard/plan">Upgrade to Pro</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/dashboard/usage">View Usage</Link>
+                <Link href="/dashboard/plan">View plan & usage</Link>
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} />
+        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} preset={clientPreset} />
       )}
     </div>
   )

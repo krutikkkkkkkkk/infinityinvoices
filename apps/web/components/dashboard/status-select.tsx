@@ -46,8 +46,8 @@ export function StatusSelect({ documentId, currentStatus, compact = false, docum
       <SelectTrigger
         aria-label={`Status: ${currentOption.label}`}
         className={cn(
-          "border-0 font-medium shadow-none [&>span]:flex [&>span]:items-center [&>span]:gap-1.5",
-          compact ? "h-7 w-[118px] text-xs" : "w-[140px]",
+          "rounded-full border-0 font-medium shadow-none [&>span]:flex [&>span]:items-center [&>span]:gap-1.5",
+          compact ? "h-7 w-[132px] text-xs" : "w-[140px]",
           isPending && "opacity-70",
           currentOption.className
         )}

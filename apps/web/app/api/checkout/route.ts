@@ -6,7 +6,7 @@ import { getDodo, getProductIdForPlan, type PaidPlan } from "@/lib/dodo"
 // GET /api/checkout?plan=pro|lifetime
 // Creates a Dodo Payments checkout session for the signed-in user and redirects to it.
 export async function GET(request: NextRequest) {
-  const pricingUrl = (query: string) => new URL(`/dashboard/pricing?${query}`, request.url)
+  const pricingUrl = (query: string) => new URL(`/dashboard/plan?${query}`, request.url)
 
   const plan = request.nextUrl.searchParams.get("plan") as PaidPlan | null
   if (plan !== "pro" && plan !== "lifetime") {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         : { email: user.email, name: user.user_metadata?.full_name || user.email },
       // Read back by the webhook to link the purchase to this user
       metadata: { user_id: user.id, plan },
-      return_url: `${siteUrl}/dashboard/pricing?success=true`,
+      return_url: `${siteUrl}/dashboard/plan?success=true`,
     })
 
     if (!session.checkout_url) {

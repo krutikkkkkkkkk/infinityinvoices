@@ -63,12 +63,16 @@ function calcCompletion(profile: Profile | null) {
 interface ProfileCompletionCardProps {
   profile: Profile | null
   compact?: boolean
+  /** Only render while completion is below this percentage. */
+  onlyBelowPercent?: number
 }
 
-export function ProfileCompletionCard({ profile, compact = false }: ProfileCompletionCardProps) {
+export const PROFILE_BANNER_COOKIE = "ii_profile_banner_dismissed"
+
+export function ProfileCompletionCard({ profile, compact = false, onlyBelowPercent = 100 }: ProfileCompletionCardProps) {
   const { percent, filled, total, missingBusiness, hasPayment } = calcCompletion(profile)
 
-  if (percent === 100) return null
+  if (percent === 100 || percent >= onlyBelowPercent) return null
 
   const isFieldDone = (key: keyof Profile) => !!profile?.[key]
 
@@ -242,8 +246,15 @@ export function ProfileCompletionCard({ profile, compact = false }: ProfileCompl
   )
 }
 
-// Dismissible banner — shown at top of dashboard when profile is incomplete
-export function ProfileCompletionBanner({ profile }: { profile: Profile | null }) {
+// Dismissible banner — shown at top of dashboard when profile is incomplete.
+// Dismissal is stored in a cookie so the server can skip rendering it next time.
+export function ProfileCompletionBanner({
+  profile,
+  onlyAbovePercent = 0,
+}: {
+  profile: Profile | null
+  onlyAbovePercent?: number
+}) {
   const [dismissed, setDismissed] = useState(false)
   const { percent, missingBusiness, hasPayment } = calcCompletion(profile)
 
@@ -252,7 +263,12 @@ export function ProfileCompletionBanner({ profile }: { profile: Profile | null }
     ...(!hasPayment ? ["Payment Method"] : []),
   ]
 
-  if (percent === 100 || dismissed) return null
+  if (percent === 100 || percent < onlyAbovePercent || dismissed) return null
+
+  const dismiss = () => {
+    setDismissed(true)
+    document.cookie = `${PROFILE_BANNER_COOKIE}=1; path=/; max-age=${60 * 60 * 24 * 14}; samesite=lax`
+  }
 
   const barColor =
     percent < 35 ? "bg-foreground/45" :
@@ -289,9 +305,9 @@ export function ProfileCompletionBanner({ profile }: { profile: Profile | null }
         </Button>
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={dismiss}
           className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
-          aria-label="Dismiss"
+          aria-label="Dismiss for 2 weeks"
         >
           <HugeiconsIcon icon={Cancel01Icon} size={14} />
         </button>

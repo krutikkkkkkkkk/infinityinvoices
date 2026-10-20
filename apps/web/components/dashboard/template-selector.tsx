@@ -11,6 +11,7 @@ export const INVOICE_TEMPLATES: {
   id: TemplateType
   label: string
   description: string
+  pro?: boolean
   preview: React.ReactNode
 }[] = [
   {
@@ -291,6 +292,7 @@ export const QUOTATION_TEMPLATES: {
   id: TemplateType
   label: string
   description: string
+  pro?: boolean
   preview: React.ReactNode
 }[] = [
   ...INVOICE_TEMPLATES, // Quotations can use the same template designs

@@ -1,35 +1,42 @@
 "use client"
 
 import { useState } from "react"
-import { X } from "lucide-react"
-import Link from "next/link"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Cancel01Icon, StarIcon } from "@hugeicons/core-free-icons"
+
+export const GITHUB_BANNER_COOKIE = "ii_github_banner_dismissed"
 
 export function GitHubBanner() {
   const [isVisible, setIsVisible] = useState(true)
 
   if (!isVisible) return null
 
+  const dismiss = () => {
+    setIsVisible(false)
+    document.cookie = `${GITHUB_BANNER_COOKIE}=1; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
+  }
+
   return (
-    <div className="bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-700 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
-      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-        <span className="text-xs sm:text-sm font-medium text-slate-300">
-          Infinity Invoices is open source!
-        </span>
-        <Link
+    <div className="flex items-center justify-between gap-2 border-b bg-muted/50 px-3 py-1.5 text-xs sm:px-6 sm:text-sm">
+      <p className="min-w-0 truncate text-muted-foreground">
+        Infinity Invoices is open source.{" "}
+        <a
           href="https://github.com/krutikkkkkkkkk/infinityinvoices"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs sm:text-sm font-semibold text-white hover:text-slate-100 transition-colors whitespace-nowrap"
+          className="inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline"
         >
-          Star us on GitHub ⭐
-        </Link>
-      </div>
+          <HugeiconsIcon icon={StarIcon} size={12} aria-hidden />
+          Star us on GitHub
+        </a>
+      </p>
       <button
-        onClick={() => setIsVisible(false)}
-        className="flex-shrink-0 text-slate-400 hover:text-slate-200 transition-colors p-1"
-        aria-label="Close banner"
+        type="button"
+        onClick={dismiss}
+        className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        aria-label="Dismiss open source banner"
       >
-        <X className="h-4 w-4" />
+        <HugeiconsIcon icon={Cancel01Icon} size={14} />
       </button>
     </div>
   )

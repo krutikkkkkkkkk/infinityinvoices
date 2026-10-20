@@ -113,7 +113,8 @@ function buildBuckets(range: ChartRange, today: Date) {
     return Array.from({ length: 12 }, (_, i) => {
       const start = new Date(today.getFullYear(), today.getMonth() - 11 + i, 1)
       const end = new Date(start.getFullYear(), start.getMonth() + 1, 1)
-      const label = start.toLocaleDateString("en-IN", { month: "short", year: "2-digit" })
+      // "May '26" — a bare "May 26" reads like a calendar date
+      const label = `${start.toLocaleDateString("en-IN", { month: "short" })} '${String(start.getFullYear()).slice(2)}`
       return { start, end, label }
     })
   }
@@ -126,6 +127,57 @@ function buildBuckets(range: ChartRange, today: Date) {
     const label = start.toLocaleDateString("en-IN", { day: "numeric", month: "short" })
     return { start, end, label }
   })
+}
+
+export type SeriesInvoice = { grand_total: number | string | null; status: string; issue_date: string }
+export type AgingInvoice = { grand_total: number | string | null; due_date: string | null; include_tax: boolean | null }
+type Buckets = ReturnType<typeof buildBuckets>
+
+export function buildAllBuckets(today = startOfToday()): Record<ChartRange, Buckets> {
+  return { "30d": buildBuckets("30d", today), "90d": buildBuckets("90d", today), "1y": buildBuckets("1y", today) }
+}
+
+/** Invoiced / paid / count per period for each chart range (sent, paid and overdue invoices). */
+export function buildSeries(invoices: SeriesInvoice[], bucketsByRange = buildAllBuckets()) {
+  const series = {} as Record<ChartRange, SeriesPoint[]>
+  for (const range of Object.keys(bucketsByRange) as ChartRange[]) {
+    const buckets = bucketsByRange[range]
+    const points = buckets.map((b) => ({ label: b.label, invoiced: 0, paid: 0, count: 0 }))
+    for (const inv of invoices) {
+      const date = parseDate(inv.issue_date)
+      const index = buckets.findIndex((b) => date >= b.start && date < b.end)
+      if (index === -1) continue
+      const amount = Number(inv.grand_total) || 0
+      points[index].invoiced += amount
+      points[index].count += 1
+      if (inv.status === "paid") points[index].paid += amount
+    }
+    series[range] = points
+  }
+  return series
+}
+
+/** Bucket unpaid invoices by days past due, overall and split by tax. */
+export function buildAging(receivables: AgingInvoice[], today = startOfToday()) {
+  const aging = { all: emptyAging(), taxed: emptyAging(), noTax: emptyAging() }
+  for (const row of receivables) {
+    const amount = Number(row.grand_total) || 0
+    const daysLate = row.due_date ? Math.floor((today.getTime() - parseDate(row.due_date).getTime()) / DAY) : 0
+    const targets = [aging.all, row.include_tax === false ? aging.noTax : aging.taxed]
+    for (const a of targets) {
+      a.total += amount
+      a.count += 1
+      if (daysLate <= 0) a.current += amount
+      else {
+        a.overdueCount += 1
+        if (daysLate <= 15) a.d1to15 += amount
+        else if (daysLate <= 30) a.d16to30 += amount
+        else if (daysLate <= 45) a.d31to45 += amount
+        else a.d45plus += amount
+      }
+    }
+  }
+  return aging
 }
 
 type InvoiceRow = {
@@ -178,11 +230,7 @@ export async function getOverviewData(userId: string, profile: Profile | null): 
     new Set([primaryCurrency, ...invoices.map((i) => i.currency || "INR"), ...receivables.map((r) => r.currency || "INR")])
   )
 
-  const bucketsByRange = {
-    "30d": buildBuckets("30d", today),
-    "90d": buildBuckets("90d", today),
-    "1y": buildBuckets("1y", today),
-  }
+  const bucketsByRange = buildAllBuckets(today)
 
   const byCurrency: Record<string, CurrencyOverview> = {}
 
@@ -190,21 +238,7 @@ export async function getOverviewData(userId: string, profile: Profile | null): 
     const ownInvoices = invoices.filter((i) => (i.currency || "INR") === currency)
     const ownReceivables = receivables.filter((r) => (r.currency || "INR") === currency)
 
-    const series = {} as Record<ChartRange, SeriesPoint[]>
-    for (const range of Object.keys(bucketsByRange) as ChartRange[]) {
-      const buckets = bucketsByRange[range]
-      const points = buckets.map((b) => ({ label: b.label, invoiced: 0, paid: 0, count: 0 }))
-      for (const inv of ownInvoices) {
-        const date = parseDate(inv.issue_date)
-        const index = buckets.findIndex((b) => date >= b.start && date < b.end)
-        if (index === -1) continue
-        const amount = Number(inv.grand_total) || 0
-        points[index].invoiced += amount
-        points[index].count += 1
-        if (inv.status === "paid") points[index].paid += amount
-      }
-      series[range] = points
-    }
+    const series = buildSeries(ownInvoices, bucketsByRange)
 
     let fyInvoiced = 0
     let fyPaid = 0
@@ -222,24 +256,7 @@ export async function getOverviewData(userId: string, profile: Profile | null): 
       }
     }
 
-    const aging = { all: emptyAging(), taxed: emptyAging(), noTax: emptyAging() }
-    for (const row of ownReceivables) {
-      const amount = Number(row.grand_total) || 0
-      const daysLate = row.due_date ? Math.floor((today.getTime() - parseDate(row.due_date).getTime()) / DAY) : 0
-      const targets = [aging.all, row.include_tax === false ? aging.noTax : aging.taxed]
-      for (const a of targets) {
-        a.total += amount
-        a.count += 1
-        if (daysLate <= 0) a.current += amount
-        else {
-          a.overdueCount += 1
-          if (daysLate <= 15) a.d1to15 += amount
-          else if (daysLate <= 30) a.d16to30 += amount
-          else if (daysLate <= 45) a.d31to45 += amount
-          else a.d45plus += amount
-        }
-      }
-    }
+    const aging = buildAging(ownReceivables, today)
 
     byCurrency[currency] = {
       currency,

@@ -66,7 +66,7 @@ function CarouselItem({ className, ...props }: React.ComponentProps<"div">) {
 function CarouselPrevious({ className, variant = "outline", size = "icon", ...props }: React.ComponentProps<typeof Button>) {
   return (
     <Button variant={variant} size={size} className={cn("absolute size-8 rounded-full", className)} {...props}>
-      <ArrowLeft />
+      <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
       <span className="sr-only">Previous slide</span>
     </Button>
   )
@@ -75,7 +75,7 @@ function CarouselPrevious({ className, variant = "outline", size = "icon", ...pr
 function CarouselNext({ className, variant = "outline", size = "icon", ...props }: React.ComponentProps<typeof Button>) {
   return (
     <Button variant={variant} size={size} className={cn("absolute size-8 rounded-full", className)} {...props}>
-      <ArrowRight />
+      <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
       <span className="sr-only">Next slide</span>
     </Button>
   )

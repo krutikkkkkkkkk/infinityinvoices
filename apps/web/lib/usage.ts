@@ -1,9 +1,11 @@
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
-import { getPlan, getFreePlan } from "@/lib/plans"
+import { getPlanForSubscription } from "@/lib/plans"
 
-export async function checkAndIncrementUsage(
-  type: "invoice" | "quotation" | "email"
-): Promise<{ allowed: boolean; remaining: number; limit: number }> {
+type UsageType = "invoice" | "quotation" | "email"
+type UsageResult = { allowed: boolean; remaining: number; limit: number }
+
+export async function checkAndIncrementUsage(type: UsageType): Promise<UsageResult> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -13,21 +15,29 @@ export async function checkAndIncrementUsage(
     return { allowed: false, remaining: 0, limit: 0 }
   }
 
+  return consumeUsage(supabase, user.id, type)
+}
+
+/**
+ * Checks the user's monthly limit and records one use if allowed.
+ * Takes the client explicitly so jobs without a session (cron) can use the admin client.
+ */
+export async function consumeUsage(supabase: SupabaseClient, userId: string, type: UsageType): Promise<UsageResult> {
   // Get subscription
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan")
-    .eq("user_id", user.id)
+    .select("plan, status")
+    .eq("user_id", userId)
     .single()
 
-  const plan = getPlan(subscription?.plan || "free") || getFreePlan()
+  const plan = getPlanForSubscription(subscription)
   const monthYear = new Date().toISOString().slice(0, 7)
 
   // Get or create usage record
   let { data: usage } = await supabase
     .from("usage_tracking")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("month_year", monthYear)
     .single()
 
@@ -35,7 +45,7 @@ export async function checkAndIncrementUsage(
     const { data: newUsage } = await supabase
       .from("usage_tracking")
       .insert({
-        user_id: user.id,
+        user_id: userId,
         month_year: monthYear,
         invoices_created: 0,
         quotations_created: 0,
@@ -74,7 +84,7 @@ export async function checkAndIncrementUsage(
     await supabase
       .from("usage_tracking")
       .update({ [field]: currentCount + 1 })
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("month_year", monthYear)
 
     return { allowed: true, remaining: -1, limit: -1 }
@@ -88,7 +98,7 @@ export async function checkAndIncrementUsage(
   await supabase
     .from("usage_tracking")
     .update({ [field]: currentCount + 1 })
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("month_year", monthYear)
 
   return { allowed: true, remaining: limit - currentCount - 1, limit }
@@ -108,11 +118,11 @@ export async function getUsageStatus(
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan")
+    .select("plan, status")
     .eq("user_id", user.id)
     .single()
 
-  const plan = getPlan(subscription?.plan || "free") || getFreePlan()
+  const plan = getPlanForSubscription(subscription)
   const monthYear = new Date().toISOString().slice(0, 7)
 
   const { data: usage } = await supabase
@@ -160,11 +170,11 @@ export async function getUsageStats() {
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan")
+    .select("plan, status")
     .eq("user_id", user.id)
     .single()
 
-  const plan = getPlan(subscription?.plan || "free") || getFreePlan()
+  const plan = getPlanForSubscription(subscription)
   const monthYear = new Date().toISOString().slice(0, 7)
 
   const { data: usage } = await supabase

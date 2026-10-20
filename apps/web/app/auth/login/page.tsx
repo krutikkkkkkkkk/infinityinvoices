@@ -115,15 +115,7 @@ export default function Page() {
 
     try {
       localStorage.setItem('lastLoginMethod', 'email')
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/dashboard`,
-        },
-      })
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
       router.push('/dashboard')
     } catch (error: unknown) {

@@ -57,7 +57,7 @@ const mainNavItems = [
 
 const toolsNavItems = [
   { href: "/dashboard/tools/currency-converter", label: "Currency Converter", icon: ExchangeIcon },
-  { href: "/dashboard/usage", label: "Usage", icon: Activity01Icon },
+  { href: "/dashboard/plan", label: "Plan & usage", icon: Activity01Icon },
   { href: "/dashboard/bug-report", label: "Report Bug", icon: Bug01Icon },
 ]
 
@@ -177,14 +177,14 @@ export function AppSidebar({ user, profile }: { user: User; profile?: any }) {
         {!isPro && (
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 group-data-[collapsible=icon]:hidden">
-                <p className="text-xs font-medium text-primary mb-1">Upgrade to Pro</p>
-                <p className="text-xs text-muted-foreground mb-3">
+              <div className="rounded-2xl bg-spotlight p-4 text-spotlight-foreground group-data-[collapsible=icon]:hidden">
+                <p className="mb-1 text-sm font-medium">Upgrade to Pro</p>
+                <p className="mb-3 text-xs text-spotlight-foreground/60">
                   Unlimited invoices & emails
                 </p>
                 <Link
-                  href="/dashboard/pricing"
-                  className="inline-flex h-7 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  href="/dashboard/plan"
+                  className="inline-flex h-8 items-center justify-center rounded-full bg-spotlight-foreground px-4 text-xs font-medium text-spotlight transition-[opacity,transform] hover:opacity-90 active:scale-[0.97]"
                 >
                   Upgrade
                 </Link>
@@ -235,7 +235,7 @@ export function AppSidebar({ user, profile }: { user: User; profile?: any }) {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/usage">Usage & Billing</Link>
+                  <Link href="/dashboard/plan">Plan & billing</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/settings" className="flex items-center gap-2">
@@ -247,7 +247,7 @@ export function AppSidebar({ user, profile }: { user: User; profile?: any }) {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/pricing" className="text-primary">
+                      <Link href="/dashboard/plan" className="text-primary">
                         Upgrade to Pro
                       </Link>
                     </DropdownMenuItem>

@@ -18,13 +18,12 @@ export const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
-    description: "Unlimited access for a limited time",
+    description: "For trying things out",
     priceInCents: 0,
     features: [
-      "Unlimited invoices",
-      "Unlimited quotations",
+      "5 invoices per month",
+      "5 quotations per month",
       "Unlimited clients",
-      "Unlimited email sending",
       "All templates unlocked",
       "PDF downloads",
       "Custom branding",
@@ -32,17 +31,17 @@ export const PLANS: Plan[] = [
       "Share invoices via link",
     ],
     limits: {
-      invoicesPerMonth: -1, // -1 means unlimited
-      quotationsPerMonth: -1,
-      emailsPerMonth: -1,
-      clients: -1,
+      invoicesPerMonth: 5,
+      quotationsPerMonth: 5,
+      emailsPerMonth: 0, // email sending is Pro-only (enforced in the send routes)
+      clients: -1, // -1 means unlimited
     },
   },
   {
     id: "pro",
     name: "Pro",
     description: "For growing businesses",
-    priceInCents: 1000, // $10/month
+    priceInCents: 500, // $5/month — must match the Dodo product price
     priceBillingCycle: "month",
     polarProductId: "prod_pro", // Will be set after creating in Polar
     features: [
@@ -74,4 +73,16 @@ export const PRO_PLAN = PLANS.find((p) => p.id === "pro")!
 
 export function getProPlan(): Plan {
   return PLANS.find((p) => p.id === "pro")!
+}
+
+type SubscriptionLike = { plan?: string | null; status?: string | null } | null | undefined
+
+/** Pro and Lifetime count as paid only while the subscription is active. */
+export function hasPaidPlan(subscription: SubscriptionLike): boolean {
+  return (subscription?.plan === "pro" || subscription?.plan === "lifetime") && subscription?.status === "active"
+}
+
+/** The plan whose limits apply to this subscription; Lifetime gets Pro limits. */
+export function getPlanForSubscription(subscription: SubscriptionLike): Plan {
+  return hasPaidPlan(subscription) ? PRO_PLAN : FREE_PLAN
 }

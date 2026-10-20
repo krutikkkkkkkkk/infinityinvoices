@@ -106,7 +106,7 @@ export function DashboardHeader({ user }: { user: User }) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/usage" className="flex items-center gap-2">
+                <Link href="/dashboard/plan" className="flex items-center gap-2">
                   Usage & Billing
                 </Link>
               </DropdownMenuItem>
@@ -120,7 +120,7 @@ export function DashboardHeader({ user }: { user: User }) {
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/pricing" className="flex items-center gap-2 text-primary">
+                    <Link href="/dashboard/plan" className="flex items-center gap-2 text-primary">
                       Upgrade to Pro
                     </Link>
                   </DropdownMenuItem>
@@ -161,14 +161,14 @@ export function DashboardHeader({ user }: { user: User }) {
                 ))}
                 <div className="my-2 border-t" />
                 <Link
-                  href="/dashboard/usage"
+                  href="/dashboard/plan"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-3 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 >
                   Usage & Billing
                 </Link>
                 <Link
-                  href="/dashboard/pricing"
+                  href="/dashboard/plan"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-3 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 >
@@ -176,7 +176,7 @@ export function DashboardHeader({ user }: { user: User }) {
                 </Link>
                 {!isPro && (
                   <Button asChild className="mt-4 mx-4">
-                    <Link href="/dashboard/pricing" onClick={() => setMobileMenuOpen(false)}>
+                    <Link href="/dashboard/plan" onClick={() => setMobileMenuOpen(false)}>
                       Upgrade to Pro
                     </Link>
                   </Button>

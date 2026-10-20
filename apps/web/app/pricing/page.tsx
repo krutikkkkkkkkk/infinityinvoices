@@ -18,7 +18,7 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Enjoy unlimited access for a limited time. Upgrade to Pro when you&apos;re ready for more features.
+            Start free with 5 invoices and 5 quotations a month. Upgrade to Pro when you need more.
           </p>
         </div>
 
@@ -101,18 +101,17 @@ export default function PricingPage() {
           <h2 className="text-2xl font-bold mb-8 text-center">Frequently Asked Questions</h2>
           <div className="space-y-6">
             <div>
-              <h3 className="font-semibold mb-2">Why is everything free right now?</h3>
+              <h3 className="font-semibold mb-2">What happens when I reach the Free limit?</h3>
               <p className="text-muted-foreground text-sm">
-                We're still building and want to get feedback from real users. Everything is free to use
-                while we develop the platform. We may introduce pricing in the future, but all current
-                users will have lifetime access to their features.
+                You can keep viewing, editing, downloading and sharing your existing documents. New invoices
+                and quotations unlock again at the start of next month, or right away when you upgrade to Pro.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">Will I lose access if I don't upgrade?</h3>
+              <h3 className="font-semibold mb-2">Will I lose my data if I don&apos;t upgrade?</h3>
               <p className="text-muted-foreground text-sm">
-                No. All current users will maintain their access to the features they're using, even
-                if we introduce paid plans in the future. Your data and invoices are always yours.
+                No. Everything you&apos;ve created stays in your account on the Free plan. Your data and
+                invoices are always yours.
               </p>
             </div>
 

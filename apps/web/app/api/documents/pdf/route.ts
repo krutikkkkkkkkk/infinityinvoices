@@ -97,10 +97,9 @@ export async function GET(request: NextRequest) {
 
     try {
       const browser = await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
+        args: puppeteer.defaultArgs({ args: chromium.args, headless: "shell" }),
         executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
+        headless: "shell",
       })
 
       try {
@@ -121,7 +120,7 @@ export async function GET(request: NextRequest) {
           },
         })
 
-        return new NextResponse(pdf, {
+        return new NextResponse(new Uint8Array(pdf), {
           headers: {
             "Content-Type": "application/pdf",
             "Content-Disposition": `attachment; filename="${document.number || document.type}-${Date.now()}.pdf"`,
