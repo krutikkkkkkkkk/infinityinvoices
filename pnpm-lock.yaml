@@ -175,9 +175,6 @@ importers:
       '@infinity/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@polar-sh/nextjs':
-        specifier: 0.9.3
-        version: 0.9.3(next@16.2.10(@babel/core@7.29.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       '@radix-ui/react-accordion':
         specifier: 1.2.2
         version: 1.2.2(@types/react-dom@19.2.3(@types/react@19.2.11))(@types/react@19.2.11)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -901,18 +898,6 @@ packages:
 
   '@open-draft/until@2.1.0':
     resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
-
-  '@polar-sh/adapter-utils@0.4.3':
-    resolution: {integrity: sha512-9xjOyaAVWRFaFZKkSdZr8J6i5LToUoFKeoczXCEu6+uxAhKmkjA3Qlc8otI4be1DSouWgrYB/VUGHOW7dIgCuQ==}
-
-  '@polar-sh/nextjs@0.9.3':
-    resolution: {integrity: sha512-3laah76J2qqt/dln/GFL5XaVFdwVaY5xsrMqIX2nNf/5/6frrodth88eGie0UOIhA6OUvmZMuKnW2tGaroMi5g==}
-    engines: {node: '>=16'}
-    peerDependencies:
-      next: ^15.0.0 || ^16.0.0
-
-  '@polar-sh/sdk@0.42.5':
-    resolution: {integrity: sha512-GzC3/ElCtMO55+KeXwFTANlydZzw5qI3DU/F9vAFIsUKuegSmh+Xu03KCL+ct9/imJOvLUQucYhUSsNKqo2j2Q==}
 
   '@puppeteer/browsers@2.13.0':
     resolution: {integrity: sha512-46BZJYJjc/WwmKjsvDFykHtXrtomsCIrwYQPOP7VfMJoZY2bsDF9oROBABR3paDjDcmkUye1Pb1BqdcdiipaWA==}
@@ -4828,21 +4813,6 @@ snapshots:
       outvariant: 1.4.3
 
   '@open-draft/until@2.1.0': {}
-
-  '@polar-sh/adapter-utils@0.4.3':
-    dependencies:
-      '@polar-sh/sdk': 0.42.5
-
-  '@polar-sh/nextjs@0.9.3(next@16.2.10(@babel/core@7.29.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))':
-    dependencies:
-      '@polar-sh/adapter-utils': 0.4.3
-      '@polar-sh/sdk': 0.42.5
-      next: 16.2.10(@babel/core@7.29.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-
-  '@polar-sh/sdk@0.42.5':
-    dependencies:
-      standardwebhooks: 1.0.0
-      zod: 3.25.76
 
   '@puppeteer/browsers@2.13.0':
     dependencies:

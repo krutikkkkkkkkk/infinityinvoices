@@ -60,7 +60,6 @@ Each app reads its own env file: `apps/web/.env.local` and `apps/landing/.env.lo
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Sending invoices and reminders |
 | `DODO_PAYMENTS_API_KEY`, `DODO_PAYMENTS_WEBHOOK_KEY`, `DODO_PAYMENTS_ENVIRONMENT` | Checkout and subscription webhooks |
 | `NEXT_PUBLIC_DODO_PRO_PRODUCT_ID`, `NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID` | Dodo product IDs per plan |
-| `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET` | Legacy Polar subscribers (portal + webhook) |
 | `CRON_SECRET` | Protects `/api/cron/invoicing` |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | Telegram bot |
 | `NEXT_PUBLIC_IMGBB_API_KEY` | Logo uploads (see [`IMGBB_SETUP.md`](apps/web/IMGBB_SETUP.md)) |

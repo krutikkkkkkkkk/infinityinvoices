@@ -4,7 +4,6 @@ export interface Plan {
   description: string
   priceInCents: number
   priceBillingCycle?: string // For non-recurring plans
-  polarProductId?: string // Polar Product ID - set after creating in Polar dashboard
   features: string[]
   limits: {
     invoicesPerMonth: number
@@ -43,7 +42,6 @@ export const PLANS: Plan[] = [
     description: "For growing businesses",
     priceInCents: 500, // $5/month — must match the Dodo product price
     priceBillingCycle: "month",
-    polarProductId: "prod_pro", // Will be set after creating in Polar
     features: [
       "Unlimited invoices per month",
       "Unlimited quotations",

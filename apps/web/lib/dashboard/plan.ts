@@ -69,7 +69,7 @@ export async function getPlanOverview(userId: string): Promise<PlanOverview> {
     status: sub?.status ?? "active",
     renewsAt: sub?.current_period_end ?? null,
     cancelsAtPeriodEnd: Boolean(sub?.cancel_at_period_end),
-    canManageBilling: Boolean(sub?.dodo_customer_id || sub?.polar_customer_id),
+    canManageBilling: Boolean(sub?.dodo_customer_id),
     checkout: { pro: Boolean(getProductIdForPlan("pro")), lifetime: Boolean(getProductIdForPlan("lifetime")) },
     lifetime: { available: lifetime.available, remaining: lifetime.remaining, limit: lifetime.limit },
     usage: {

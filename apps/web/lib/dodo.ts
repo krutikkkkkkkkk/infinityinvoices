@@ -3,7 +3,7 @@ import DodoPayments from "dodopayments"
 
 export type DodoEnvironment = "live_mode" | "test_mode"
 
-// Defaults to live in production builds and test mode elsewhere, same as the old Polar setup.
+// Defaults to live in production builds and test mode elsewhere.
 export function getDodoEnvironment(): DodoEnvironment {
   const env = process.env.DODO_PAYMENTS_ENVIRONMENT
   if (env === "live_mode" || env === "test_mode") return env

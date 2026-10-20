@@ -14,7 +14,6 @@
     "@hugeicons/core-free-icons": "3.1.1",
     "@hugeicons/react": "1.1.4",
     "@infinity/ui": "workspace:*",
-    "@polar-sh/nextjs": "0.9.3",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
