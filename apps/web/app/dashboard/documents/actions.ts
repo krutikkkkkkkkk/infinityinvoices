@@ -333,6 +333,14 @@ export async function duplicateDocument(id: string) {
       terms: original.terms,
       payment_method: original.payment_method,
       upi_id: original.upi_id,
+      payment_methods: original.payment_methods ?? null,
+      payment_method_type: original.payment_method_type ?? null,
+      paypal_email: original.paypal_email ?? null,
+      bank_name: original.bank_name ?? null,
+      bank_account_name: original.bank_account_name ?? null,
+      bank_account_number: original.bank_account_number ?? null,
+      bank_routing_number: original.bank_routing_number ?? null,
+      bank_swift_code: original.bank_swift_code ?? null,
     })
     .select()
     .single()
@@ -458,6 +466,14 @@ export async function convertToInvoice(id: string) {
       terms: quotation.terms,
       payment_method: quotation.payment_method,
       upi_id: quotation.upi_id,
+      payment_methods: quotation.payment_methods ?? null,
+      payment_method_type: quotation.payment_method_type ?? null,
+      paypal_email: quotation.paypal_email ?? null,
+      bank_name: quotation.bank_name ?? null,
+      bank_account_name: quotation.bank_account_name ?? null,
+      bank_account_number: quotation.bank_account_number ?? null,
+      bank_routing_number: quotation.bank_routing_number ?? null,
+      bank_swift_code: quotation.bank_swift_code ?? null,
     })
     .select()
     .single()

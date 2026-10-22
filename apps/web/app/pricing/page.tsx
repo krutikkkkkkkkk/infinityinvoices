@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button"
-import { Check } from "lucide-react"
+import { Check, X } from "lucide-react"
 import Link from "next/link"
 import { PLANS } from "@/lib/plans"
+import { YearlyPrice } from "@/components/pricing/yearly-price"
 
 export const metadata = {
   title: "Pricing - Infinity Invoice",
@@ -18,7 +19,8 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start free with 5 invoices and 5 quotations a month. Upgrade to Pro when you need more.
+            Start free with 5 invoices and 5 quotations a month. Upgrade to Pro for unlimited documents and
+            email sending.
           </p>
         </div>
 
@@ -52,6 +54,7 @@ export default function PricingPage() {
                       <span className="text-4xl font-bold">${(plan.priceInCents / 100).toFixed(0)}</span>
                       <span className="text-muted-foreground">/{plan.priceBillingCycle || "month"}</span>
                     </div>
+                    {plan.id === "pro" && <YearlyPrice className="mt-2" />}
                   </div>
                 )}
 
@@ -74,6 +77,14 @@ export default function PricingPage() {
                       <span className="text-sm">{feature}</span>
                     </div>
                   ))}
+                  {plan.excludedFeatures?.map((feature) => (
+                    <div key={feature} className="flex items-start gap-3 text-muted-foreground">
+                      <X className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden />
+                      <span className="text-sm">
+                        <span className="line-through">{feature}</span> · Pro only
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Limits Info */}
@@ -89,6 +100,14 @@ export default function PricingPage() {
                     <li>
                       • Clients: {plan.limits.clients === -1 ? "Unlimited" : plan.limits.clients}
                     </li>
+                    <li>
+                      • Email sending:{" "}
+                      {plan.limits.emailsPerMonth === -1
+                        ? "Unlimited"
+                        : plan.limits.emailsPerMonth === 0
+                          ? "Pro only"
+                          : `${plan.limits.emailsPerMonth} per month`}
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -103,8 +122,16 @@ export default function PricingPage() {
             <div>
               <h3 className="font-semibold mb-2">What happens when I reach the Free limit?</h3>
               <p className="text-muted-foreground text-sm">
-                You can keep viewing, editing, downloading and sharing your existing documents. New invoices
+                You can keep viewing, editing and downloading your existing documents. New invoices
                 and quotations unlock again at the start of next month, or right away when you upgrade to Pro.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">Can I email invoices on the Free plan?</h3>
+              <p className="text-muted-foreground text-sm">
+                No. Sending invoices, quotations and payment reminders by email is only available on paid plans.
+                On Free you can still download the PDF and send it yourself. Upgrade to Pro for
+                unlimited email sending.
               </p>
             </div>
             <div>

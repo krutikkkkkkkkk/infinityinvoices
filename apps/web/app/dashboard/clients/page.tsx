@@ -29,7 +29,7 @@ export default async function ClientsPage() {
             Manage your client information
           </p>
         </div>
-        <AddClientDialog />
+        <AddClientDialog clientCount={clients?.length ?? 0} />
       </div>
 
       <Card>

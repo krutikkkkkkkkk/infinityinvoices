@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getLifetimePlanAvailability } from "@/app/actions/lifetime"
-import { getDodo, getProductIdForPlan, type PaidPlan } from "@/lib/dodo"
+import { getDodo, getProductIdForPlan, type CheckoutPlan } from "@/lib/dodo"
 
-// GET /api/checkout?plan=pro|lifetime
+// GET /api/checkout?plan=pro|pro_yearly|lifetime
 // Creates a Dodo Payments checkout session for the signed-in user and redirects to it.
 export async function GET(request: NextRequest) {
   const pricingUrl = (query: string) => new URL(`/dashboard/plan?${query}`, request.url)
 
-  const plan = request.nextUrl.searchParams.get("plan") as PaidPlan | null
-  if (plan !== "pro" && plan !== "lifetime") {
+  const plan = request.nextUrl.searchParams.get("plan") as CheckoutPlan | null
+  if (plan !== "pro" && plan !== "pro_yearly" && plan !== "lifetime") {
     return NextResponse.redirect(pricingUrl("error=invalid_plan"))
   }
 

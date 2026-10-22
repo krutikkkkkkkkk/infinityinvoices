@@ -74,12 +74,23 @@ export interface Document {
   terms: string | null
   payment_method: string | null
   upi_id: string | null
+  /** Payment methods ticked on the form. null/undefined on documents created before the selector existed. */
+  payment_methods?: PaymentMethodType[] | null
+  payment_method_type?: PaymentMethodType | null
+  paypal_email?: string | null
+  bank_name?: string | null
+  bank_account_name?: string | null
+  bank_account_number?: string | null
+  bank_routing_number?: string | null
+  bank_swift_code?: string | null
   client_name: string | null
   client_email: string | null
   client_address: string | null
   client_gst_id: string | null
   include_tax: boolean
   amount_paid?: number
+  /** Sum of credit notes issued against the invoice (maintained by the server). */
+  credit_total?: number
   late_fee_type?: 'fixed' | 'percentage' | null
   late_fee_value?: number | null
   parent_document_id?: string | null
@@ -210,7 +221,6 @@ export interface Payment {
 
 // Extended Document type with new fields
 export interface DocumentWithPayments extends Document {
-  share_token?: string | null
   amount_paid?: number
   last_reminder_sent?: string | null
   reminder_count?: number

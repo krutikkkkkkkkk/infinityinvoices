@@ -1,16 +1,17 @@
 "use server"
 
 import { getAdminUser } from "@/lib/admin"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function upgradeUserToPro(userId: string) {
   try {
-    const supabase = await createClient()
-    
     // Verify that the current user is an admin
     if (!(await getAdminUser())) {
       return { success: false, message: "Unauthorized: Admin access required" }
     }
+
+    // Users can't write subscriptions under RLS, so admin changes go through the service role
+    const supabase = createAdminClient()
 
     // Check if user has an existing subscription
     const { data: existingSubscription } = await supabase
@@ -57,12 +58,13 @@ export async function upgradeUserToPro(userId: string) {
 
 export async function downgradeUserToFree(userId: string) {
   try {
-    const supabase = await createClient()
-    
     // Verify that the current user is an admin
     if (!(await getAdminUser())) {
       return { success: false, message: "Unauthorized: Admin access required" }
     }
+
+    // Users can't write subscriptions under RLS, so admin changes go through the service role
+    const supabase = createAdminClient()
 
     const { error } = await supabase
       .from("subscriptions")

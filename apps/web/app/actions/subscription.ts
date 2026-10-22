@@ -22,38 +22,3 @@ export async function refreshSubscription() {
   
   return { subscription, error: error?.message }
 }
-
-export async function createFreeSubscription() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return { error: "Not authenticated" }
-  }
-
-  // Check if subscription already exists
-  const { data: existing } = await supabase
-    .from("subscriptions")
-    .select("id")
-    .eq("user_id", user.id)
-    .single()
-
-  if (existing) {
-    return { error: "Subscription already exists" }
-  }
-
-  // Create free subscription
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .insert({
-      user_id: user.id,
-      plan: "free",
-      status: "active",
-    })
-    .select()
-    .single()
-
-  revalidatePath("/dashboard/plan")
-  
-  return { subscription: data, error: error?.message }
-}

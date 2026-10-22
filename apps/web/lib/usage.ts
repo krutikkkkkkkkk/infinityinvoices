@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { getPlanForSubscription } from "@/lib/plans"
 
 type UsageType = "invoice" | "quotation" | "email"
@@ -15,7 +16,8 @@ export async function checkAndIncrementUsage(type: UsageType): Promise<UsageResu
     return { allowed: false, remaining: 0, limit: 0 }
   }
 
-  return consumeUsage(supabase, user.id, type)
+  // usage_tracking is not writable by users (they could reset their own limits), so record with the service role
+  return consumeUsage(createAdminClient(), user.id, type)
 }
 
 /**

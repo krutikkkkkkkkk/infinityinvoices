@@ -1,19 +1,44 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateDocumentHTML, type TemplateType } from "@/lib/generate-document-html"
-import puppeteer from "puppeteer-core"
-import chromium from "@sparticuz/chromium"
+import { isAdmin } from "@/lib/admin"
+import { isTemplateType, type TemplateType } from "@/lib/generate-document-html"
+import { parseTemplateColors } from "@/lib/document-style"
+import { renderDocumentPdf } from "@/lib/pdf/render"
+import { getPlanForUser } from "@/lib/plan-server"
+import { allowedColors, allowedTemplate, applyBranding } from "@/lib/plans"
 
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const maxDuration = 60
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * GET /api/documents/pdf?id=<uuid>&template=<classic|minimal|tax|dark|executive|bold>
+ *
+ * Query options:
+ *  - `primary`, `accent` → hex colour overrides for the template (Pro plans only)
+ *  - `inline=1`     → Content-Disposition: inline (open in the browser tab)
+ *  - `format=html`  → return the print-ready HTML instead of a PDF
+ *
+ * When no Chromium binary is available the route responds with JSON
+ * `{ fallback: true, html }` so the client can open the browser's print dialog.
+ */
 export async function GET(request: NextRequest) {
+  const params = request.nextUrl.searchParams
+  const documentId = params.get("id")
+  const requestedTemplate = params.get("template")
+  const wantedTemplate: TemplateType = isTemplateType(requestedTemplate) ? requestedTemplate : "classic"
+  // Only valid hex colours survive parsing: these values end up inside the document's CSS
+  const wantedColors = parseTemplateColors({ primary: params.get("primary"), accent: params.get("accent") })
+  const inline = params.get("inline") === "1"
+  const wantsHtml = params.get("format") === "html"
+
+  if (!documentId || !UUID_REGEX.test(documentId)) {
+    return NextResponse.json({ error: "A valid document id is required" }, { status: 400 })
+  }
+
   try {
-    const documentId = request.nextUrl.searchParams.get("id")
-    const template = (request.nextUrl.searchParams.get("template") || "classic") as TemplateType
-
-    if (!documentId) {
-      return NextResponse.json({ error: "Document ID required" }, { status: 400 })
-    }
-
-    // Verify authentication and ownership
     const supabase = await createClient()
     const {
       data: { user },
@@ -24,120 +49,67 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Fetch document with line items and profile
-    const { data: document, error: docError } = await supabase
-      .from("documents")
-      .select("*, line_items(*)")
-      .eq("id", documentId)
-      .eq("user_id", user.id)
-      .single()
+    const admin = await isAdmin()
+    let query = supabase.from("documents").select("*, line_items(*)").eq("id", documentId)
+    if (!admin) query = query.eq("user_id", user.id)
+    const { data: document, error: docError } = await query.single()
 
     if (docError || !document) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
-    // Fetch user profile
     const { data: profile } = await supabase
       .from("profiles")
-      .select("company_name, company_address, gst_id, email, phone, logo_url, upi_id, paypal_email, bank_name, bank_account_name, bank_account_number, bank_routing_number, bank_swift_code")
-      .eq("id", user.id)
+      .select(
+        "company_name, company_address, gst_id, email, phone, logo_url, upi_id, paypal_email, bank_name, bank_account_name, bank_account_number, bank_routing_number, bank_swift_code"
+      )
+      .eq("id", document.user_id)
       .single()
 
-    // Generate HTML using shared generator with selected template
-    const baseHtml = generateDocumentHTML(document, profile, template)
-    
-    // Inject print styles for proper color rendering and page breaks
-    const html = baseHtml.replace(
-      "</style>",
-      `
-    /* Print color rendering */
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-    }
-    
-    /* Page break utilities */
-    .page-break {
-      break-after: page;
-      page-break-after: always;
-    }
-    
-    .no-break {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    
-    /* Ensure table rows don't break */
-    tr {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    
-    /* Ensure totals section stays together */
-    .totals {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    
-    /* Ensure payment info stays together */
-    .payment-info {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    
-    @media print {
-      body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-    }
-  </style>`
+    // Free plans can't use every template, show a logo or pick colours: render what the owner's plan allows
+    const plan = await getPlanForUser(document.user_id)
+    const template = allowedTemplate(plan, wantedTemplate)
+    const rendered = await renderDocumentPdf(
+      document,
+      applyBranding(plan, profile),
+      template,
+      allowedColors(plan, wantedColors)
     )
 
-    try {
-      const browser = await puppeteer.launch({
-        args: puppeteer.defaultArgs({ args: chromium.args, headless: "shell" }),
-        executablePath: await chromium.executablePath(),
-        headless: "shell",
-      })
-
-      try {
-        const page = await browser.newPage()
-
-        await page.setContent(html, {
-          waitUntil: "networkidle0",
-        })
-
-        const pdf = await page.pdf({
-          format: "A4",
-          printBackground: true,
-          margin: {
-            top: "0mm",
-            right: "0mm",
-            bottom: "0mm",
-            left: "0mm",
-          },
-        })
-
-        return new NextResponse(new Uint8Array(pdf), {
-          headers: {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${document.number || document.type}-${Date.now()}.pdf"`,
-          },
-        })
-      } finally {
-        await browser.close()
-      }
-    } catch (pdfError) {
-      console.error("Server PDF generation failed, using fallback:", pdfError)
-      return NextResponse.json({
-        fallback: true,
-        html,
+    if (wantsHtml) {
+      return new NextResponse(rendered.html, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "private, no-store",
+          "Content-Security-Policy":
+            "default-src 'none'; img-src data: https:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com",
+        },
       })
     }
+
+    if (!rendered.pdf) {
+      return NextResponse.json(
+        {
+          fallback: true,
+          html: rendered.html,
+          fileName: rendered.fileName,
+          reason: rendered.error ?? "Rendering failed",
+        },
+        { headers: { "Cache-Control": "private, no-store" } }
+      )
+    }
+
+    return new NextResponse(new Uint8Array(rendered.pdf), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Length": String(rendered.pdf.byteLength),
+        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${rendered.fileName}"`,
+        "Cache-Control": "private, no-store",
+        "X-Document-Template": template,
+      },
+    })
   } catch (error) {
-    console.error("PDF generation error:", error)
+    console.error("[pdf] Unexpected error:", error)
     return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 })
   }
 }

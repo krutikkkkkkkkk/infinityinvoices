@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
+import { getPlanForUser } from "@/lib/plan-server"
+import { applyBranding } from "@/lib/plans"
 import { DocumentForm } from "@/components/dashboard/document-form"
 import { redirect } from "next/navigation"
 import type { DocumentType } from "@/lib/types"
@@ -8,11 +10,16 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import { getUsageStatus } from "@/lib/usage"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ApplyDocumentStyle } from "@/components/dashboard/apply-document-style"
+import { parseDocumentStyle } from "@/lib/document-style"
+import type { DocumentFormData } from "@/lib/types"
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export default async function NewDocumentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; client?: string }>
+  searchParams: Promise<{ type?: string; client?: string; preset?: string }>
 }) {
   const params = await searchParams
   const type = (params.type === "quotation" ? "quotation" : "invoice") as DocumentType
@@ -55,6 +62,17 @@ export default async function NewDocumentPage({
         client_gst_id: presetClient.gst_id || "",
       }
     : undefined
+
+  // ?preset=<id> (from the presets page) pre-fills the form and applies the preset's saved look
+  const { data: selectedPreset } =
+    params.preset && UUID_REGEX.test(params.preset)
+      ? await supabase.from("invoice_presets").select("data").eq("id", params.preset).eq("user_id", user.id).maybeSingle()
+      : { data: null }
+  const presetData = (selectedPreset?.data as (Partial<DocumentFormData> & { style?: unknown }) | null) || null
+  const presetStyle = parseDocumentStyle(presetData?.style)
+  // A client chosen explicitly wins over the client stored in the preset
+  const formPreset: Partial<DocumentFormData> | undefined =
+    presetData || clientPreset ? { ...presetData, ...clientPreset } : undefined
 
   // Get profile for auto-filling payment methods
   const { data: profile } = await supabase
@@ -108,7 +126,10 @@ export default async function NewDocumentPage({
           </CardContent>
         </Card>
       ) : (
-        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} preset={clientPreset} />
+        <>
+          <ApplyDocumentStyle style={presetStyle} />
+          <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={applyBranding(await getPlanForUser(user.id), profile)} preset={formPreset} />
+        </>
       )}
     </div>
   )

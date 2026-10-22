@@ -1,64 +1,78 @@
 import { createClient } from "@/lib/supabase/server"
 import { Resend } from "resend"
 import { NextRequest, NextResponse } from "next/server"
-import { CURRENCIES } from "@/lib/types"
+import { checkAndIncrementUsage } from "@/lib/usage"
+import { hasPaidPlan } from "@/lib/plans"
+import { formatDate, formatMoney, isTemplateType, type TemplateType } from "@/lib/generate-document-html"
+import { parseTemplateColors } from "@/lib/document-style"
+import { renderDocumentPdf } from "@/lib/pdf/render"
+import { getInvoiceBalance } from "@/lib/invoice-balance"
+import { buildReminderEmail } from "@/lib/email/templates"
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+/**
+ * POST /api/send-reminder
+ * Body: { documentId, template?, colors?: { primary?, accent? } }
+ *
+ * Sends a short payment reminder with a copy of the invoice attached as a PDF.
+ */
 export async function POST(request: NextRequest) {
   try {
-    const { documentId } = await request.json()
+    const body = await request.json().catch(() => null)
+    const documentId = typeof body?.documentId === "string" ? body.documentId : ""
+    const template: TemplateType = isTemplateType(body?.template) ? body.template : "classic"
+    // Custom colours are a paid feature; this route already requires a paid plan below.
+    const colors = parseTemplateColors(body?.colors)
 
     if (!documentId) {
       return NextResponse.json({ error: "Document ID required" }, { status: 400 })
     }
 
     const supabase = await createClient()
-
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if user has Pro plan
+    // Reminder emails are only available on paid plans (Pro / Lifetime)
     const { data: subscription } = await supabase
       .from("subscriptions")
       .select("plan, status")
       .eq("user_id", user.id)
       .single()
 
-    const isPro = (subscription?.plan === "pro" || subscription?.plan === "lifetime") && subscription?.status === "active"
-
-    if (!isPro) {
-      return NextResponse.json({ 
-        error: "PRO_REQUIRED:Payment reminders are a Pro feature. Upgrade to Pro for automated reminders and unlimited emails.",
-        requiresUpgrade: true 
-      }, { status: 403 })
+    if (!hasPaidPlan(subscription)) {
+      return NextResponse.json(
+        {
+          error:
+            "PRO_REQUIRED:Payment reminders are a Pro feature. Upgrade to Pro for automated reminders and unlimited emails.",
+          requiresUpgrade: true,
+        },
+        { status: 403 }
+      )
     }
 
-    // Fetch document with client info
     const { data: document, error: docError } = await supabase
       .from("documents")
-      .select(
-        `
-        *,
-        clients:client_id(id, name, email, auto_reminder)
-      `
-      )
+      .select("*, line_items(*), clients:client_id(id, name, email, auto_reminder)")
       .eq("id", documentId)
       .eq("user_id", user.id)
+      .eq("type", "invoice")
       .single()
 
     if (docError || !document) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 })
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
     }
 
-    // Check if client has auto_reminder enabled
     if (document.clients && !document.clients.auto_reminder) {
-      return NextResponse.json({ 
-        error: "Auto reminders are disabled for this client" 
-      }, { status: 403 })
+      return NextResponse.json({ error: "Auto reminders are disabled for this client" }, { status: 403 })
     }
 
     if (!document.client_email) {
@@ -69,130 +83,60 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cannot send reminder for paid/cancelled invoice" }, { status: 400 })
     }
 
-    // Fetch profile
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", document.user_id)
-      .single()
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", document.user_id).single()
 
-    const currency = CURRENCIES.find((c) => c.value === document.currency)
-    const symbol = currency?.symbol || "₹"
-    const amountPaid = Number(document.amount_paid) || 0
-    const remaining = Number(document.grand_total) - amountPaid
+    const { paid: amountPaid, remaining } = getInvoiceBalance(document)
 
-    // Calculate days overdue
     const dueDate = document.due_date ? new Date(document.due_date) : null
-    const today = new Date()
-    const daysOverdue = dueDate ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0
+    const daysOverdue = dueDate
+      ? Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0
 
-    // Generate share link if not exists
-    let shareToken = document.share_token
-    if (!shareToken) {
-      shareToken = crypto.randomUUID()
-      await supabase
-        .from("documents")
-        .update({ share_token: shareToken })
-        .eq("id", documentId)
-        .eq("user_id", user.id)
+    // Count the email against the monthly limit before doing the expensive render
+    const usage = await checkAndIncrementUsage("email")
+    if (!usage.allowed) {
+      return NextResponse.json(
+        {
+          error: `PRO_REQUIRED:You've reached your monthly limit of ${usage.limit} emails.`,
+          requiresUpgrade: true,
+        },
+        { status: 403 }
+      )
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-      (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : "")
-    const invoiceLink = `${siteUrl}/invoice/${shareToken}`
+    const rendered = await renderDocumentPdf(document, profile, template, colors)
+    const companyName = profile?.company_name?.trim() || "Your Company"
 
-    // Email HTML
-    const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; background-color: #f3f4f6; margin: 0; padding: 0;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-    <div style="background: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
-      
-      <!-- Header -->
-      <div style="background: ${daysOverdue > 0 ? "#dc2626" : "#f59e0b"}; padding: 30px; text-align: center;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">
-          ${daysOverdue > 0 ? "Payment Overdue" : "Payment Reminder"}
-        </h1>
-      </div>
+    const email = buildReminderEmail({
+      number: document.number || "DRAFT",
+      amountDue: formatMoney(remaining, document.currency),
+      amountPaid: amountPaid > 0 ? formatMoney(amountPaid, document.currency) : null,
+      dueDateLabel: document.due_date ? formatDate(document.due_date, "long") : null,
+      daysOverdue,
+      clientName: document.client_name,
+      hasAttachment: Boolean(rendered.pdf),
+      sender: { companyName, email: profile?.email, phone: profile?.phone },
+    })
 
-      <div style="padding: 32px;">
-        <p style="margin: 0 0 20px 0; font-size: 16px;">
-          Dear ${document.client_name || "Customer"},
-        </p>
-        
-        <p style="margin: 0 0 20px 0;">
-          ${daysOverdue > 0 
-            ? `This is a reminder that your invoice <strong>${document.number}</strong> is now <strong>${daysOverdue} days overdue</strong>.`
-            : `This is a friendly reminder that invoice <strong>${document.number}</strong> is due${dueDate ? ` on <strong>${dueDate.toLocaleDateString()}</strong>` : " soon"}.`
-          }
-        </p>
-
-        <!-- Amount Box -->
-        <div style="background: ${daysOverdue > 0 ? "#fef2f2" : "#fffbeb"}; border: 1px solid ${daysOverdue > 0 ? "#fecaca" : "#fde68a"}; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
-          <p style="color: #64748b; margin: 0 0 8px 0; font-size: 14px;">Amount Due</p>
-          <p style="color: ${daysOverdue > 0 ? "#dc2626" : "#d97706"}; margin: 0; font-size: 36px; font-weight: 700;">
-            ${symbol}${remaining.toLocaleString()}
-          </p>
-          ${amountPaid > 0 ? `<p style="color: #16a34a; margin: 8px 0 0 0; font-size: 14px;">Paid: ${symbol}${amountPaid.toLocaleString()}</p>` : ""}
-        </div>
-
-        <p style="margin: 0 0 24px 0;">
-          Please make the payment at your earliest convenience to avoid any inconvenience.
-        </p>
-
-        <!-- CTA Button -->
-        <div style="text-align: center; margin: 32px 0;">
-          <a href="${invoiceLink}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
-            View Invoice & Pay
-          </a>
-        </div>
-
-        <p style="margin: 24px 0 0 0; color: #64748b; font-size: 14px;">
-          If you have already made the payment, please disregard this reminder.
-        </p>
-      </div>
-
-      <!-- Footer -->
-      <div style="border-top: 1px solid #e5e7eb; padding: 24px; text-align: center; background: #f9fafb;">
-        <p style="margin: 0; color: #64748b; font-size: 14px;">
-          ${profile?.company_name || "Thank you for your business"}
-        </p>
-        ${profile?.email ? `<p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 12px;">${profile.email}</p>` : ""}
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-`
-
-    // Send email with proper headers for deliverability
-    // Use custom verified domain for best deliverability
     const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@new.infinityinvoices.com"
-    const replyToEmail = profile?.email
-    
+
     const { error: emailError } = await resend.emails.send({
-      from: fromEmail,
+      from: `${companyName.replace(/["<>]/g, "")} via Infinity Invoices <${fromEmail}>`,
       to: document.client_email,
-      replyTo: replyToEmail,
-      subject: `${daysOverdue > 0 ? "OVERDUE: " : "Reminder: "}Invoice ${document.number} - ${symbol}${remaining.toLocaleString()} Due`,
-      html: emailHtml,
-      headers: {
-        "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_SITE_URL}/unsubscribe>`,
-        "X-Mailer": "Infinity Invoices",
-        "Precedence": "bulk",
-      },
+      replyTo: profile?.email || undefined,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+      attachments: rendered.pdf
+        ? [{ filename: rendered.fileName, content: rendered.pdf, contentType: "application/pdf" }]
+        : undefined,
+      headers: { "X-Mailer": "Infinity Invoices" },
     })
 
     if (emailError) {
       return NextResponse.json({ error: emailError.message }, { status: 500 })
     }
 
-    // Update reminder tracking
     await supabase
       .from("documents")
       .update({
@@ -200,9 +144,9 @@ export async function POST(request: NextRequest) {
         reminder_count: (document.reminder_count || 0) + 1,
       })
       .eq("id", documentId)
-        .eq("user_id", user.id)
+      .eq("user_id", user.id)
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, attached: Boolean(rendered.pdf) })
   } catch (error) {
     console.error("Reminder error:", error)
     return NextResponse.json({ error: "Failed to send reminder" }, { status: 500 })

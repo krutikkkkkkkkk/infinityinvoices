@@ -8,8 +8,8 @@ Create, send and track invoices and quotations — with clients, products, recur
 
 - **Invoices & quotations** — create, edit, preview and export to PDF; share a public link (`/invoice/[token]`)
 - **Clients, products & presets** — reusable data for faster document creation
-- **Email delivery & reminders** — send invoices and automatic payment reminders via Resend
-- **Recurring invoicing** — daily cron job (`/api/cron/invoicing`, 01:00 UTC)
+- **Email delivery & reminders** — send invoices via Resend; clients with auto reminders on get a reminder email every week while an invoice is overdue
+- **Recurring invoicing, late fees & weekly overdue reminders** — daily cron job (`/api/cron/invoicing`, 01:00 UTC)
 - **Multi-currency** — per-document currency plus a built-in currency converter
 - **Telegram bot** — manage documents from Telegram
 - **Subscriptions** — Pro and Lifetime plans via Dodo Payments
@@ -59,7 +59,7 @@ Each app reads its own env file: `apps/web/.env.local` and `apps/landing/.env.lo
 | `NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL` | Auth redirect URL in local dev |
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Sending invoices and reminders |
 | `DODO_PAYMENTS_API_KEY`, `DODO_PAYMENTS_WEBHOOK_KEY`, `DODO_PAYMENTS_ENVIRONMENT` | Checkout and subscription webhooks |
-| `NEXT_PUBLIC_DODO_PRO_PRODUCT_ID`, `NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID` | Dodo product IDs per plan |
+| `NEXT_PUBLIC_DODO_PRO_PRODUCT_ID`, `NEXT_PUBLIC_DODO_PRO_YEARLY_PRODUCT_ID`, `NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID` | Dodo product IDs per plan (Pro monthly, Pro yearly, Lifetime) |
 | `CRON_SECRET` | Protects `/api/cron/invoicing` |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | Telegram bot |
 | `NEXT_PUBLIC_IMGBB_API_KEY` | Logo uploads (see [`IMGBB_SETUP.md`](apps/web/IMGBB_SETUP.md)) |

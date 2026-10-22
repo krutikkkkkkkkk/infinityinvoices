@@ -21,11 +21,19 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { UserAdd01Icon, Loading01Icon } from "@hugeicons/core-free-icons"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { useSubscription } from "@/hooks/use-subscription"
+import { canAddClient } from "@/lib/plans"
 
-export function AddClientDialog() {
+export function AddClientDialog({ clientCount = 0 }: { clientCount?: number }) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { plan, isLoading: isPlanLoading } = useSubscription()
+  // The Free plan caps clients; RLS enforces the same limit on insert
+  const atLimit = !isPlanLoading && !canAddClient(plan, clientCount)
+  const limitMessage = `The ${plan.name} plan includes up to ${plan.limits.clients} clients. Upgrade to Pro for unlimited clients.`
   const [formData, setFormData] = useState({
     name: "",
     company_name: "",
@@ -47,6 +55,10 @@ export function AddClientDialog() {
       } = await supabase.auth.getUser()
 
       if (!user) return
+      if (atLimit) {
+        setError(limitMessage)
+        return
+      }
 
       const { error } = await supabase.from("clients").insert({
         user_id: user.id,
@@ -61,26 +73,37 @@ export function AddClientDialog() {
         auto_reminder: formData.auto_reminder,
       })
 
-      if (!error) {
-        setOpen(false)
-        setFormData({ 
-          name: "", 
-          company_name: "",
-          contact_person: "",
-          email: "", 
-          phone: "",
-          address: "", 
-          gst_id: "",
-          pan_number: "",
-          auto_reminder: false,
-        })
-        router.refresh()
+      if (error) {
+        // 42501: the insert was refused by RLS, which on Free means the client limit
+        setError(error.code === "42501" ? limitMessage : error.message)
+        return
       }
+
+      setError(null)
+      setOpen(false)
+      setFormData({
+        name: "",
+        company_name: "",
+        contact_person: "",
+        email: "",
+        phone: "",
+        address: "",
+        gst_id: "",
+        pan_number: "",
+        auto_reminder: false,
+      })
+      router.refresh()
     })
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) setError(null)
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <HugeiconsIcon icon={UserAdd01Icon} size={16} className="mr-2" />
@@ -95,6 +118,14 @@ export function AddClientDialog() {
               Add a new client to quickly fill their details on invoices and quotations.
             </DialogDescription>
           </DialogHeader>
+          {(error || atLimit) && (
+            <p className="mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+              {error ?? limitMessage}{" "}
+              <Link href="/dashboard/plan" className="font-medium underline underline-offset-4">
+                See plans
+              </Link>
+            </p>
+          )}
           <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
               <Label htmlFor="name">Display Name *</Label>
@@ -199,7 +230,7 @@ export function AddClientDialog() {
             <div className="flex items-center justify-between rounded-lg border border-input bg-card p-3">
               <div className="space-y-0.5">
                 <Label className="text-sm font-medium">Auto Reminders</Label>
-                <p className="text-xs text-muted-foreground">Send payment reminders for overdue invoices</p>
+                <p className="text-xs text-muted-foreground">Email a payment reminder every week while an invoice is overdue</p>
               </div>
               <Switch
                 checked={formData.auto_reminder}
@@ -213,7 +244,7 @@ export function AddClientDialog() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || atLimit}>
               {isPending && <HugeiconsIcon icon={Loading01Icon} size={16} className="mr-2 animate-spin" />}
               Add Client
             </Button>

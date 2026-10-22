@@ -34,3 +34,9 @@ next-env.d.ts
 .vercel
 .env*
 
+
+# local Claude Code settings (may contain credentials)
+.claude/settings.local.json
+
+# database scripts
+*.sql

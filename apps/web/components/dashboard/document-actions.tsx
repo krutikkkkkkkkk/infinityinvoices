@@ -37,8 +37,6 @@ import {
   MoreHorizontalIcon,
   Loading01Icon,
   SentIcon,
-  Share01Icon,
-  Link01Icon,
   CheckmarkCircle02Icon,
   Notification01Icon,
 } from "@hugeicons/core-free-icons"
@@ -54,15 +52,73 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
+import { useSubscription } from "@/hooks/use-subscription"
 import type { Document, LineItem } from "@/lib/types"
 import type { TemplateType } from "./template-selector"
+import type { TemplateColors } from "@/lib/generate-document-html"
 import {
   deleteDocument,
   duplicateDocument,
   convertToInvoice,
   updateDocumentStatus,
 } from "@/app/dashboard/documents/actions"
+
+function saveBlob(blob: Blob, fileName: string) {
+  const url = window.URL.createObjectURL(blob)
+  const anchor = window.document.createElement("a")
+  anchor.href = url
+  anchor.download = fileName
+  anchor.rel = "noopener"
+  window.document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+}
+
+function fileNameFromDisposition(header: string | null): string | null {
+  const match = header?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i)
+  if (!match) return null
+  try {
+    return decodeURIComponent(match[1])
+  } catch {
+    return match[1]
+  }
+}
+
+/** Opens the browser's print dialog for a print-ready HTML document via a hidden iframe. */
+function printHtml(html: string): Promise<void> {
+  return new Promise((resolve) => {
+    const iframe = window.document.createElement("iframe")
+    iframe.setAttribute("aria-hidden", "true")
+    iframe.title = "Print preview"
+    iframe.style.cssText =
+      "position:fixed;right:0;bottom:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;"
+    let finished = false
+    const cleanup = () => {
+      if (finished) return
+      finished = true
+      iframe.remove()
+      resolve()
+    }
+    iframe.onload = async () => {
+      const frameWindow = iframe.contentWindow
+      if (!frameWindow) return cleanup()
+      try {
+        await frameWindow.document.fonts?.ready
+      } catch {
+        // fonts are optional
+      }
+      frameWindow.addEventListener("afterprint", cleanup, { once: true })
+      // Safety net for browsers that never fire afterprint.
+      setTimeout(cleanup, 120_000)
+      frameWindow.focus()
+      frameWindow.print()
+    }
+    iframe.srcdoc = html
+    window.document.body.appendChild(iframe)
+  })
+}
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
@@ -75,9 +131,11 @@ const STATUS_OPTIONS = [
 interface DocumentActionsProps {
   document: Document & { line_items: LineItem[] }
   template?: TemplateType
+  /** Custom template colours; sent with every export so the file matches the preview. */
+  colors?: Partial<TemplateColors> | null
 }
 
-export function DocumentActions({ document, template = "classic" }: DocumentActionsProps) {
+export function DocumentActions({ document, template = "classic", colors }: DocumentActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(document.status)
@@ -89,16 +147,36 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
     message: "",
   })
   const [emailStatus, setEmailStatus] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const [showShareDialog, setShowShareDialog] = useState(false)
-  const [shareLink, setShareLink] = useState("")
-  const [isGeneratingLink, setIsGeneratingLink] = useState(false)
-  const [linkCopied, setLinkCopied] = useState(false)
   const [isSendingReminder, setIsSendingReminder] = useState(false)
   const [reminderStatus, setReminderStatus] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [showUsageLimitDialog, setShowUsageLimitDialog] = useState(false)
+  const [usageLimitTitle, setUsageLimitTitle] = useState("Usage Limit Reached")
   const [usageLimitMessage, setUsageLimitMessage] = useState("")
+  const { isPro, isLoading: isPlanLoading } = useSubscription()
+
+  // Email sending (invoices, quotations, reminders) is only available on paid plans.
+  // The server enforces this too; checking here avoids filling in a form that can't be sent.
+  const requirePaidPlan = (feature: string): boolean => {
+    if (isPlanLoading || isPro) return true
+    setUsageLimitTitle("Pro feature")
+    setUsageLimitMessage(`${feature} is only available on paid plans. Upgrade to Pro to unlock it.`)
+    setShowUsageLimitDialog(true)
+    return false
+  }
+
+  const showProRequired = (message: string) => {
+    setUsageLimitTitle(message.toLowerCase().includes("limit") ? "Usage Limit Reached" : "Pro feature")
+    setUsageLimitMessage(message)
+    setShowUsageLimitDialog(true)
+  }
+
+  const handleOpenEmailDialog = () => {
+    if (!requirePaidPlan("Sending documents by email")) return
+    setShowEmailDialog(true)
+  }
 
   const handleSendReminder = async () => {
+    if (!requirePaidPlan("Sending payment reminders")) return
     setIsSendingReminder(true)
     setReminderStatus(null)
     
@@ -106,15 +184,14 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
       const response = await fetch("/api/send-reminder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: document.id }),
+        body: JSON.stringify({ documentId: document.id, template, colors }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
         if (data.error?.startsWith("PRO_REQUIRED:")) {
-          setUsageLimitMessage(data.error.replace("PRO_REQUIRED:", ""))
-          setShowUsageLimitDialog(true)
+          showProRequired(data.error.replace("PRO_REQUIRED:", ""))
         } else {
           setReminderStatus({ type: "error", text: data.error || "Failed to send reminder" })
         }
@@ -129,138 +206,50 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
     }
   }
 
-  const handleGenerateShareLink = async () => {
-    setIsGeneratingLink(true)
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      setIsGeneratingLink(false)
-      return
-    }
-    
-    // Check if document already has a share token
-    const { data: doc } = await supabase
-      .from("documents")
-      .select("share_token")
-      .eq("id", document.id)
-      .eq("user_id", user.id)
-      .single()
-
-    let token = doc?.share_token
-    
-    if (!token) {
-      // Generate new token
-      token = crypto.randomUUID()
-      await supabase
-        .from("documents")
-        .update({ share_token: token })
-        .eq("id", document.id)
-        .eq("user_id", user.id)
-    }
-
-    const baseUrl = window.location.origin
-    setShareLink(`${baseUrl}/invoice/${token}`)
-    setIsGeneratingLink(false)
-    setShowShareDialog(true)
+  const pdfUrl = (extra = "") => {
+    const query = new URLSearchParams({ id: document.id, template })
+    if (colors?.primary) query.set("primary", colors.primary)
+    if (colors?.accent) query.set("accent", colors.accent)
+    return `/api/documents/pdf?${query.toString()}${extra}`
   }
 
-  const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(shareLink)
-    setLinkCopied(true)
-    setTimeout(() => setLinkCopied(false), 2000)
+  const handleOpenPdf = () => {
+    window.open(pdfUrl("&inline=1"), "_blank", "noopener")
   }
 
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true)
     try {
-      const response = await fetch(`/api/documents/pdf?id=${document.id}&template=${template}`)
-      const contentType = response.headers.get("content-type")
+      const response = await fetch(pdfUrl())
+      const contentType = response.headers.get("content-type") || ""
 
-      if (contentType?.includes("application/pdf")) {
-        // Server returned PDF directly (Browserless available)
+      if (response.ok && contentType.includes("application/pdf")) {
         const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = window.document.createElement("a")
-        a.href = url
-        a.download = `${document.type}-${document.number}.pdf`
-        window.document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        window.document.body.removeChild(a)
-      } else {
-        // Fallback: Server returned HTML, render client-side
-        const data = await response.json()
-
-        if (!response.ok) {
-          console.error("PDF generation error:", data.error)
-          return
-        }
-
-        if (data.fallback && data.html) {
-          const html2canvas = (await import("html2canvas")).default
-          const jsPDF = (await import("jspdf")).default
-
-          // Create iframe to render HTML
-          const iframe = window.document.createElement("iframe")
-          iframe.style.cssText = "position: fixed; left: -9999px; top: 0; width: 794px; height: 1123px;"
-          window.document.body.appendChild(iframe)
-
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
-          if (iframeDoc) {
-            iframeDoc.open()
-            iframeDoc.write(data.html)
-            iframeDoc.close()
-
-            // Wait for content to render
-            await new Promise((resolve) => setTimeout(resolve, 500))
-
-            const canvas = await html2canvas(iframeDoc.body, {
-              scale: 2,
-              useCORS: true,
-              backgroundColor: "#ffffff",
-              width: 794,
-              height: iframeDoc.body.scrollHeight,
-            })
-
-            window.document.body.removeChild(iframe)
-
-            const imgData = canvas.toDataURL("image/png")
-            const pdf = new jsPDF("p", "mm", "a4")
-            const pdfWidth = pdf.internal.pageSize.getWidth()
-            const pdfHeight = pdf.internal.pageSize.getHeight()
-            const ratio = pdfWidth / canvas.width
-            const scaledHeight = canvas.height * ratio
-
-            if (scaledHeight <= pdfHeight) {
-              pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, scaledHeight)
-            } else {
-              const pageHeightInPx = pdfHeight / ratio
-              let y = 0
-              while (y < canvas.height) {
-                const sliceH = Math.min(pageHeightInPx, canvas.height - y)
-                const pageCanvas = window.document.createElement("canvas")
-                pageCanvas.width = canvas.width
-                pageCanvas.height = sliceH
-                const ctx = pageCanvas.getContext("2d")
-                if (ctx) {
-                  ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH)
-                  const pageData = pageCanvas.toDataURL("image/png")
-                  if (y > 0) pdf.addPage()
-                  pdf.addImage(pageData, "PNG", 0, 0, pdfWidth, sliceH * ratio)
-                }
-                y += sliceH
-              }
-            }
-
-            pdf.save(`${document.type}-${document.number}.pdf`)
-          }
-        }
+        const fileName =
+          fileNameFromDisposition(response.headers.get("content-disposition")) ||
+          `${document.type === "quotation" ? "Quotation" : "Invoice"}-${document.number}.pdf`
+        saveBlob(blob, fileName)
+        return
       }
+
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data) {
+        toast.error(data?.error || "Could not generate the PDF. Please try again.")
+        return
+      }
+
+      if (data.fallback && typeof data.html === "string") {
+        // No headless browser on this server: use the browser's own print engine,
+        // which honours the same page CSS and lets the user "Save as PDF".
+        toast.info("Opening the print dialog. Choose “Save as PDF” to download.")
+        await printHtml(data.html)
+        return
+      }
+
+      toast.error("Unexpected response while generating the PDF.")
     } catch (error) {
       console.error("Error downloading PDF:", error)
+      toast.error("Could not download the PDF. Check your connection and try again.")
     } finally {
       setIsGeneratingPdf(false)
     }
@@ -280,6 +269,8 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
           documentId: document.id,
           recipientEmail: emailData.recipientEmail,
           message: emailData.message,
+          template,
+          colors,
         }),
       })
 
@@ -287,14 +278,18 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
 
       if (!response.ok) {
         if (data.error?.startsWith("PRO_REQUIRED:")) {
-          setUsageLimitMessage(data.error.replace("PRO_REQUIRED:", ""))
-          setShowUsageLimitDialog(true)
+          showProRequired(data.error.replace("PRO_REQUIRED:", ""))
           setShowEmailDialog(false)
         } else {
           setEmailStatus({ type: "error", text: data.error || "Failed to send email" })
         }
       } else {
-        setEmailStatus({ type: "success", text: "Email sent successfully!" })
+        setEmailStatus({
+          type: "success",
+          text: data.attached
+            ? "Email sent with the PDF attached."
+            : "Email sent with the online link (the PDF could not be generated).",
+        })
         setCurrentStatus("sent")
         setTimeout(() => {
           setShowEmailDialog(false)
@@ -328,6 +323,7 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to duplicate"
         if (message.startsWith("USAGE_LIMIT_EXCEEDED:")) {
+          setUsageLimitTitle("Usage Limit Reached")
           setUsageLimitMessage(message.replace("USAGE_LIMIT_EXCEEDED:", ""))
           setShowUsageLimitDialog(true)
         }
@@ -342,6 +338,7 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to convert"
         if (message.startsWith("USAGE_LIMIT_EXCEEDED:")) {
+          setUsageLimitTitle("Usage Limit Reached")
           setUsageLimitMessage(message.replace("USAGE_LIMIT_EXCEEDED:", ""))
           setShowUsageLimitDialog(true)
         }
@@ -364,17 +361,9 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={() => setShowEmailDialog(true)}>
+        <Button variant="outline" onClick={handleOpenEmailDialog}>
           <HugeiconsIcon icon={SentIcon} size={16} className="mr-2" />
           Send Email
-        </Button>
-        <Button variant="outline" onClick={handleGenerateShareLink} disabled={isGeneratingLink}>
-          {isGeneratingLink ? (
-            <HugeiconsIcon icon={Loading01Icon} size={16} className="mr-2 animate-spin" />
-          ) : (
-            <HugeiconsIcon icon={Share01Icon} size={16} className="mr-2" />
-          )}
-          Share Link
         </Button>
         {document.type === "invoice" && document.status !== "paid" && document.status !== "cancelled" && (
           <Button 
@@ -421,6 +410,10 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
                 <HugeiconsIcon icon={Copy01Icon} size={16} className="mr-2" />
               )}
               Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleOpenPdf}>
+              <HugeiconsIcon icon={InvoiceIcon} size={16} className="mr-2" />
+              Open PDF in new tab
             </DropdownMenuItem>
             {document.type === "quotation" && (
               <DropdownMenuItem onClick={handleConvertToInvoice} disabled={isPending}>
@@ -473,7 +466,7 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
           <DialogHeader>
             <DialogTitle>Send {document.type === "invoice" ? "Invoice" : "Quotation"} via Email</DialogTitle>
             <DialogDescription>
-              Send {document.number} to your client via email.
+              A short email with {document.number} attached as a PDF, using the currently selected template and colours.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -535,46 +528,11 @@ export function DocumentActions({ document, template = "classic" }: DocumentActi
         </DialogContent>
       </Dialog>
 
-      {/* Share Link Dialog */}
-      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share {document.type === "invoice" ? "Invoice" : "Quotation"}</DialogTitle>
-            <DialogDescription>
-              Share this link with your client to let them view the {document.type} online.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-2">
-              <Input value={shareLink} readOnly className="font-mono text-sm" />
-              <Button onClick={handleCopyLink} variant="outline" size="icon">
-                {linkCopied ? (
-                  <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} color="#16a34a" />
-                ) : (
-                  <HugeiconsIcon icon={Link01Icon} size={16} />
-                )}
-              </Button>
-            </div>
-            {linkCopied && (
-              <p className="text-sm text-green-600">Link copied to clipboard!</p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              Anyone with this link can view the {document.type} details and payment options.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowShareDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Usage Limit Dialog */}
       <AlertDialog open={showUsageLimitDialog} onOpenChange={setShowUsageLimitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Usage Limit Reached</AlertDialogTitle>
+            <AlertDialogTitle>{usageLimitTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               {usageLimitMessage}
             </AlertDialogDescription>

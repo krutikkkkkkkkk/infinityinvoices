@@ -1,3 +1,4 @@
+import { getInvoiceBalance } from "@/lib/invoice-balance"
 import { NextResponse } from "next/server"
 import { answerCallbackQuery, escapeTelegramHtml, sendTelegramMessage } from "@/lib/telegram/api"
 import {
@@ -36,9 +37,9 @@ async function showMenu(chatId: number, name?: string) {
 
 async function showInvoiceActions(chatId: number, userId: string, documentId: string) {
   const admin = createAdminClient()
-  const { data: document } = await admin.from("documents").select("id,number,client_name,status,currency,grand_total,amount_paid,client_email").eq("id", documentId).eq("user_id", userId).eq("type", "invoice").single()
+  const { data: document } = await admin.from("documents").select("id,number,client_name,status,currency,grand_total,amount_paid,credit_total,client_email").eq("id", documentId).eq("user_id", userId).eq("type", "invoice").single()
   if (!document) throw new Error("Invoice not found")
-  const remaining = Math.max(0, Number(document.grand_total) - Number(document.amount_paid || 0))
+  const remaining = getInvoiceBalance(document).remaining
   await sendTelegramMessage(chatId, `<b>${escapeTelegramHtml(document.number)}</b>\nClient: ${escapeTelegramHtml(document.client_name)}\nStatus: ${escapeTelegramHtml(document.status)}\nBalance: ${escapeTelegramHtml(document.currency)} ${remaining.toLocaleString()}`, {
     replyMarkup: { inline_keyboard: [
       [{ text: "Send email reminder", callback_data: `remind:${document.id}` }],
@@ -113,9 +114,9 @@ async function handleCallback(callback: TelegramCallback) {
     await showInvoiceActions(chatId, account.user_id, value)
   } else if (action === "payfull" && value) {
     const admin = createAdminClient()
-    const { data: document } = await admin.from("documents").select("grand_total,amount_paid").eq("id", value).eq("user_id", account.user_id).single()
+    const { data: document } = await admin.from("documents").select("grand_total,amount_paid,credit_total").eq("id", value).eq("user_id", account.user_id).single()
     if (!document) throw new Error("Invoice not found")
-    const amount = Math.max(0, Number(document.grand_total) - Number(document.amount_paid || 0))
+    const amount = getInvoiceBalance(document).remaining
     if (!amount) throw new Error("Invoice is already paid")
     const pending = await createPendingPayment(account.user_id, chatId, value, amount, "other")
     await sendTelegramMessage(chatId, `<b>Confirm full payment</b>\nAmount: ${amount.toLocaleString()}\nThis will update the invoice balance and status.`, { replyMarkup: { inline_keyboard: [[{ text: "Confirm", callback_data: `confirm:${pending.actionId}` }, { text: "Cancel", callback_data: `cancel:${pending.actionId}` }]] } })

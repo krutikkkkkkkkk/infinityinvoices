@@ -23,18 +23,30 @@ export function getDodo(): DodoPayments {
   return client
 }
 
+/** What's stored in `subscriptions.plan` for paying users. */
 export type PaidPlan = "pro" | "lifetime"
+export type BillingInterval = "month" | "year"
+/** What a user can start checkout for. Yearly Pro is a separate Dodo product but the same "pro" plan. */
+export type CheckoutPlan = "pro" | "pro_yearly" | "lifetime"
 
-export function getProductIdForPlan(plan: PaidPlan): string | undefined {
-  return plan === "lifetime"
-    ? process.env.NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID
-    : process.env.NEXT_PUBLIC_DODO_PRO_PRODUCT_ID
+export function getProductIdForPlan(plan: CheckoutPlan): string | undefined {
+  switch (plan) {
+    case "lifetime":
+      return process.env.NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID
+    case "pro_yearly":
+      return process.env.NEXT_PUBLIC_DODO_PRO_YEARLY_PRODUCT_ID
+    case "pro":
+      return process.env.NEXT_PUBLIC_DODO_PRO_PRODUCT_ID
+  }
 }
 
-export function getPlanFromProductId(productId: string | null | undefined): PaidPlan {
-  const lifetimeProductId = process.env.NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID
-  if (lifetimeProductId && productId === lifetimeProductId) {
-    return "lifetime"
-  }
-  return "pro"
+// Returns null for products that aren't one of our configured plans, so they never grant access.
+export function getPlanFromProductId(
+  productId: string | null | undefined,
+): { plan: PaidPlan; billingInterval: BillingInterval | null } | null {
+  if (!productId) return null
+  if (productId === getProductIdForPlan("lifetime")) return { plan: "lifetime", billingInterval: null }
+  if (productId === getProductIdForPlan("pro")) return { plan: "pro", billingInterval: "month" }
+  if (productId === getProductIdForPlan("pro_yearly")) return { plan: "pro", billingInterval: "year" }
+  return null
 }

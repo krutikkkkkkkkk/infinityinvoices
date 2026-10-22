@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Loading01Icon } from "@hugeicons/core-free-icons"
 import { createClient } from "@/lib/supabase/client"
+import { getPasswordResetRedirectUrl } from "@/lib/site-url"
 import { useRouter } from "next/navigation"
 import type { Currency, Profile } from "@/lib/types"
 import { CURRENCIES } from "@/lib/types"
@@ -380,7 +381,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
                 }
 
                 const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                  redirectTo: `${window.location.origin}/auth/reset-password`,
+                  redirectTo: getPasswordResetRedirectUrl(),
                 })
 
                 if (error) {

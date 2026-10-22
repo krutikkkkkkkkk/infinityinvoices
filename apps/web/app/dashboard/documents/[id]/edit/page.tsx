@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
+import { getPlanForUser } from "@/lib/plan-server"
+import { applyBranding } from "@/lib/plans"
 import { notFound } from "next/navigation"
 import { DocumentForm } from "@/components/dashboard/document-form"
 import { Button } from "@/components/ui/button"
@@ -52,11 +54,10 @@ export default async function EditDocumentPage({
     .order("name")
 
   // Get profile for payment details fallback
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single()
+  const [{ data: profile }, plan] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    getPlanForUser(user.id),
+  ])
 
   return (
     <div className="space-y-6">
@@ -81,7 +82,7 @@ export default async function EditDocumentPage({
         document={document as Document & { line_items: LineItem[] }}
         clients={(clients as Client[]) || []}
         nextNumber={document.number}
-        profile={profile}
+        profile={applyBranding(plan, profile)}
       />
     </div>
   )

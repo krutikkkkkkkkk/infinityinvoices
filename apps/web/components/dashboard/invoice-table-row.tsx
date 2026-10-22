@@ -17,7 +17,6 @@ import {
   Copy01Icon,
   Download01Icon,
   Delete01Icon,
-  Share01Icon,
   InvoiceIcon,
 } from "@hugeicons/core-free-icons"
 import Link from "next/link"
@@ -27,6 +26,7 @@ import { useRouter } from "next/navigation"
 import type { Document } from "@/lib/types"
 import { CURRENCIES } from "@/lib/types"
 import { formatDate } from "@/lib/format"
+import { getInvoiceBalance } from "@/lib/invoice-balance"
 
 function formatCurrency(amount: number, currency: string) {
   const currencyData = CURRENCIES.find((c) => c.value === currency)
@@ -41,6 +41,7 @@ function formatCurrency(amount: number, currency: string) {
 export function InvoiceTableRow({ invoice }: { invoice: Document }) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
+  const balance = getInvoiceBalance(invoice)
 
   const handleDuplicate = () => {
     startTransition(async () => {
@@ -84,7 +85,10 @@ export function InvoiceTableRow({ invoice }: { invoice: Document }) {
         {formatDate(invoice.due_date)}
       </TableCell>
       <TableCell className="text-right">
-        {formatCurrency(Number(invoice.grand_total), invoice.currency)}
+        <div>{formatCurrency(Number(invoice.grand_total), invoice.currency)}</div>
+        {balance.isPartial && invoice.status !== "cancelled" && (
+          <div className="text-xs text-muted-foreground">{formatCurrency(balance.remaining, invoice.currency)} due</div>
+        )}
       </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
@@ -107,19 +111,13 @@ export function InvoiceTableRow({ invoice }: { invoice: Document }) {
                 Preview
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/share/${invoice.id}`} target="_blank">
-                <HugeiconsIcon icon={Share01Icon} size={14} className="mr-2" />
-                Share Link
-              </Link>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleDuplicate}>
               <HugeiconsIcon icon={Copy01Icon} size={14} className="mr-2" />
               Duplicate
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href={`/api/documents/${invoice.id}/pdf`} target="_blank">
+              <Link href={`/api/documents/pdf?id=${invoice.id}`} target="_blank" rel="noopener">
                 <HugeiconsIcon icon={Download01Icon} size={14} className="mr-2" />
                 Download PDF
               </Link>

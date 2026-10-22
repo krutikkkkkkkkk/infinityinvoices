@@ -55,6 +55,13 @@ async function resolveUserId(
 }
 
 async function syncSubscription(subscription: DodoSubscription) {
+  // Events for products other than our plans must not change anyone's plan
+  const product = getPlanFromProductId(subscription.product_id)
+  if (!product) {
+    console.warn("[Dodo] Ignoring subscription for unknown product:", subscription.product_id, subscription.subscription_id)
+    return
+  }
+
   const supabaseAdmin = createAdminClient()
 
   const userId = await resolveUserId(supabaseAdmin, subscription.metadata, subscription.customer.email)
@@ -80,7 +87,7 @@ async function syncSubscription(subscription: DodoSubscription) {
   }
 
   const status = toAppStatus(subscription.status)
-  const plan = subscription.status === "expired" ? "free" : getPlanFromProductId(subscription.product_id)
+  const plan = subscription.status === "expired" ? "free" : product.plan
 
   const { error } = await supabaseAdmin.from("subscriptions").upsert(
     {
@@ -92,6 +99,7 @@ async function syncSubscription(subscription: DodoSubscription) {
       current_period_start: toIso(subscription.previous_billing_date),
       current_period_end: toIso(subscription.next_billing_date),
       cancel_at_period_end: subscription.cancel_at_next_billing_date,
+      billing_interval: product.billingInterval,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
@@ -102,7 +110,7 @@ async function syncSubscription(subscription: DodoSubscription) {
     return
   }
 
-  console.log("[Dodo] Subscription synced:", subscription.subscription_id, "user:", userId, "plan:", plan, "status:", status)
+  console.log("[Dodo] Subscription synced:", subscription.subscription_id, "user:", userId, "plan:", plan, "interval:", product.billingInterval, "status:", status)
 }
 
 // One-time purchases (lifetime plan) arrive as payments without a subscription
@@ -142,6 +150,7 @@ async function handleOneTimePayment(payment: DodoPayment) {
       current_period_start: new Date().toISOString(),
       current_period_end: null, // Lifetime has no end
       cancel_at_period_end: false,
+      billing_interval: null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },

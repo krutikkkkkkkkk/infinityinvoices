@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
+import { getPlanForUser } from "@/lib/plan-server"
+import { applyBranding } from "@/lib/plans"
 import { notFound, redirect } from "next/navigation"
 import { DocumentDetailView } from "@/components/dashboard/document-detail-view"
 import { DocumentForm } from "@/components/dashboard/document-form"
@@ -72,11 +74,12 @@ export default async function DocumentDetailPage({
       .order("name")
 
     // Get profile and optional reusable preset
-    const [{ data: profile }, { data: selectedPreset }] = await Promise.all([
+    const [{ data: profile }, { data: selectedPreset }, plan] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       queryParams.preset
         ? supabase.from("invoice_presets").select("data").eq("id", queryParams.preset).eq("user_id", user.id).maybeSingle()
         : Promise.resolve({ data: null }),
+      getPlanForUser(user.id),
     ])
 
     return (
@@ -96,7 +99,7 @@ export default async function DocumentDetailPage({
             </p>
           </div>
         </div>
-        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={profile} preset={(selectedPreset?.data as Partial<import("@/lib/types").DocumentFormData>) || undefined} />
+        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={applyBranding(plan, profile)} preset={(selectedPreset?.data as Partial<import("@/lib/types").DocumentFormData>) || undefined} />
       </div>
     )
   }
@@ -126,11 +129,14 @@ export default async function DocumentDetailPage({
     notFound()
   }
 
+  // The document owner's plan decides whether the logo shows (previews must match the PDF)
+  const plan = await getPlanForUser(document.user_id)
+
   // Fetch profile and invoice settlement history
   const [{ data: profile }, { data: paymentRecords }, { data: creditNotes }, { data: recurringSchedule }] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     document.type === "invoice"
-      ? supabase.from("payment_records").select("id, amount, paid_at, method, reference").eq("document_id", id).eq("user_id", document.user_id).order("paid_at", { ascending: false })
+      ? supabase.from("payment_records").select("id, amount, paid_at, method, reference, notes").eq("document_id", id).eq("user_id", document.user_id).order("paid_at", { ascending: false })
       : Promise.resolve({ data: [] }),
     document.type === "invoice"
       ? supabase.from("credit_notes").select("id, number, amount, reason, issued_at").eq("document_id", id).eq("user_id", document.user_id).order("issued_at", { ascending: false })
@@ -160,7 +166,7 @@ export default async function DocumentDetailPage({
       {/* Preview, Actions and Payments */}
       <DocumentDetailView
         document={document as Document & { line_items: LineItem[] }}
-        profile={profile as Profile | null}
+        profile={applyBranding(plan, profile as Profile | null)}
         showActions={true}
       />
       {document.type === "invoice" && (
@@ -169,6 +175,7 @@ export default async function DocumentDetailPage({
             documentId={document.id}
             grandTotal={Number(document.grand_total)}
             currency={document.currency}
+            status={document.status}
             payments={paymentRecords || []}
             credits={creditNotes || []}
           />

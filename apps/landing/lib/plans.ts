@@ -1,0 +1,47 @@
+// Marketing copy for the pricing section. Keep prices and limits in sync with apps/web/lib/plans.ts.
+export const LANDING_PLANS = [
+  {
+    id: "free",
+    name: "Free",
+    description: "For freelancers getting started",
+    price: "$0",
+    period: "forever",
+    cta: "Start for free",
+    path: "/auth/sign-up",
+    highlighted: false,
+    yearly: null,
+    features: [
+      "5 invoices per month",
+      "5 quotations per month",
+      "Up to 10 clients",
+      "4 of 6 templates",
+      "PDF downloads",
+      "UPI QR codes",
+      "Multi-currency support",
+    ],
+    excluded: ["Email sending & payment reminders"],
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    description: "For growing businesses",
+    price: "$5",
+    period: "per month",
+    cta: "Upgrade to Pro",
+    path: "/pricing",
+    highlighted: true,
+    // Shown as "or ~~$36~~ $30 per year"
+    yearly: { price: "$30", compareAt: "$36", period: "per year", note: "$2.50/mo" },
+    features: [
+      "Everything in Free",
+      "Unlimited invoices & quotations",
+      "Unlimited clients",
+      "All 6 templates",
+      "Custom branding with your logo",
+      "Share invoices via link",
+      "Unlimited email sending",
+      "Email payment reminders",
+    ],
+    excluded: [],
+  },
+] as const

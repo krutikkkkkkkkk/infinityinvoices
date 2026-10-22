@@ -2,9 +2,11 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { Upload, Loader2, X } from 'lucide-react'
+import Link from 'next/link'
+import { Upload, Loader2, X, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { useSubscription } from '@/hooks/use-subscription'
 
 interface LogoUploadProps {
   currentLogoUrl?: string | null
@@ -16,6 +18,7 @@ export function LogoUpload({ currentLogoUrl, onUploadComplete }: LogoUploadProps
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLogoUrl || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+  const { plan, isLoading: isPlanLoading } = useSubscription()
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -86,6 +89,32 @@ export function LogoUpload({ currentLogoUrl, onUploadComplete }: LogoUploadProps
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+  }
+
+  // Custom branding (a logo on documents) is a Pro feature; the upload route enforces this too
+  if (!isPlanLoading && !plan.customBranding) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium">Company Logo</h3>
+          <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
+            Pro
+          </span>
+        </div>
+        <div className="rounded-lg border border-dashed border-input p-5 text-center">
+          <Lock className="w-6 h-6 mx-auto text-muted-foreground mb-2" aria-hidden />
+          <p className="text-sm font-medium">Add your logo to invoices and quotations on Pro</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {currentLogoUrl
+              ? 'Your saved logo will show on documents again once you upgrade.'
+              : 'Custom branding is included with the Pro plan.'}
+          </p>
+          <Button type="button" variant="outline" size="sm" className="mt-3" asChild>
+            <Link href="/dashboard/plan">Upgrade to Pro</Link>
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState, useTransition } from "react"
 import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, XAxis, YAxis } from "recharts"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -22,9 +23,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { formatMoney, formatMoneyCompact, currencySymbol } from "@/lib/format"
+import { DATE_PRESETS, getDatePresets, periodSearchParams, type DashboardPeriod } from "@/lib/date-range"
 import { cn } from "@/lib/utils"
 import type { Aging, ChartRange, OverviewData, SeriesPoint } from "@/lib/dashboard/overview"
 
@@ -42,38 +44,41 @@ function plural(n: number, word: string) {
   return n === 1 ? word : `${word}s`
 }
 
-/** Month-over-month change of the last two monthly buckets; null when there's no baseline. */
-function monthOverMonth(points: SeriesPoint[], key: "paid" | "invoiced") {
-  const current = points.at(-1)?.[key] ?? 0
-  const previous = points.at(-2)?.[key] ?? 0
-  if (previous === 0) return null
+/** Percent change from the previous period; null when there's no baseline. */
+function percentChange(current: number, previous: number | null) {
+  if (!previous) return null
   return ((current - previous) / previous) * 100
 }
 
+const pillTrigger =
+  "h-9 rounded-full border-0 bg-card shadow-[0_1px_2px_rgb(0_0_0/0.04)] ring-1 ring-border dark:bg-card"
+
 export function DashboardOverview({ data }: { data: OverviewData }) {
   const [currency, setCurrency] = useState(data.primaryCurrency)
+  const [isPending, startTransition] = useTransition()
+  const { period } = data
   const overview = data.byCurrency[currency] ?? data.byCurrency[data.primaryCurrency]
-  const collectionRate = overview.fyInvoiced > 0 ? Math.round((overview.fyPaid / overview.fyInvoiced) * 100) : null
-  const collectedChange = monthOverMonth(overview.series["1y"], "paid")
+  const { totals } = overview
+  const collectionRate = totals.invoiced > 0 ? Math.round((totals.paid / totals.invoiced) * 100) : null
+  const collectedChange = percentChange(totals.paid, overview.previousPaid)
+  const periodQuery = periodSearchParams(period).toString()
 
   return (
-    <section aria-labelledby="overview-heading" className="flex flex-col gap-4">
+    <section
+      aria-labelledby="overview-heading"
+      aria-busy={isPending}
+      className={cn("flex flex-col gap-4 transition-opacity", isPending && "opacity-60")}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h2 id="overview-heading" className="text-base font-semibold">
             Overview
           </h2>
-          <Badge variant="outline" className="bg-card font-normal tabular-nums text-muted-foreground">
-            {data.fyLabel}
-          </Badge>
+          <PeriodFilter period={period} fyStartMonth={data.fyStartMonth} startTransition={startTransition} />
         </div>
         {data.currencies.length > 1 && (
           <Select value={currency} onValueChange={setCurrency}>
-            <SelectTrigger
-              size="sm"
-              className="h-9 w-30 rounded-full border-0 bg-card shadow-[0_1px_2px_rgb(0_0_0/0.04)] ring-1 ring-border dark:bg-card"
-              aria-label="Currency"
-            >
+            <SelectTrigger size="sm" className={cn(pillTrigger, "w-30")} aria-label="Currency">
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end" className="rounded-xl">
@@ -114,15 +119,17 @@ export function DashboardOverview({ data }: { data: OverviewData }) {
           }
         />
         <KpiTile
-          href="/dashboard/invoices?status=paid"
+          href={`/dashboard/invoices?status=paid${periodQuery ? `&${periodQuery}` : ""}`}
           icon={MoneyReceive01Icon}
           label="Collected"
-          value={formatMoney(overview.fyPaid, currency, 0)}
+          value={formatMoney(totals.paid, currency, 0)}
           footer={
-            collectedChange === null ? (
-              <MetaPill>{overview.fyPaidCount} paid this FY</MetaPill>
+            collectedChange === null || !period.compareLabel ? (
+              <MetaPill>
+                {totals.paidCount} {plural(totals.paidCount, "invoice")} paid
+              </MetaPill>
             ) : (
-              <DeltaPill value={collectedChange} suffix="vs last month" />
+              <DeltaPill value={collectedChange} suffix={period.compareLabel} />
             )
           }
         />
@@ -133,7 +140,7 @@ export function DashboardOverview({ data }: { data: OverviewData }) {
           value={collectionRate === null ? "—" : `${collectionRate}%`}
           footer={
             collectionRate === null ? (
-              <MetaPill>No invoices sent this FY</MetaPill>
+              <MetaPill>No invoices sent in this period</MetaPill>
             ) : (
               <div className="flex w-full items-center gap-2">
                 <div
@@ -147,7 +154,7 @@ export function DashboardOverview({ data }: { data: OverviewData }) {
                   <div className="h-full rounded-full bg-primary" style={{ width: `${collectionRate}%` }} />
                 </div>
                 <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  of {formatMoneyCompact(overview.fyInvoiced, currency)}
+                  of {formatMoneyCompact(totals.invoiced, currency)}
                 </span>
               </div>
             )
@@ -156,10 +163,87 @@ export function DashboardOverview({ data }: { data: OverviewData }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <RevenueCard series={overview.series} currency={currency} className="lg:col-span-2" />
-        <ReceivablesCard aging={overview.aging} currency={currency} />
+        <RevenueCard series={overview.series} periodLabel={period.label} currency={currency} className="lg:col-span-2" />
+        <ReceivablesCard aging={overview.aging} currency={currency} subtitle="Unpaid today, by days past due" />
       </div>
     </section>
+  )
+}
+
+/** Analytics period picker; the choice lives in the URL so the server loads that window. */
+function PeriodFilter({
+  period,
+  fyStartMonth,
+  startTransition,
+}: {
+  period: DashboardPeriod
+  fyStartMonth: number
+  startTransition: (callback: () => void) => void
+}) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const presets = useMemo(() => getDatePresets(fyStartMonth), [fyStartMonth])
+  const [customOpen, setCustomOpen] = useState(period.range === "")
+
+  const navigate = (params: Record<string, string>) => {
+    const sp = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) if (value) sp.set(key, value)
+    const qs = sp.toString()
+    startTransition(() => router.push(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false }))
+  }
+
+  const handleSelect = (value: string) => {
+    if (value === "custom") {
+      setCustomOpen(true)
+      return
+    }
+    setCustomOpen(false)
+    // This FY is the default, so keep its URL clean
+    navigate({ range: value === "this-fy" ? "" : value })
+  }
+
+  return (
+    <>
+      <Select value={customOpen ? "custom" : period.range} onValueChange={handleSelect}>
+        <SelectTrigger size="sm" className={cn(pillTrigger, "w-auto min-w-36 gap-2")} aria-label="Analytics period">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="start" className="rounded-xl">
+          {DATE_PRESETS.map((key) => (
+            <SelectItem key={key} value={key} className="rounded-lg">
+              {presets[key].label}
+            </SelectItem>
+          ))}
+          <SelectItem value="all" className="rounded-lg">
+            All time
+          </SelectItem>
+          <SelectItem value="custom" className="rounded-lg">
+            Custom range…
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      {customOpen && (
+        <div className="flex items-center gap-1.5">
+          <Input
+            type="date"
+            value={period.from}
+            max={period.to || undefined}
+            onChange={(e) => navigate({ from: e.target.value, to: period.to })}
+            className="h-9 w-37.5 rounded-full bg-card text-xs"
+            aria-label="From date"
+          />
+          <span className="text-xs text-muted-foreground">to</span>
+          <Input
+            type="date"
+            value={period.to}
+            min={period.from || undefined}
+            onChange={(e) => navigate({ from: period.from, to: e.target.value })}
+            className="h-9 w-37.5 rounded-full bg-card text-xs"
+            aria-label="To date"
+          />
+        </div>
+      )}
+    </>
   )
 }
 
@@ -300,17 +384,23 @@ export function KpiTile({
 
 export function RevenueCard({
   series,
+  periodLabel,
   currency,
   className,
 }: {
-  series: Record<ChartRange, SeriesPoint[]>
+  /** One series for a period chosen elsewhere, or one per range to show the 30D/90D/1Y toggle. */
+  series: SeriesPoint[] | Record<ChartRange, SeriesPoint[]>
+  /** Subtitle for a single series. */
+  periodLabel?: string
   currency: string
   className?: string
 }) {
   const [range, setRange] = useState<ChartRange>("1y")
   const [metric, setMetric] = useState<"amount" | "count">("amount")
   const [hovered, setHovered] = useState<number | null>(null)
-  const points = series[range]
+  const hasRanges = !Array.isArray(series)
+  const points = hasRanges ? series[range] : series
+  const label = hasRanges ? RANGE_LABELS[range] : (periodLabel ?? "")
   const totals = points.reduce(
     (acc, p) => ({ invoiced: acc.invoiced + p.invoiced, paid: acc.paid + p.paid, count: acc.count + p.count }),
     { invoiced: 0, paid: 0, count: 0 }
@@ -330,7 +420,7 @@ export function RevenueCard({
           <div>
             <h3 className="text-sm font-medium">{isAmount ? "Earnings" : "Invoice activity"}</h3>
             <p className="text-xs text-muted-foreground">
-              {RANGE_LABELS[range]} · {currency}
+              {label} · {currency}
             </p>
           </div>
         </div>
@@ -341,22 +431,24 @@ export function RevenueCard({
               <TabsTrigger value="count" className="text-xs">Count</TabsTrigger>
             </TabsList>
           </Tabs>
-          <ToggleGroup
-            type="single"
-            size="sm"
-            value={range}
-            onValueChange={(v) => {
-              if (!v) return
-              setRange(v as ChartRange)
-              setHovered(null)
-            }}
-            aria-label="Date range"
-            className="h-9"
-          >
-            <ToggleGroupItem value="30d" className="h-7 px-2.5 text-xs" aria-label="Last 30 days">30D</ToggleGroupItem>
-            <ToggleGroupItem value="90d" className="h-7 px-2.5 text-xs" aria-label="Last 90 days">90D</ToggleGroupItem>
-            <ToggleGroupItem value="1y" className="h-7 px-2.5 text-xs" aria-label="Last 12 months">1Y</ToggleGroupItem>
-          </ToggleGroup>
+          {hasRanges && (
+            <ToggleGroup
+              type="single"
+              size="sm"
+              value={range}
+              onValueChange={(v) => {
+                if (!v) return
+                setRange(v as ChartRange)
+                setHovered(null)
+              }}
+              aria-label="Date range"
+              className="h-9"
+            >
+              <ToggleGroupItem value="30d" className="h-7 px-2.5 text-xs" aria-label="Last 30 days">30D</ToggleGroupItem>
+              <ToggleGroupItem value="90d" className="h-7 px-2.5 text-xs" aria-label="Last 90 days">90D</ToggleGroupItem>
+              <ToggleGroupItem value="1y" className="h-7 px-2.5 text-xs" aria-label="Last 12 months">1Y</ToggleGroupItem>
+            </ToggleGroup>
+          )}
         </div>
       </div>
 
@@ -392,12 +484,12 @@ export function RevenueCard({
               config={chartConfig}
               className="aspect-auto h-auto min-h-65 w-full flex-1"
               role="img"
-              aria-label={`${isAmount ? "Paid within invoiced amount" : "Invoices sent"} per period, ${RANGE_LABELS[range].toLowerCase()}`}
+              aria-label={`${isAmount ? "Paid within invoiced amount" : "Invoices sent"} per period, ${label.toLowerCase()}`}
             >
               <BarChart
                 data={points}
                 margin={{ top: 28, right: 4, left: 0, bottom: 0 }}
-                barCategoryGap={range === "30d" ? "18%" : "22%"}
+                barCategoryGap={points.length > 20 ? "18%" : "22%"}
                 onMouseMove={(s) => setHovered(typeof s?.activeTooltipIndex === "number" ? s.activeTooltipIndex : null)}
                 onMouseLeave={() => setHovered(null)}
                 accessibilityLayer

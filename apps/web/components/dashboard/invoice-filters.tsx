@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter, usePathname } from "next/navigation"
-import { useCallback, useState, useTransition } from "react"
+import { useCallback, useMemo, useState, useTransition } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,35 +11,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { DATE_PRESETS, getDatePresets } from "@/lib/date-range"
 
 interface InvoiceFiltersProps {
   status: string
   search: string
+  /** Active date preset key, or "" for explicit from/to dates. */
+  range: string
+  /** Resolved dates — from the preset when one is active. */
   from: string
   to: string
   sort: string
   order: string
   /** Omit to hide the tax filter (e.g. quotations). */
   tax?: string
+  /** Month (1-12) the user's financial year starts, for the FY presets. */
+  fyStartMonth?: number
 }
 
-export function InvoiceFilters({ status, search, from, to, sort, order, tax }: InvoiceFiltersProps) {
+export function InvoiceFilters({ status, search, range, from, to, sort, order, tax, fyStartMonth = 4 }: InvoiceFiltersProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
   const [searchValue, setSearchValue] = useState(search)
+  const presets = useMemo(() => getDatePresets(fyStartMonth), [fyStartMonth])
+  const dateValue = range || (from || to ? "custom" : "all")
 
   const updateFilters = useCallback(
     (updates: Record<string, string>) => {
       const params = new URLSearchParams()
 
-      const current = { status, search: searchValue, from, to, sort, order, tax, ...updates }
+      const current = { status, search: searchValue, range, from, to, sort, order, tax, ...updates }
 
       // Reset to page 1 on filter change
       if (current.status && current.status !== "all") params.set("status", current.status)
       if (current.search) params.set("search", current.search)
-      if (current.from) params.set("from", current.from)
-      if (current.to) params.set("to", current.to)
+      // A preset stays relative to today, so store its key rather than its dates
+      if (current.range) params.set("range", current.range)
+      else {
+        if (current.from) params.set("from", current.from)
+        if (current.to) params.set("to", current.to)
+      }
       if (current.sort && current.sort !== "created_at") params.set("sort", current.sort)
       if (current.order && current.order !== "desc") params.set("order", current.order)
       if (current.tax && current.tax !== "all") params.set("tax", current.tax)
@@ -49,7 +61,7 @@ export function InvoiceFilters({ status, search, from, to, sort, order, tax }: I
         router.push(`${pathname}${qs ? `?${qs}` : ""}`)
       })
     },
-    [status, searchValue, from, to, sort, order, pathname, router]
+    [status, searchValue, range, from, to, sort, order, tax, pathname, router]
   )
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -62,6 +74,16 @@ export function InvoiceFilters({ status, search, from, to, sort, order, tax }: I
     startTransition(() => {
       router.push(pathname)
     })
+  }
+
+  const handleDatePreset = (value: string) => {
+    if (value === "all") updateFilters({ range: "", from: "", to: "" })
+    else updateFilters({ range: value, from: "", to: "" })
+  }
+
+  // Editing a date turns the active preset into a custom range starting from its dates
+  const handleDateChange = (key: "from" | "to", value: string) => {
+    updateFilters({ range: "", [key]: value })
   }
 
   const hasFilters = status !== "all" || (tax ?? "all") !== "all" || search || from || to
@@ -141,12 +163,28 @@ export function InvoiceFilters({ status, search, from, to, sort, order, tax }: I
 
       {/* Date Range */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <Select value={dateValue} onValueChange={handleDatePreset}>
+          <SelectTrigger className="w-[180px]" aria-label="Date range">
+            <SelectValue placeholder="Date range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All time</SelectItem>
+            {DATE_PRESETS.map((key) => (
+              <SelectItem key={key} value={key}>
+                {presets[key].label}
+              </SelectItem>
+            ))}
+            <SelectItem value="custom" disabled>
+              Custom range
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground whitespace-nowrap">From:</span>
           <Input
             type="date"
             value={from}
-            onChange={(e) => updateFilters({ from: e.target.value })}
+            onChange={(e) => handleDateChange("from", e.target.value)}
             className="w-[160px]"
           />
         </div>
@@ -155,7 +193,7 @@ export function InvoiceFilters({ status, search, from, to, sort, order, tax }: I
           <Input
             type="date"
             value={to}
-            onChange={(e) => updateFilters({ to: e.target.value })}
+            onChange={(e) => handleDateChange("to", e.target.value)}
             className="w-[160px]"
           />
         </div>

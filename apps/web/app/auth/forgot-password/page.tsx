@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Loading01Icon, CheckmarkCircle02Icon, ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import { createClient } from "@/lib/supabase/client"
+import { getPasswordResetRedirectUrl } from "@/lib/site-url"
 import Link from "next/link"
 import { AuthLayout } from "@/components/auth/auth-layout"
 
@@ -19,6 +20,12 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  // /auth/callback sends the user back here with ?error= when a reset link is expired or already used
+  useEffect(() => {
+    const message = new URLSearchParams(window.location.search).get("error")
+    if (message) setError(message)
+  }, [])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -26,12 +33,9 @@ export default function ForgotPasswordPage() {
     startTransition(async () => {
       const supabase = createClient()
       
-      // Use NEXT_PUBLIC_SITE_URL for production, NEXT_PUBLIC_VERCEL_URL for preview, fallback to window.location.origin
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-        (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : window.location.origin)
-      
+      // The callback exchanges the code server-side and then forwards to the reset form.
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${siteUrl}/auth/reset-password`,
+        redirectTo: getPasswordResetRedirectUrl(),
       })
 
       if (error) {

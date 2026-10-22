@@ -1,358 +1,266 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircleIcon } from "lucide-react"
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import Link from "next/link"
+import { CheckIcon, LockIcon, SparklesIcon } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useSubscription } from "@/hooks/use-subscription"
+import { canUseTemplate } from "@/lib/plans"
 import { cn } from "@/lib/utils"
+import {
+  generateDocumentHTML,
+  type DocumentWithItems,
+  type TemplateColors,
+  type TemplateProfile,
+  type TemplateType,
+} from "@/lib/generate-document-html"
+import type { TemplateColorMap } from "@/lib/document-style"
 import type { DocumentType } from "@/lib/types"
 
-export type TemplateType = "classic" | "minimal" | "tax" | "dark" | "executive" | "bold"
+export type { TemplateType }
 
-export const INVOICE_TEMPLATES: {
+export interface TemplateMeta {
   id: TemplateType
   label: string
   description: string
-  pro?: boolean
-  preview: React.ReactNode
-}[] = [
-  {
-    id: "classic",
-    label: "Classic",
-    description: "Professional white",
-    preview: (
-      <div className="w-full h-full bg-white p-2 flex flex-col gap-1">
-        <div className="flex justify-between items-start mb-1">
-          <div className="w-6 h-2 bg-gray-800 rounded-sm" />
-          <div className="space-y-0.5">
-            <div className="w-8 h-1 bg-gray-300 rounded-sm" />
-            <div className="w-10 h-1 bg-gray-300 rounded-sm" />
-          </div>
-        </div>
-        <div className="w-full h-px bg-gray-200" />
-        <div className="flex gap-1 mt-0.5">
-          <div className="flex-1 space-y-0.5">
-            <div className="w-8 h-1 bg-gray-400 rounded-sm" />
-            <div className="w-12 h-1 bg-gray-200 rounded-sm" />
-            <div className="w-10 h-1 bg-gray-200 rounded-sm" />
-          </div>
-          <div className="flex-1 space-y-0.5">
-            <div className="w-8 h-1 bg-gray-400 rounded-sm" />
-            <div className="w-12 h-1 bg-gray-200 rounded-sm" />
-            <div className="w-10 h-1 bg-gray-200 rounded-sm" />
-          </div>
-        </div>
-        <div className="mt-1 w-full h-px bg-gray-200" />
-        <div className="space-y-0.5 mt-0.5">
-          <div className="flex justify-between">
-            <div className="w-14 h-1 bg-gray-300 rounded-sm" />
-            <div className="w-6 h-1 bg-gray-300 rounded-sm" />
-          </div>
-          <div className="flex justify-between">
-            <div className="w-10 h-1 bg-gray-200 rounded-sm" />
-            <div className="w-6 h-1 bg-gray-200 rounded-sm" />
-          </div>
-          <div className="flex justify-between">
-            <div className="w-12 h-1 bg-gray-200 rounded-sm" />
-            <div className="w-6 h-1 bg-gray-200 rounded-sm" />
-          </div>
-        </div>
-        <div className="mt-auto flex justify-end gap-1">
-          <div className="w-10 h-1 bg-gray-400 rounded-sm" />
-          <div className="w-8 h-1 bg-gray-800 rounded-sm" />
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "minimal",
-    label: "Minimal",
-    description: "Clean cream",
-    preview: (
-      <div className="w-full h-full p-2 flex flex-col gap-1" style={{ backgroundColor: "#f5f5f0" }}>
-        <div className="flex justify-between items-start mb-1">
-          <div className="w-12 h-3 bg-gray-900 rounded-sm" />
-          <div className="space-y-0.5 text-right">
-            <div className="w-8 h-1 bg-gray-400 rounded-sm ml-auto" />
-            <div className="w-10 h-1 bg-gray-700 rounded-sm ml-auto" />
-          </div>
-        </div>
-        <div className="w-full h-px bg-gray-400" />
-        <div className="mt-0.5 space-y-0.5">
-          <div className="w-8 h-1 bg-gray-700 rounded-sm" />
-          <div className="w-12 h-1 bg-gray-400 rounded-sm" />
-          <div className="w-10 h-1 bg-gray-400 rounded-sm" />
-        </div>
-        <div className="mt-1 w-full h-px bg-gray-400" />
-        <div className="space-y-0.5 mt-0.5">
-          <div className="flex justify-between">
-            <div className="w-14 h-1 bg-gray-600 rounded-sm" />
-            <div className="w-6 h-1 bg-gray-600 rounded-sm" />
-          </div>
-          <div className="flex justify-between">
-            <div className="w-10 h-1 bg-gray-400 rounded-sm" />
-            <div className="w-6 h-1 bg-gray-400 rounded-sm" />
-          </div>
-          <div className="flex justify-between">
-            <div className="w-12 h-1 bg-gray-400 rounded-sm" />
-            <div className="w-6 h-1 bg-gray-400 rounded-sm" />
-          </div>
-        </div>
-        <div className="mt-auto w-full h-px bg-gray-400" />
-        <div className="flex justify-between mt-0.5">
-          <div className="w-10 h-1 bg-gray-500 rounded-sm" />
-          <div className="w-10 h-1 bg-gray-500 rounded-sm" />
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "tax",
-    label: "Tax Invoice",
-    description: "GST focused",
-    preview: (
-      <div className="w-full h-full bg-white p-2 flex flex-col gap-1 border-2 border-red-600">
-        <div className="text-center space-y-0.5 pb-1 border-b-2 border-red-600">
-          <div className="w-8 h-0.5 bg-red-600 rounded-sm mx-auto" />
-          <div className="w-10 h-1.5 bg-gray-800 rounded-sm mx-auto" />
-          <div className="w-12 h-0.5 bg-gray-400 rounded-sm mx-auto" />
-        </div>
-        <div className="grid grid-cols-2 gap-1 mt-0.5 text-xs">
-          <div className="space-y-0.5">
-            <div className="w-6 h-0.5 bg-gray-600 rounded-sm" />
-            <div className="w-10 h-1 bg-gray-700 rounded-sm" />
-            <div className="w-8 h-0.5 bg-gray-400 rounded-sm" />
-          </div>
-          <div className="space-y-0.5 text-right">
-            <div className="w-8 h-0.5 bg-gray-600 rounded-sm ml-auto" />
-            <div className="w-10 h-0.5 bg-red-600 rounded-sm ml-auto" />
-            <div className="w-8 h-0.5 bg-gray-400 rounded-sm ml-auto" />
-          </div>
-        </div>
-        <div className="mt-0.5 w-full h-px bg-gray-300" />
-        <div className="flex justify-between mt-0.5 text-xs">
-          <div className="w-8 h-1 bg-gray-700 rounded-sm" />
-          <div className="w-6 h-0.5 bg-gray-700 rounded-sm" />
-        </div>
-        <div className="mt-auto space-y-0.5">
-          <div className="flex justify-between">
-            <div className="w-6 h-0.5 bg-gray-600 rounded-sm" />
-            <div className="w-6 h-0.5 bg-gray-600 rounded-sm" />
-          </div>
-          <div className="w-full h-px bg-gray-800" />
-          <div className="flex justify-between">
-            <div className="w-6 h-1 bg-gray-800 rounded-sm" />
-            <div className="w-6 h-1 bg-gray-800 rounded-sm" />
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "dark",
-    label: "Dark Modern",
-    description: "Sleek dark design",
-    preview: (
-      <div className="w-full h-full p-2 flex flex-col gap-1" style={{ backgroundColor: "#2a2a2a" }}>
-        <div className="flex justify-between items-start mb-1">
-          <div className="w-8 h-8 bg-white flex items-center justify-center">
-            <div className="w-5 h-5 grid grid-cols-2 gap-0.5">
-              <div className="bg-gray-900" />
-              <div className="bg-gray-900" />
-              <div className="bg-gray-900" />
-              <div className="bg-gray-900" />
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="w-16 h-2.5 bg-white rounded-sm mx-auto" />
-            <div className="w-10 h-1 bg-gray-500 rounded-sm mt-0.5 ml-auto" />
-          </div>
-        </div>
-        <div className="w-full h-px bg-gray-600 my-1" />
-        <div className="flex gap-2 text-xs">
-          <div className="flex-1 space-y-0.5">
-            <div className="w-6 h-0.5 bg-gray-500 rounded-sm" />
-            <div className="w-12 h-1 bg-gray-700 rounded-sm" />
-            <div className="w-10 h-0.5 bg-gray-600 rounded-sm" />
-          </div>
-          <div className="flex-1 text-right space-y-0.5">
-            <div className="w-6 h-0.5 bg-gray-500 rounded-sm ml-auto" />
-            <div className="w-12 h-1 bg-gray-700 rounded-sm ml-auto" />
-            <div className="w-10 h-0.5 bg-gray-600 rounded-sm ml-auto" />
-          </div>
-        </div>
-        <div className="w-full h-px bg-gray-600 my-1" />
-        <div className="space-y-0.5 mt-0.5">
-          <div className="flex justify-between">
-            <div className="w-12 h-1 bg-gray-600 rounded-sm" />
-            <div className="w-6 h-0.5 bg-gray-600 rounded-sm" />
-          </div>
-          <div className="flex justify-between">
-            <div className="w-10 h-0.5 bg-gray-700 rounded-sm" />
-            <div className="w-6 h-0.5 bg-gray-700 rounded-sm" />
-          </div>
-          <div className="flex justify-between">
-            <div className="w-8 h-1 bg-white rounded-sm" />
-            <div className="w-6 h-1 bg-white rounded-sm" />
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "executive",
-    label: "Executive",
-    description: "Navy & gold sidebar",
-    pro: true,
-    preview: (
-      <div className="w-full h-full flex overflow-hidden rounded">
-        {/* Navy sidebar */}
-        <div className="w-8 flex flex-col gap-1 p-1.5" style={{ backgroundColor: "#1e3a5f" }}>
-          <div className="w-4 h-4 bg-white rounded-sm mx-auto mb-1" />
-          <div className="w-3 h-0.5 bg-white/60 rounded-sm" />
-          <div className="w-4 h-0.5 bg-white/40 rounded-sm" />
-          <div className="w-3 h-0.5 bg-white/40 rounded-sm" />
-          <div className="mt-auto w-5 h-5 bg-white rounded-sm mx-auto" />
-        </div>
-        {/* Content area */}
-        <div className="flex-1 bg-white p-1.5 flex flex-col gap-1">
-          <div className="flex justify-between items-start">
-            <div className="space-y-0.5">
-              <div className="w-10 h-1.5 rounded-sm" style={{ backgroundColor: "#1e3a5f" }} />
-              <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="w-6 h-0.5 bg-gray-300 rounded-sm ml-auto" />
-              <div className="w-8 h-0.5 rounded-sm ml-auto" style={{ backgroundColor: "#d4af37" }} />
-            </div>
-          </div>
-          <div className="w-full h-px" style={{ backgroundColor: "#d4af37" }} />
-          <div className="p-1 bg-gray-50 rounded space-y-0.5">
-            <div className="w-6 h-0.5 bg-gray-400 rounded-sm" />
-            <div className="w-10 h-1 bg-gray-700 rounded-sm" />
-          </div>
-          <div className="space-y-0.5 mt-0.5">
-            <div className="flex justify-between">
-              <div className="w-10 h-1 rounded-sm" style={{ backgroundColor: "#1e3a5f" }} />
-              <div className="w-6 h-1 rounded-sm" style={{ backgroundColor: "#1e3a5f" }} />
-            </div>
-            <div className="flex justify-between">
-              <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
-              <div className="w-5 h-0.5 bg-gray-300 rounded-sm" />
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "bold",
-    label: "Bold",
-    description: "Dark header, clean body",
-    pro: true,
-    preview: (
-      <div className="w-full h-full flex flex-col overflow-hidden rounded">
-        {/* Black header band */}
-        <div className="bg-[#0d0d0d] p-2 flex justify-between items-start">
-          <div className="space-y-0.5">
-            <div className="w-5 h-1 bg-white rounded-sm" />
-            <div className="w-8 h-0.5 bg-gray-500 rounded-sm" />
-          </div>
-          <div className="text-right">
-            <div className="w-10 h-2 bg-white rounded-sm" />
-            <div className="w-6 h-0.5 bg-gray-500 rounded-sm mt-0.5 ml-auto" />
-          </div>
-        </div>
-        {/* Amber accent bar */}
-        <div className="h-0.5 bg-amber-400 w-full" />
-        {/* Body */}
-        <div className="flex-1 bg-white p-2 flex flex-col gap-1">
-          <div className="w-10 h-1.5 bg-gray-900 rounded-sm" />
-          <div className="w-8 h-0.5 bg-gray-400 rounded-sm" />
-          <div className="w-full h-px bg-gray-300 my-0.5" />
-          <div className="space-y-0.5">
-            <div className="flex justify-between">
-              <div className="w-12 h-0.5 bg-gray-700 rounded-sm" />
-              <div className="w-5 h-0.5 bg-gray-700 rounded-sm" />
-            </div>
-            <div className="flex justify-between">
-              <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
-              <div className="w-4 h-0.5 bg-gray-300 rounded-sm" />
-            </div>
-          </div>
-          <div className="mt-auto bg-[#0d0d0d] flex justify-between px-1.5 py-1">
-            <div className="w-5 h-1 bg-white rounded-sm" />
-            <div className="w-6 h-1 bg-amber-400 rounded-sm" />
-          </div>
-        </div>
-      </div>
-    ),
-  },
+}
+
+export const INVOICE_TEMPLATES: readonly TemplateMeta[] = [
+  { id: "classic", label: "Classic", description: "Clean and professional" },
+  { id: "minimal", label: "Minimal", description: "Cream paper, typographic" },
+  { id: "tax", label: "Tax Invoice", description: "GST layout, amount in words" },
+  { id: "dark", label: "Dark Modern", description: "Charcoal, high contrast" },
+  { id: "executive", label: "Executive", description: "Navy sidebar, gold accents" },
+  { id: "bold", label: "Bold", description: "Black header, amber accent" },
 ]
 
-export const QUOTATION_TEMPLATES: {
-  id: TemplateType
-  label: string
-  description: string
-  pro?: boolean
-  preview: React.ReactNode
-}[] = [
-  ...INVOICE_TEMPLATES, // Quotations can use the same template designs
-]
+// Quotations can use the same template designs.
+export const QUOTATION_TEMPLATES: readonly TemplateMeta[] = INVOICE_TEMPLATES
 
-// Export merged templates for backward compatibility
+// Merged list kept for callers that don't care about the document type.
 export const TEMPLATES = INVOICE_TEMPLATES
 
-export function getTemplatesForDocumentType(type: DocumentType) {
+export function getTemplatesForDocumentType(type: DocumentType): readonly TemplateMeta[] {
   return type === "quotation" ? QUOTATION_TEMPLATES : INVOICE_TEMPLATES
+}
+
+/** A4 at 96dpi, matching the print preview and PDF export. */
+const PAGE_WIDTH_PX = 794
+const PAGE_HEIGHT_PX = 1123
+
+interface TemplateThumbnailProps {
+  document: DocumentWithItems
+  profile: TemplateProfile | null
+  template: TemplateType
+  colors?: Partial<TemplateColors>
+}
+
+/**
+ * First page of the real document rendered with the given template, scaled down to
+ * fit its tile. It uses the same HTML generator as the PDF, so the thumbnail is an
+ * honest preview rather than a hand-drawn approximation.
+ */
+function TemplateThumbnail({ document, profile, template, colors }: TemplateThumbnailProps) {
+  const primary = colors?.primary
+  const accent = colors?.accent
+  const html = useMemo(
+    () => generateDocumentHTML(document, profile, template, { primary, accent }),
+    [document, profile, template, primary, accent]
+  )
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const update = () => setScale(el.clientWidth / PAGE_WIDTH_PX)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={containerRef} className="relative aspect-210/297 w-full overflow-hidden bg-white">
+      {scale > 0 && (
+        <iframe
+          title=""
+          aria-hidden
+          tabIndex={-1}
+          srcDoc={html}
+          sandbox="allow-same-origin"
+          loading="lazy"
+          scrolling="no"
+          style={{
+            width: PAGE_WIDTH_PX,
+            height: PAGE_HEIGHT_PX,
+            border: 0,
+            display: "block",
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            pointerEvents: "none",
+            background: "white",
+          }}
+        />
+      )}
+    </div>
+  )
 }
 
 interface TemplateSelectorProps {
   value: TemplateType
   onChange: (template: TemplateType) => void
   documentType?: DocumentType
+  /** The document being viewed; each tile renders it with that template. */
+  document: DocumentWithItems
+  /** Profile with the plan's branding rules already applied, so tiles match the main preview. */
+  profile: TemplateProfile | null
+  /** Each template's chosen colours, so every tile shows how that template is currently set up. */
+  colors?: TemplateColorMap
 }
 
-export function TemplateSelector({ value, onChange, documentType = "invoice" }: TemplateSelectorProps) {
+const ARROW_DIRECTION: Record<string, 1 | -1> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+}
+
+export function TemplateSelector({
+  value,
+  onChange,
+  documentType = "invoice",
+  document,
+  profile,
+  colors,
+}: TemplateSelectorProps) {
   const templates = getTemplatesForDocumentType(documentType)
+  const { plan, isLoading: isPlanLoading } = useSubscription()
+  const groupRef = useRef<HTMLDivElement>(null)
+
+  // Until the plan has loaded, treat every template as allowed so Pro users don't see a flash of locks.
+  const isLocked = (id: TemplateType) => !isPlanLoading && !canUseTemplate(plan, id)
+  const lockedCount = templates.filter((tpl) => isLocked(tpl.id)).length
+  const current = templates.find((tpl) => tpl.id === value) ?? templates[0]
+
+  // Roving tabindex: arrow keys move the selection between unlocked templates.
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const direction = ARROW_DIRECTION[event.key]
+    if (!direction) return
+    event.preventDefault()
+    const selectable = templates.filter((tpl) => !isLocked(tpl.id))
+    if (selectable.length === 0) return
+    const index = selectable.findIndex((tpl) => tpl.id === current.id)
+    const next = selectable[(index + direction + selectable.length) % selectable.length]
+    onChange(next.id)
+    groupRef.current?.querySelector<HTMLButtonElement>(`[data-template="${next.id}"]`)?.focus()
+  }
+
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-3">
         <CardTitle className="text-base">Template</CardTitle>
+        <CardDescription>
+          Using <span className="font-medium text-foreground">{current.label}</span>. Your choice is remembered for
+          your next document.
+        </CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
-        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+        <div
+          ref={groupRef}
+          role="radiogroup"
+          aria-label="Document template"
+          onKeyDown={handleKeyDown}
+          className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3"
+        >
           {templates.map((tpl) => {
-            const isSelected = value === tpl.id
-            return (
+            const isSelected = current.id === tpl.id
+            const locked = isLocked(tpl.id)
+
+            const tile = (
               <button
                 key={tpl.id}
-                onClick={() => onChange(tpl.id)}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                aria-disabled={locked || undefined}
+                aria-label={`${tpl.label}${locked ? " (Pro template)" : ""}`}
+                tabIndex={isSelected ? 0 : -1}
+                data-template={tpl.id}
+                onClick={() => {
+                  if (!locked) onChange(tpl.id)
+                }}
                 className={cn(
-                  "relative flex-none w-28 rounded-lg border-2 p-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  "group relative flex w-full flex-col rounded-xl border-2 p-1.5 text-left outline-none transition-all",
+                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   isSelected
-                    ? "border-primary bg-primary/5"
-                    : "border-muted bg-background hover:border-primary/60 cursor-pointer"
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border bg-background hover:border-primary/50 hover:shadow-sm",
+                  locked && "cursor-not-allowed hover:border-border hover:shadow-none"
                 )}
-                title={tpl.label}
               >
-                {/* Thumbnail */}
-                <div className="aspect-[3/4] rounded overflow-hidden border border-border w-full mb-1.5">
-                  {tpl.preview}
+                <div
+                  className={cn(
+                    "relative overflow-hidden rounded-lg ring-1 ring-black/10 transition-transform",
+                    !locked && !isSelected && "group-hover:-translate-y-0.5"
+                  )}
+                >
+                  <TemplateThumbnail document={document} profile={profile} template={tpl.id} colors={colors?.[tpl.id]} />
+
+                  {locked && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/55 backdrop-blur-[1px]">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-foreground px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-background shadow">
+                        <LockIcon className="size-3" aria-hidden />
+                        Pro
+                      </span>
+                    </div>
+                  )}
+
+                  {isSelected && (
+                    <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow ring-2 ring-background">
+                      <CheckIcon className="size-3" strokeWidth={3} aria-hidden />
+                    </span>
+                  )}
                 </div>
 
-                {/* Label */}
-                <p className="text-xs font-medium text-center truncate">{tpl.label}</p>
-                <p className="text-[10px] text-muted-foreground text-center truncate">{tpl.description}</p>
-
-                {/* Selected check */}
-                {isSelected && (
-                  <span className="absolute top-1 right-1 text-primary">
-                    <CheckCircleIcon className="w-3.5 h-3.5 fill-primary text-primary-foreground" />
-                  </span>
-                )}
+                <div className="px-0.5 pb-0.5 pt-2">
+                  <p className={cn("truncate text-xs font-semibold leading-tight", locked && "text-muted-foreground")}>
+                    {tpl.label}
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+                    {tpl.description}
+                  </p>
+                </div>
               </button>
+            )
+
+            if (!locked) return tile
+
+            return (
+              <Tooltip key={tpl.id}>
+                <TooltipTrigger asChild>{tile}</TooltipTrigger>
+                <TooltipContent side="top">Available on the Pro plan</TooltipContent>
+              </Tooltip>
             )
           })}
         </div>
+
+        {lockedCount > 0 && (
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-dashed p-3">
+            <SparklesIcon className="size-4 shrink-0 text-primary" aria-hidden />
+            <p className="flex-1 text-xs text-muted-foreground">
+              {lockedCount === 1 ? "1 more template" : `${lockedCount} more templates`} on Pro, plus your logo and
+              share links.
+            </p>
+            <Link
+              href="/dashboard/plan"
+              className="shrink-0 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Upgrade
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

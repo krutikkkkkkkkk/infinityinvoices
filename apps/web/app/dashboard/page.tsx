@@ -10,16 +10,22 @@ import { RecentDocuments } from "@/components/dashboard/recent-documents"
 import { OverviewSkeleton, TableCardSkeleton } from "@/components/dashboard/overview-skeletons"
 import { ProfileCompletionBanner, ProfileCompletionCard, PROFILE_BANNER_COOKIE } from "@/components/dashboard/profile-completion-card"
 import { getCurrentUser, getOverviewData, getProfile, getRecentDocuments } from "@/lib/dashboard/overview"
+import { resolveDashboardPeriod, type DashboardPeriod } from "@/lib/date-range"
 import type { Profile } from "@/lib/types"
 
 export const metadata = { title: "Dashboard · Infinity Invoice" }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>
+}) {
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
 
-  const [profile, cookieStore] = await Promise.all([getProfile(user.id), cookies()])
+  const [profile, cookieStore, params] = await Promise.all([getProfile(user.id), cookies(), searchParams])
   const bannerDismissed = cookieStore.get(PROFILE_BANNER_COOKIE)?.value === "1"
+  const period = resolveDashboardPeriod(params, profile?.financial_year_start || 4)
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -51,7 +57,7 @@ export default async function DashboardPage() {
       <ProfileNudge profile={profile} bannerDismissed={bannerDismissed} />
 
       <Suspense fallback={<OverviewSkeleton />}>
-        <OverviewSection userId={user.id} profile={profile} />
+        <OverviewSection userId={user.id} profile={profile} period={period} />
       </Suspense>
 
       <Suspense fallback={<TableCardSkeleton />}>
@@ -71,8 +77,16 @@ function ProfileNudge({ profile, bannerDismissed }: { profile: Profile | null; b
   )
 }
 
-async function OverviewSection({ userId, profile }: { userId: string; profile: Profile | null }) {
-  const data = await getOverviewData(userId, profile)
+async function OverviewSection({
+  userId,
+  profile,
+  period,
+}: {
+  userId: string
+  profile: Profile | null
+  period: DashboardPeriod
+}) {
+  const data = await getOverviewData(userId, profile, period)
   return <DashboardOverview data={data} />
 }
 

@@ -1,6 +1,15 @@
 import { headers } from "next/headers"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { consumeUsage } from "@/lib/usage"
+import { sendInvoiceReminder } from "@/lib/reminders"
+
+// Rendering a PDF per reminder is slow; give the job room beyond the default
+export const maxDuration = 300
+
+// Once an invoice is overdue, clients with auto reminders get one email per week
+const REMINDER_INTERVAL_DAYS = 7
+// Cap per run so a backlog cannot blow the function timeout; the rest go next night
+const MAX_REMINDERS_PER_RUN = 50
 
 function advanceDate(date: Date, frequency: string) {
   const next = new Date(date)
@@ -13,7 +22,8 @@ function advanceDate(date: Date, frequency: string) {
 
 export async function GET() {
   const requestHeaders = await headers()
-  if (process.env.CRON_SECRET && requestHeaders.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail closed: without CRON_SECRET anyone could trigger this service-role job
+  if (!process.env.CRON_SECRET || requestHeaders.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -31,7 +41,8 @@ export async function GET() {
   let skippedOverLimit = 0
   for (const schedule of schedules || []) {
     const source = schedule.documents
-    if (!source || (schedule.ends_at && new Date(schedule.ends_at) < now)) {
+    // The source must belong to the schedule's owner, or this would copy another user's invoice
+    if (!source || source.user_id !== schedule.user_id || (schedule.ends_at && new Date(schedule.ends_at) < now)) {
       await supabase.from("recurring_schedules").update({ active: false }).eq("id", schedule.id)
       continue
     }
@@ -54,7 +65,12 @@ export async function GET() {
       due_date: dueDate, status: "draft", currency: source.currency, subtotal: source.subtotal,
       tax_total: source.tax_total, discount_type: source.discount_type, discount_value: source.discount_value,
       grand_total: source.grand_total, notes: source.notes, terms: source.terms,
-      payment_method: source.payment_method, upi_id: source.upi_id, client_name: source.client_name,
+      payment_method: source.payment_method, upi_id: source.upi_id,
+      payment_methods: source.payment_methods ?? null, payment_method_type: source.payment_method_type ?? null,
+      paypal_email: source.paypal_email ?? null, bank_name: source.bank_name ?? null,
+      bank_account_name: source.bank_account_name ?? null, bank_account_number: source.bank_account_number ?? null,
+      bank_routing_number: source.bank_routing_number ?? null, bank_swift_code: source.bank_swift_code ?? null,
+      client_name: source.client_name,
       client_email: source.client_email, client_address: source.client_address, client_gst_id: source.client_gst_id,
       include_tax: source.include_tax, late_fee_type: source.late_fee_type, late_fee_value: source.late_fee_value,
       parent_document_id: source.id,
@@ -84,5 +100,35 @@ export async function GET() {
     }
   }
 
-  return Response.json({ draftsCreated, skippedOverLimit, lateFeesApplied })
+  // Weekly overdue reminders: only for clients that opted in, only once per 7 days per
+  // invoice (manual reminders also set last_reminder_sent, so they push the next one out).
+  const reminderCutoff = new Date(now.getTime() - REMINDER_INTERVAL_DAYS * 86400000).toISOString()
+  const { data: dueForReminder, error: reminderQueryError } = await supabase
+    .from("documents")
+    .select("id, user_id, clients!inner(auto_reminder)")
+    .eq("type", "invoice")
+    .in("status", ["sent", "overdue"])
+    .lt("due_date", today)
+    .not("client_email", "is", null)
+    .eq("clients.auto_reminder", true)
+    .or(`last_reminder_sent.is.null,last_reminder_sent.lte.${reminderCutoff}`)
+    .order("last_reminder_sent", { ascending: true, nullsFirst: true })
+    .limit(MAX_REMINDERS_PER_RUN)
+  if (reminderQueryError) console.error("Overdue reminder query failed:", reminderQueryError.message)
+
+  let remindersSent = 0
+  let remindersSkipped = 0
+  for (const invoice of dueForReminder || []) {
+    try {
+      // Re-checks ownership, paid plan, status and the monthly email limit before sending
+      await sendInvoiceReminder(invoice.user_id, invoice.id)
+      remindersSent++
+    } catch (error) {
+      // Free plan, over the email limit, missing data: skip and retry on a later run
+      remindersSkipped++
+      console.warn(`Overdue reminder skipped for ${invoice.id}:`, error instanceof Error ? error.message : error)
+    }
+  }
+
+  return Response.json({ draftsCreated, skippedOverLimit, lateFeesApplied, remindersSent, remindersSkipped })
 }

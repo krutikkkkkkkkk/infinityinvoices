@@ -15,6 +15,8 @@ import { Files01Icon, InvoiceIcon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { Document, CURRENCIES } from "@/lib/types"
 import { InvoiceFilters } from "@/components/dashboard/invoice-filters"
+import { getProfile } from "@/lib/dashboard/overview"
+import { resolveDateFilter } from "@/lib/date-range"
 import { formatDate } from "@/lib/format"
 
 const PAGE_SIZE = 20
@@ -49,6 +51,7 @@ export default async function QuotationsPage({
     page?: string
     status?: string
     search?: string
+    range?: string
     from?: string
     to?: string
     sort?: string
@@ -59,8 +62,6 @@ export default async function QuotationsPage({
   const page = Math.max(1, Number(params.page) || 1)
   const status = params.status || "all"
   const search = params.search || ""
-  const from = params.from || ""
-  const to = params.to || ""
   const sort = params.sort || "created_at"
   const order = params.order || "desc"
 
@@ -72,6 +73,10 @@ export default async function QuotationsPage({
   if (!user) {
     return null
   }
+
+  const profile = await getProfile(user.id)
+  const fyStartMonth = profile?.financial_year_start || 4
+  const { range, from, to } = resolveDateFilter(params, fyStartMonth)
 
   const offset = (page - 1) * PAGE_SIZE
 
@@ -125,7 +130,9 @@ export default async function QuotationsPage({
       <InvoiceFilters
         status={status}
         search={search}
+        range={range}
         from={from}
+        fyStartMonth={fyStartMonth}
         to={to}
         sort={sort}
         order={order}
@@ -262,8 +269,11 @@ function buildPageUrl(
   if (page > 1) sp.set("page", String(page))
   if (params.status && params.status !== "all") sp.set("status", params.status)
   if (params.search) sp.set("search", params.search)
-  if (params.from) sp.set("from", params.from)
-  if (params.to) sp.set("to", params.to)
+  if (params.range) sp.set("range", params.range)
+  else {
+    if (params.from) sp.set("from", params.from)
+    if (params.to) sp.set("to", params.to)
+  }
   if (params.sort && params.sort !== "created_at") sp.set("sort", params.sort)
   if (params.order && params.order !== "desc") sp.set("order", params.order)
   const qs = sp.toString()

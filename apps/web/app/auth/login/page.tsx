@@ -65,6 +65,9 @@ export default function Page() {
     setMounted(true)
     const lastUsed = localStorage.getItem('lastLoginMethod')
     if (lastUsed) setLastUsedMethod(lastUsed)
+    // /auth/callback redirects here with ?error= when a code exchange fails
+    const message = new URLSearchParams(window.location.search).get('error')
+    if (message) setError(message)
   }, [])
 
   const handleGitHubLogin = async () => {

@@ -9,6 +9,7 @@ import {
   Invoice01Icon,
   Mail01Icon,
   SparklesIcon,
+  UserGroupIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
@@ -17,7 +18,9 @@ import { Badge } from "@/components/ui/badge"
 import { IconChip } from "@/components/dashboard/overview"
 import { getCurrentUser } from "@/lib/dashboard/overview"
 import { getPlanOverview, type PlanId, type PlanOverview } from "@/lib/dashboard/plan"
-import { FREE_PLAN, PRO_PLAN } from "@/lib/plans"
+import { FREE_PLAN, PRO_PLAN, PRO_YEARLY, formatUsd } from "@/lib/plans"
+import type { CheckoutPlan } from "@/lib/dodo"
+import { YearlyPrice } from "@/components/pricing/yearly-price"
 import { formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -62,7 +65,7 @@ export default async function PlanPage({
           <h2 id="compare-heading" className="text-base font-semibold">
             Compare plans
           </h2>
-          <p className="text-sm text-muted-foreground">Every plan includes all templates, PDF downloads and multi-currency invoicing.</p>
+          <p className="text-sm text-muted-foreground">Every plan includes PDF downloads, UPI QR codes and multi-currency invoicing.</p>
         </div>
         <div className={cn("grid grid-cols-1 gap-4", overview.checkout.lifetime ? "md:grid-cols-3" : "md:grid-cols-2")}>
           <PlanOption
@@ -78,8 +81,14 @@ export default async function PlanPage({
             id="pro"
             overview={overview}
             name="Pro"
-            price={`$${PRO_PLAN.priceInCents / 100}`}
-            cadence={`per ${PRO_PLAN.priceBillingCycle ?? "month"}`}
+            price={formatUsd(PRO_PLAN.priceInCents)}
+            cadence="per month"
+            priceNote={overview.checkout.proYearly ? <YearlyPrice className="mt-1" /> : undefined}
+            secondaryCheckout={
+              overview.checkout.proYearly
+                ? { plan: "pro_yearly", label: `Get a year for ${formatUsd(PRO_YEARLY.priceInCents)}` }
+                : undefined
+            }
             description={PRO_PLAN.description}
             features={["Everything in Free", ...PRO_PLAN.features]}
             highlight
@@ -155,7 +164,9 @@ function CurrentPlanCard({ overview }: { overview: PlanOverview }) {
   const { planId, isPaid } = overview
   const priceLine =
     planId === "pro"
-      ? `$${PRO_PLAN.priceInCents / 100} per ${PRO_PLAN.priceBillingCycle ?? "month"}`
+      ? overview.billingInterval === "year"
+        ? `${formatUsd(PRO_YEARLY.priceInCents)} per year`
+        : `${formatUsd(PRO_PLAN.priceInCents)} per month`
       : planId === "lifetime"
         ? "Paid once — no renewals"
         : "Free forever"
@@ -228,10 +239,11 @@ function CurrentPlanCard({ overview }: { overview: PlanOverview }) {
 }
 
 function UsageCard({ overview }: { overview: PlanOverview }) {
-  const rows = [
+  const rows: { key: string; label: string; icon: typeof Invoice01Icon; used: number; limit: number; atLimitHint?: string }[] = [
     { key: "invoices", label: "Invoices", icon: Invoice01Icon, ...overview.usage.invoices },
     { key: "quotations", label: "Quotations", icon: FileValidationIcon, ...overview.usage.quotations },
     { key: "emails", label: "Emails sent", icon: Mail01Icon, ...overview.usage.emails },
+    { key: "clients", label: "Clients", icon: UserGroupIcon, ...overview.usage.clients, atLimitHint: "delete a client or upgrade to add more." },
   ]
   const nearLimit = rows.some((r) => r.limit > 0 && r.used >= r.limit * 0.8)
 
@@ -250,7 +262,7 @@ function UsageCard({ overview }: { overview: PlanOverview }) {
       </div>
       <CardContent className="flex flex-col gap-3 px-5 sm:px-6">
         {rows.map((r) => (
-          <UsageMeter key={r.key} label={r.label} icon={r.icon} used={r.used} limit={r.limit} />
+          <UsageMeter key={r.key} label={r.label} icon={r.icon} used={r.used} limit={r.limit} atLimitHint={r.atLimitHint} />
         ))}
         {!overview.isPaid && nearLimit && overview.checkout.pro && (
           <p className="rounded-xl bg-muted px-3 py-2.5 text-sm text-muted-foreground">
@@ -271,11 +283,14 @@ function UsageMeter({
   icon,
   used,
   limit,
+  atLimitHint,
 }: {
   label: string
   icon: typeof Invoice01Icon
   used: number
   limit: number
+  /** What to do when the limit is hit; defaults to waiting for the monthly reset. */
+  atLimitHint?: string
 }) {
   const unlimited = limit === -1
   const proOnly = limit === 0
@@ -319,7 +334,11 @@ function UsageMeter({
           />
         </div>
       )}
-      {atLimit && <p className="mt-2 text-xs text-destructive">Limit reached — new {label.toLowerCase()} are blocked until the reset.</p>}
+      {atLimit && (
+        <p className="mt-2 text-xs text-destructive">
+          Limit reached — {atLimitHint ?? `new ${label.toLowerCase()} are blocked until the reset.`}
+        </p>
+      )}
     </div>
   )
 }
@@ -333,6 +352,8 @@ function PlanOption({
   description,
   features,
   highlight,
+  priceNote,
+  secondaryCheckout,
 }: {
   id: PlanId
   overview: PlanOverview
@@ -342,6 +363,10 @@ function PlanOption({
   description: string
   features: string[]
   highlight?: boolean
+  /** Extra line under the price, e.g. the yearly alternative. */
+  priceNote?: React.ReactNode
+  /** A second way to buy this plan, shown under the main checkout button. */
+  secondaryCheckout?: { plan: CheckoutPlan; label: string }
 }) {
   const current = overview.planId === id
   // Lifetime already covers Pro; Free is never something you "buy".
@@ -373,9 +398,16 @@ function PlanOption({
     )
   } else if (overview.checkout[id as "pro" | "lifetime"]) {
     action = (
-      <Button variant={highlight ? "brand" : "default"} className="w-full" asChild>
-        <a href={`/api/checkout?plan=${id}`}>{id === "lifetime" ? "Get lifetime access" : `Upgrade to ${name}`}</a>
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button variant={highlight ? "brand" : "default"} className="w-full" asChild>
+          <a href={`/api/checkout?plan=${id}`}>{id === "lifetime" ? "Get lifetime access" : `Upgrade to ${name}`}</a>
+        </Button>
+        {secondaryCheckout && (
+          <Button variant="outline" className="w-full" asChild>
+            <a href={`/api/checkout?plan=${secondaryCheckout.plan}`}>{secondaryCheckout.label}</a>
+          </Button>
+        )}
+      </div>
     )
   } else {
     action = (
@@ -402,10 +434,13 @@ function PlanOption({
           </Badge>
         ) : null}
       </div>
-      <p className="flex items-baseline gap-1.5">
-        <span className="text-3xl font-semibold tracking-tight">{price}</span>
-        <span className="text-sm text-muted-foreground">{cadence}</span>
-      </p>
+      <div>
+        <p className="flex items-baseline gap-1.5">
+          <span className="text-3xl font-semibold tracking-tight">{price}</span>
+          <span className="text-sm text-muted-foreground">{cadence}</span>
+        </p>
+        {priceNote}
+      </div>
       <ul className="flex flex-1 flex-col gap-2.5">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2 text-sm">
@@ -428,7 +463,7 @@ const FAQ = [
   },
   {
     q: "What happens when I hit the Free limit?",
-    a: "Your existing invoices stay fully usable — you can still view, edit, share and download them. You just can't create new ones until the reset or until you upgrade.",
+    a: "Your existing invoices stay fully usable — you can still view, edit and download them. You just can't create new ones until the reset or until you upgrade.",
   },
   {
     q: "Can I cancel Pro anytime?",

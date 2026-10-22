@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,7 +20,36 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  // "checking" until we know whether the reset link gave us a session
+  const [linkState, setLinkState] = useState<"checking" | "valid" | "invalid">("checking")
   const router = useRouter()
+
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+
+    const verifyLink = async () => {
+      // Normally /auth/callback has already exchanged the code and set the
+      // session cookie. If the email landed here directly with ?code=, do the
+      // exchange in the browser instead.
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get("code")
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error) {
+          window.history.replaceState({}, "", window.location.pathname)
+        }
+      }
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!cancelled) setLinkState(session ? "valid" : "invalid")
+    }
+
+    verifyLink()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,6 +81,46 @@ export default function ResetPasswordPage() {
         }, 2000)
       }
     })
+  }
+
+  if (linkState === "checking") {
+    return (
+      <AuthLayout>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <HugeiconsIcon icon={Loading01Icon} size={16} className="animate-spin" />
+              Verifying your reset link...
+            </div>
+          </CardContent>
+        </Card>
+      </AuthLayout>
+    )
+  }
+
+  if (linkState === "invalid") {
+    return (
+      <AuthLayout>
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Reset link expired</CardTitle>
+            <CardDescription>
+              This password reset link is invalid or has already been used. Request a new one to continue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button asChild className="w-full">
+              <Link href="/auth/forgot-password">Request a new link</Link>
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              <Link href="/auth/login" className="text-primary hover:underline">
+                Back to login
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </AuthLayout>
+    )
   }
 
   if (success) {
