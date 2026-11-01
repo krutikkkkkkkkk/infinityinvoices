@@ -1,47 +1,46 @@
-// Marketing copy for the pricing section. Keep prices and limits in sync with apps/web/lib/plans.ts.
+// Marketing copy for the pricing section. Keep prices and limits in sync with apps/web/lib/plans.ts
+// and the product prices in Dodo.
+export const LIFETIME_PRICE = "$29"
+
 export const LANDING_PLANS = [
   {
     id: "free",
     name: "Free",
-    description: "For freelancers getting started",
+    description: "For trying it, or for the very occasional invoice.",
     price: "$0",
     period: "forever",
-    cta: "Start for free",
+    cta: "Start free",
     path: "/auth/sign-up",
     highlighted: false,
-    yearly: null,
-    features: [
-      "5 invoices per month",
-      "5 quotations per month",
-      "Up to 10 clients",
-      "4 of 6 templates",
-      "PDF downloads",
-      "UPI QR codes",
-      "Multi-currency support",
-    ],
-    excluded: ["Email sending & payment reminders"],
+    features: ["5 invoices a month", "5 quotations a month", "Up to 10 clients", "4 of 6 templates", "PDF download"],
   },
   {
     id: "pro",
     name: "Pro",
-    description: "For growing businesses",
+    description: "For billing every month without thinking about limits.",
     price: "$5",
     period: "per month",
-    cta: "Upgrade to Pro",
+    cta: "Go Pro",
     path: "/pricing",
-    highlighted: true,
-    // Shown as "or ~~$36~~ $30 per year"
-    yearly: { price: "$30", compareAt: "$36", period: "per year", note: "$2.50/mo" },
+    highlighted: false,
     features: [
-      "Everything in Free",
       "Unlimited invoices & quotations",
       "Unlimited clients",
       "All 6 templates",
-      "Custom branding with your logo",
+      "Your logo & colors",
+      "Email sending & reminders",
       "Share invoices via link",
-      "Unlimited email sending",
-      "Email payment reminders",
     ],
-    excluded: [],
+  },
+  {
+    id: "lifetime",
+    name: "Lifetime",
+    description: "Pay once and keep Pro for good.",
+    price: LIFETIME_PRICE,
+    period: "once",
+    cta: "Get lifetime access",
+    path: "/dashboard/plan",
+    highlighted: true,
+    features: ["Everything in Pro", "Pay once, keep it forever", "Future features included"],
   },
 ] as const

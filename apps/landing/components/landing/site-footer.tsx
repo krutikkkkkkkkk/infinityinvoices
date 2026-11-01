@@ -1,14 +1,14 @@
 import Link from "next/link"
-import { APP_URL, SUPPORT_EMAIL } from "@/lib/config"
+import { APP_URL, GITHUB_URL, SUPPORT_EMAIL } from "@/lib/config"
 
 const COLUMNS = [
   {
     title: "Product",
     links: [
-      { href: "/#features", label: "Features" },
-      { href: "/#use-cases", label: "Use cases" },
+      { href: "/#how-it-works", label: "How it works" },
       { href: "/#pricing", label: "Pricing" },
       { href: "/#faq", label: "FAQ" },
+      { href: GITHUB_URL, label: "GitHub" },
     ],
   },
   {
@@ -39,7 +39,7 @@ export function SiteFooter() {
               Infinity Invoice
             </Link>
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-              Invoices and quotations for freelancers and small businesses, with UPI, GST and multi-currency built in.
+              Invoicing for people who send four invoices a month, not forty. Open source and MIT licensed.
             </p>
             <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-4 inline-block text-sm text-muted-foreground transition-colors hover:text-foreground">
               {SUPPORT_EMAIL}

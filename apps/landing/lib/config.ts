@@ -9,3 +9,6 @@ export const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@i
 
 // Bump whenever the Privacy Policy or Terms change.
 export const LEGAL_UPDATED = "21 October 2026"
+
+// Public source repository, linked from the open source section.
+export const GITHUB_URL = "https://github.com/krutikkkkkkkkk/infinityinvoices"

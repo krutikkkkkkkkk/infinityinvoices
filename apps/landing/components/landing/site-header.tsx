@@ -1,22 +1,20 @@
-"use client"
-
 import Link from "next/link"
-import { Moon, Sun } from "lucide-react"
-import { useTheme } from "next-themes"
+import { Github, Star } from "lucide-react"
 import { cn } from "@infinity/ui/lib/utils"
-import { APP_URL } from "@/lib/config"
-import { button, buttonSize } from "./ui"
+import { APP_URL, GITHUB_URL } from "@/lib/config"
+import { formatStars, getGithubStars } from "@/lib/github"
+import { ThemeToggle } from "./theme-toggle"
+import { button } from "./ui"
 
 const NAV = [
-  { href: "/#features", label: "Features" },
   { href: "/#how-it-works", label: "How it works" },
-  { href: "/#use-cases", label: "Use cases" },
   { href: "/#pricing", label: "Pricing" },
+  { href: "/#open-source", label: "Open source" },
   { href: "/#faq", label: "FAQ" },
 ]
 
-export function SiteHeader() {
-  const { resolvedTheme, setTheme } = useTheme()
+export async function SiteHeader() {
+  const stars = await getGithubStars()
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/80">
@@ -35,15 +33,20 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            aria-label="Toggle theme"
-            className={cn(button.outline, buttonSize.icon)}
+          <a
+            href={GITHUB_URL}
+            aria-label={stars === null ? "GitHub" : `Star on GitHub, ${stars.toLocaleString("en-US")} stars`}
+            className={cn(button.outline, "hidden h-9 gap-1.5 px-3 text-[13px] sm:inline-flex")}
           >
-            <Sun className="hidden size-4 dark:block" />
-            <Moon className="size-4 dark:hidden" />
-          </button>
+            <Github className="size-4" aria-hidden />
+            {stars !== null && (
+              <>
+                <Star className="size-3.5 fill-current text-amber-500" aria-hidden />
+                <span className="tabular-nums">{formatStars(stars)}</span>
+              </>
+            )}
+          </a>
+          <ThemeToggle />
           <a href={`${APP_URL}/dashboard`} className={cn(button.outline, "hidden h-9 px-4 sm:inline-flex")}>
             Log in
           </a>

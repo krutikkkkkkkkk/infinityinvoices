@@ -1,40 +1,37 @@
 import { ChevronDown } from "lucide-react"
+import { LIFETIME_PRICE } from "@/lib/plans"
 import { InView } from "./motion"
 import { Section, SectionHeading } from "./section"
 import { cardInset } from "./ui"
 
 const FAQS = [
   {
-    q: "Is there really a free plan?",
-    a: "Yes. The Free plan includes 5 invoices and 5 quotations every month, up to 10 clients, 4 templates, UPI QR codes, PDF downloads and multi-currency invoicing. No credit card needed.",
+    q: "Is it really one payment?",
+    a: `Yes. Lifetime is ${LIFETIME_PRICE} once and you have Pro for as long as the product exists. If we ever added something that cost us real money per user, it would be an optional add-on, never a surprise bill.`,
   },
   {
-    q: "Can I create GST invoices?",
-    a: "Yes. Use the GST-focused Tax template to show your GSTIN and tax breakdown. Taxes and discounts are calculated for you as you add line items.",
+    q: "Can my client pay directly from the invoice?",
+    a: "Add your bank details, PayPal email or UPI ID and they appear on every invoice, with a scannable QR code for UPI. Clients pay you directly and we don't take a cut.",
   },
   {
-    q: "How do clients pay through the UPI QR code?",
-    a: "Add your UPI ID to an invoice and a QR code appears on it. Clients scan it with any UPI app and the money goes straight to your account. Infinity Invoice never holds your funds.",
+    q: "Does it handle my country's taxes?",
+    a: "Set a tax rate on any line item, so GST, VAT and sales tax all work. Indian GST invoices also get their own template with your GSTIN and the tax breakdown.",
   },
   {
-    q: "Can I invoice clients outside India?",
-    a: "Yes. Set a default currency for your business and pick a different currency per invoice when you bill international clients.",
+    q: "What happens to my invoices if you shut down?",
+    a: "You can download any invoice as a PDF at any time, and the whole app is open source under the MIT license, so you could run it yourself tomorrow.",
   },
   {
-    q: "How do recurring invoices work?",
-    a: "Put any invoice on a weekly, monthly, quarterly or yearly schedule. When it's due, a new draft is created for you to review and send.",
+    q: "Why is it so cheap?",
+    a: "Because it does one thing, and because one person built it instead of a company with a sales team.",
   },
   {
-    q: "Can I record partial payments?",
-    a: "Yes. Record each payment against an invoice as it comes in and the balance updates. You can also issue credit notes, and add a one-time late fee to an invoice that goes overdue.",
+    q: "Can I email invoices to clients?",
+    a: "Yes, on Pro and Lifetime. Invoices go out with your business name on them, and when your client hits reply it lands in your inbox, not ours. Payment reminders are one click.",
   },
   {
     q: "Can I turn a quotation into an invoice?",
-    a: "Yes. Once a client accepts a quotation, convert it to an invoice in one click. The client, line items and taxes carry over, so nothing needs to be typed twice.",
-  },
-  {
-    q: "What do I get with Pro?",
-    a: "Pro is $5 a month and removes the monthly invoice and quotation limits. It also unlocks email sending, so you can deliver invoices and reminders straight to your client's inbox.",
+    a: "Yes. Once a client accepts a quotation, convert it to an invoice in one click. The client, line items and taxes carry over.",
   },
 ]
 

@@ -1,15 +1,12 @@
-import { About } from "@/components/landing/about"
-import { BentoGrid } from "@/components/landing/bento-grid"
 import { Faq } from "@/components/landing/faq"
 import { FinalCta } from "@/components/landing/final-cta"
 import { Hero } from "@/components/landing/hero"
 import { HowItWorks } from "@/components/landing/how-it-works"
+import { OpenSource } from "@/components/landing/open-source"
 import { Pricing } from "@/components/landing/pricing"
-import { Security } from "@/components/landing/security"
+import { Problem } from "@/components/landing/problem"
 import { SiteFooter } from "@/components/landing/site-footer"
 import { SiteHeader } from "@/components/landing/site-header"
-import { Spotlight } from "@/components/landing/spotlight"
-import { UseCases } from "@/components/landing/use-cases"
 import { Why } from "@/components/landing/why"
 
 export default function Home() {
@@ -18,14 +15,11 @@ export default function Home() {
       <SiteHeader />
       <main className="space-y-4">
         <Hero />
-        <About />
-        <Why />
+        <Problem />
         <HowItWorks />
-        <BentoGrid />
-        <UseCases />
-        <Spotlight />
-        <Security />
+        <Why />
         <Pricing />
+        <OpenSource />
         <Faq />
         <FinalCta />
       </main>

@@ -10,9 +10,9 @@ const instrumentSansHeading = Instrument_Sans({ subsets: ["latin"], variable: "-
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
-  title: "Infinity Invoice - Invoice & Quotation Builder",
+  title: "Infinity Invoice - Simple, open source invoicing for freelancers",
   description:
-    "Create professional invoices and quotations with ease. Features auto-calculations, UPI QR codes, and PDF export.",
+    "Make a clean invoice in 30 seconds, email it to your client, get paid. Free for 5 invoices a month, or $29 once for lifetime Pro. Open source.",
   manifest: "/manifest.json",
   icons: {
     icon: [

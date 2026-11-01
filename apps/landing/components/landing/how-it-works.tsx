@@ -1,23 +1,23 @@
-import { CircleCheckBig, Send, UserPlus } from "lucide-react"
+import { CircleCheckBig, PencilLine, Send } from "lucide-react"
 import { InView } from "./motion"
 import { Section, SectionHeading } from "./section"
 import { IconChip, cardInset } from "./ui"
 
 const STEPS = [
   {
-    icon: UserPlus,
-    title: "Add your client and items",
-    description: "Save clients and products once, or start from a preset with your usual line items, taxes and payment terms.",
+    icon: PencilLine,
+    title: "Fill in the blanks.",
+    description: "Client, line items, due date. Your logo, your colors, your payment details. Saved for next time.",
   },
   {
     icon: Send,
-    title: "Pick a template and send",
-    description: "Choose a design, add your UPI QR, then email it, share a link or download the PDF.",
+    title: "Send it in one click.",
+    description: "Email it with your business name on it and replies going straight to your inbox. Or share a link, or download the PDF.",
   },
   {
     icon: CircleCheckBig,
-    title: "Track it until it's paid",
-    description: "See what's sent, paid or overdue. Send a reminder or record a partial payment in a click.",
+    title: "Watch it get paid.",
+    description: "Sent, paid, overdue. Record partial payments, and a nudge button for the ones that go quiet.",
   },
 ]
 
@@ -27,7 +27,7 @@ export function HowItWorks() {
       <div>
         <SectionHeading
           eyebrow="How it works"
-          title="From blank page to paid in three steps"
+          title="Three steps, then back to real work"
           description="No accounting jargon and no setup marathon. Sign up and send your first invoice in the same sitting."
         />
 
