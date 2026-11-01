@@ -1,6 +1,6 @@
 # Infinity Invoice
 
-Create, send and track invoices and quotations — with clients, products, recurring invoicing, payment reminders, multi-currency support and a Telegram bot.
+Create, send and track invoices and quotations — with clients, products, recurring invoicing, payment reminders and multi-currency support.
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/krutik/invoice)
 
@@ -11,7 +11,6 @@ Create, send and track invoices and quotations — with clients, products, recur
 - **Email delivery & reminders** — send invoices via Resend; clients with auto reminders on get a reminder email every week while an invoice is overdue
 - **Recurring invoicing, late fees & weekly overdue reminders** — daily cron job (`/api/cron/invoicing`, 01:00 UTC)
 - **Multi-currency** — per-document currency plus a built-in currency converter
-- **Telegram bot** — manage documents from Telegram
 - **Subscriptions** — Pro and Lifetime plans via Dodo Payments
 - **Admin panel** — users, documents, subscriptions, revenue and analytics
 
@@ -61,7 +60,6 @@ Each app reads its own env file: `apps/web/.env.local` and `apps/landing/.env.lo
 | `DODO_PAYMENTS_API_KEY`, `DODO_PAYMENTS_WEBHOOK_KEY`, `DODO_PAYMENTS_ENVIRONMENT` | Checkout and subscription webhooks |
 | `NEXT_PUBLIC_DODO_PRO_PRODUCT_ID`, `NEXT_PUBLIC_DODO_PRO_YEARLY_PRODUCT_ID`, `NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID` | Dodo product IDs per plan (Pro monthly, Pro yearly, Lifetime) |
 | `CRON_SECRET` | Protects `/api/cron/invoicing` |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | Telegram bot |
 | `NEXT_PUBLIC_IMGBB_API_KEY` | Logo uploads (see [`IMGBB_SETUP.md`](apps/web/IMGBB_SETUP.md)) |
 
 **`apps/landing`**

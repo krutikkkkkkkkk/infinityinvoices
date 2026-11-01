@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { SettingsForm } from "@/components/dashboard/settings-form"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { Profile } from "@/lib/types"
-import { TelegramSettingsCard } from "@/components/dashboard/telegram-settings-card"
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -17,14 +15,7 @@ export default async function SettingsPage() {
   }
 
   // Fetch profile
-  const [{ data: profile }, { data: telegramAccount }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
-    supabase
-      .from("telegram_accounts")
-      .select("telegram_username,first_name,linked_at")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-  ])
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
 
   return (
     <div className="space-y-6">
@@ -37,7 +28,6 @@ export default async function SettingsPage() {
 
 
       <SettingsForm profile={profile as Profile | null} />
-      <TelegramSettingsCard account={telegramAccount} />
     </div>
   )
 }

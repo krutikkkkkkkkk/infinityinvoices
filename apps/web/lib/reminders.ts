@@ -10,8 +10,7 @@ import { buildReminderEmail } from "@/lib/email/templates"
 /**
  * Sends a payment reminder email (with the invoice PDF attached) for one invoice.
  * Runs with the service role, so every query is scoped to `userId`; callers must have
- * already established that `userId` is allowed to act (signed-in user, linked Telegram
- * account, or the cron job).
+ * already established that `userId` is allowed to act (signed-in user or the cron job).
  */
 export async function sendInvoiceReminder(userId: string, documentId: string) {
   const admin = createAdminClient()
