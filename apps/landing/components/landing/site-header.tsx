@@ -20,7 +20,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/80">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold">
-          <img src="/logo.svg" alt="" className="h-7 w-7" />
+          <img src="/logo.svg" alt="" className="h-7 w-7 rounded-lg" />
           Infinity Invoice
         </Link>
 
