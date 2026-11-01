@@ -8,7 +8,7 @@ import { formatDate, formatMoney, isTemplateType, type DocumentWithItems, type T
 import { parseTemplateColors } from "@/lib/document-style"
 import { renderDocumentPdf } from "@/lib/pdf/render"
 import { getInvoiceBalance } from "@/lib/invoice-balance"
-import { buildReminderEmail } from "@/lib/email/templates"
+import { buildReminderEmail, senderFrom } from "@/lib/email/templates"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
           where: and(eq(documents.id, documentId), eq(documents.user_id, user.id), eq(documents.type, "invoice")),
           with: {
             line_items: { orderBy: [asc(lineItems.sort_order)] },
-            client: { columns: { id: true, name: true, email: true, auto_reminder: true } },
+            client: { columns: { user_id: true, auto_reminder: true } },
           },
         })
       : undefined
@@ -73,7 +73,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
     }
 
-    if (document.client && !document.client.auto_reminder) {
+    // client_id is a bare FK: only honour the setting of a client the user owns
+    const client = document.client?.user_id === user.id ? document.client : null
+    if (client && !client.auto_reminder) {
       return NextResponse.json({ error: "Auto reminders are disabled for this client" }, { status: 403 })
     }
 
@@ -94,7 +96,18 @@ export async function POST(request: NextRequest) {
       ? Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)))
       : 0
 
-    // Count the email against the monthly limit before doing the expensive render
+    const rendered = await renderDocumentPdf(document as DocumentWithItems, profile, template, colors)
+
+    // Never send without the PDF: the email body points the client to the attachment. Nothing is
+    // counted against the email limit, so the user can simply retry.
+    if (!rendered.pdf) {
+      return NextResponse.json(
+        { error: "Couldn't generate the PDF, so the email wasn't sent. Please try again in a moment." },
+        { status: 502 }
+      )
+    }
+
+    // Count the email against the monthly limit only once there's a PDF to send
     const usage = await checkAndIncrementUsage("email")
     if (!usage.allowed) {
       return NextResponse.json(
@@ -106,7 +119,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const rendered = await renderDocumentPdf(document as DocumentWithItems, profile, template, colors)
     const companyName = profile?.company_name?.trim() || "Your Company"
 
     const email = buildReminderEmail({
@@ -116,22 +128,19 @@ export async function POST(request: NextRequest) {
       dueDateLabel: document.due_date ? formatDate(document.due_date, "long") : null,
       daysOverdue,
       clientName: document.client_name,
-      hasAttachment: Boolean(rendered.pdf),
+      hasAttachment: true,
       sender: { companyName, email: profile?.email, phone: profile?.phone },
     })
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@new.infinityinvoices.com"
 
     const { error: emailError } = await resend.emails.send({
-      from: `${companyName.replace(/["<>]/g, "")} via Infinity Invoices <${fromEmail}>`,
+      from: senderFrom(profile?.company_name),
       to: document.client_email,
       replyTo: profile?.email || undefined,
       subject: email.subject,
       html: email.html,
       text: email.text,
-      attachments: rendered.pdf
-        ? [{ filename: rendered.fileName, content: rendered.pdf, contentType: "application/pdf" }]
-        : undefined,
+      attachments: [{ filename: rendered.fileName, content: rendered.pdf, contentType: "application/pdf" }],
       headers: { "X-Mailer": "Infinity Invoices" },
     })
 
@@ -147,7 +156,7 @@ export async function POST(request: NextRequest) {
       })
       .where(and(eq(documents.id, documentId), eq(documents.user_id, user.id)))
 
-    return NextResponse.json({ success: true, attached: Boolean(rendered.pdf) })
+    return NextResponse.json({ success: true, attached: true })
   } catch (error) {
     console.error("Reminder error:", error)
     return NextResponse.json({ error: "Failed to send reminder" }, { status: 500 })

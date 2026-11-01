@@ -5,7 +5,7 @@ import { hasPaidPlan } from "@/lib/plans"
 import { formatDate, formatMoney, type DocumentWithItems } from "@/lib/generate-document-html"
 import { renderDocumentPdf } from "@/lib/pdf/render"
 import { getInvoiceBalance } from "@/lib/invoice-balance"
-import { buildReminderEmail } from "@/lib/email/templates"
+import { buildReminderEmail, senderFrom } from "@/lib/email/templates"
 
 /**
  * Sends a payment reminder email (with the invoice PDF attached) for one invoice.
@@ -36,7 +36,6 @@ export async function sendInvoiceReminder(userId: string, documentId: string) {
   const { paid: amountPaid, remaining } = getInvoiceBalance(document)
   const dueDate = document.due_date ? new Date(document.due_date) : null
   const daysOverdue = dueDate ? Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / 86_400_000)) : 0
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@new.infinityinvoices.com"
   const usage = await consumeUsage(userId, "email")
   if (!usage.allowed) throw new Error(`You've reached your monthly limit of ${usage.limit} emails`)
 
@@ -54,7 +53,7 @@ export async function sendInvoiceReminder(userId: string, documentId: string) {
   })
 
   const { error: emailError } = await resend.emails.send({
-    from: `${companyName.replace(/["<>]/g, "")} via Infinity Invoices <${fromEmail}>`,
+    from: senderFrom(profile?.company_name),
     to: document.client_email,
     replyTo: profile?.email || undefined,
     subject: email.subject,

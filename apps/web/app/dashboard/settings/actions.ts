@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { db, eq, profiles } from "@infinity/db"
 import { requireUser } from "@/lib/auth/server"
 import { CURRENCIES } from "@/lib/types"
+import { isLogoSize } from "@/lib/generate-document-html"
 
 export interface ProfileInput {
   company_name: string
@@ -53,6 +54,20 @@ export async function updateProfile(input: ProfileInput): Promise<{ error?: stri
     .insert(profiles)
     .values({ id: user.id, ...values })
     .onConflictDoUpdate({ target: profiles.id, set: values })
+
+  revalidatePath("/dashboard", "layout")
+  return {}
+}
+
+/** Saves how large the logo is drawn on the user's documents (preview, PDF, email and share link). */
+export async function updateLogoSize(size: string): Promise<{ error?: string }> {
+  const user = await requireUser()
+  if (!isLogoSize(size)) return { error: "Choose a valid logo size" }
+
+  await db
+    .insert(profiles)
+    .values({ id: user.id, logo_size: size })
+    .onConflictDoUpdate({ target: profiles.id, set: { logo_size: size } })
 
   revalidatePath("/dashboard", "layout")
   return {}

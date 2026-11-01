@@ -1,50 +1,75 @@
-import { ArrowRight, Github } from "lucide-react"
 import { cn } from "@infinity/ui/lib/utils"
-import { APP_URL, GITHUB_URL } from "@/lib/config"
-import { LIFETIME_PRICE } from "@/lib/plans"
-import { InvoiceDocument } from "./invoice-document"
-import { Eyebrow } from "./section"
+import { APP_URL } from "@/lib/config"
+import { SilkWaves } from "./silk-waves"
 import { button, buttonSize } from "./ui"
+
+const FACTS = ["MIT licensed", "No card to start", "Self-host or use ours"]
+
+/** Silk drifting across a dark stage, faded back on the left so the headline stays readable. */
+function Backdrop() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <SilkWaves />
+      <div className="absolute inset-0 bg-linear-to-r from-[#06060a]/90 from-10% via-[#06060a]/55 via-40% to-transparent to-70%" />
+    </div>
+  )
+}
+
+/** A word wrapped in a design-tool selection box, as if someone is editing the headline. */
+function Selected({ children }: { children: string }) {
+  const handle = "absolute size-1.5 border border-white/80 bg-[#06060a]"
+  return (
+    <span className="relative inline-block px-[0.12em]">
+      <span
+        aria-hidden
+        className="animate-in fade-in-0 zoom-in-95 absolute inset-x-0 inset-y-[0.08em] border border-white/45 bg-white/[0.06] delay-700 duration-500 fill-mode-both"
+      >
+        <span className={cn(handle, "-top-[3px] -left-[3px]")} />
+        <span className={cn(handle, "-top-[3px] -right-[3px]")} />
+        <span className={cn(handle, "-bottom-[3px] -left-[3px]")} />
+        <span className={cn(handle, "-right-[3px] -bottom-[3px]")} />
+      </span>
+      <span className="relative">{children}</span>
+    </span>
+  )
+}
 
 export function Hero() {
   return (
-    <section className="px-3 pt-3 sm:px-4">
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-border/60 bg-card">
-        <div className="mx-auto max-w-3xl px-5 pt-14 text-center sm:pt-20">
-          <Eyebrow className="animate-in fade-in-0 slide-in-from-bottom-2 duration-700">Open source invoicing for freelancers</Eyebrow>
-          <h1 className="animate-in fade-in-0 slide-in-from-bottom-3 mt-5 font-heading text-4xl font-semibold tracking-tight text-balance duration-700 sm:text-[56px] sm:leading-[1.05]">
-            Invoicing for people who send four invoices a month, not forty.
+    <section id="top" className="dark relative mb-12 overflow-hidden bg-[#06060a] text-white sm:mb-16">
+      <Backdrop />
+      <div className="relative mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-6xl flex-col px-5 sm:px-10 lg:px-14">
+        <div className="relative my-auto max-w-3xl py-12 sm:py-14">
+          <span className="animate-in fade-in-0 slide-in-from-bottom-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] text-white/80 uppercase ring-1 ring-white/20 duration-700">
+            Invoicing made easy
+          </span>
+          <h1 className="animate-in fade-in-0 slide-in-from-bottom-3 mt-6 font-heading text-[2.6rem] leading-[1.04] font-semibold tracking-[-0.03em] text-balance duration-700 sm:text-6xl lg:text-[4.25rem]">
+            Send the <Selected>invoice</Selected>.
+            <span className="block">Skip the accounting software.</span>
           </h1>
-          <p className="animate-in fade-in-0 slide-in-from-bottom-3 mx-auto mt-5 max-w-xl text-pretty text-muted-foreground delay-100 duration-700 fill-mode-both sm:text-lg">
-            Make a clean invoice in 30 seconds, email it to your client, get paid. No accounting suite, no per-seat pricing,
-            no &ldquo;contact sales.&rdquo; Open source, {LIFETIME_PRICE} once.
+          <p className="animate-in fade-in-0 slide-in-from-bottom-3 mt-6 max-w-md text-pretty text-white/70 delay-100 duration-700 fill-mode-both sm:text-[17px]">
+            Infinity Invoice does one thing well: clean invoices you can send in 30 seconds and get paid from. Free for
+            5 a month.
           </p>
-          <div className="animate-in fade-in-0 slide-in-from-bottom-3 mt-8 flex justify-center delay-200 duration-700 fill-mode-both">
-            <a href={`${APP_URL}/auth/sign-up`} className={cn(button.brand, buttonSize.lg, "group w-full sm:w-auto")}>
+          <div className="animate-in fade-in-0 slide-in-from-bottom-3 mt-9 flex flex-col gap-3 delay-200 duration-700 fill-mode-both sm:flex-row">
+            <a href="#how-it-works" className={cn(button.base, buttonSize.lg, "text-white ring-1 ring-white/40 hover:bg-white/10")}>
+              See how it works
+            </a>
+            <a href={`${APP_URL}/auth/sign-up`} className={cn(button.brand, buttonSize.lg)}>
               Create your first invoice
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </a>
           </div>
-          <p className="animate-in fade-in-0 mt-4 text-sm text-muted-foreground delay-300 duration-700 fill-mode-both">
-            Free for 5 invoices a month. No card.
-          </p>
-          <a
-            href={GITHUB_URL}
-            className="animate-in fade-in-0 mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors delay-300 duration-700 fill-mode-both hover:text-foreground"
-          >
-            <Github className="size-3.5" aria-hidden />
-            MIT licensed on GitHub
-          </a>
         </div>
 
-        <div className="relative mt-12 px-4 sm:mt-16 sm:px-10">
-          <div
-            aria-hidden
-            className="absolute inset-x-0 bottom-0 top-16 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent"
-          />
-          <div className="animate-in fade-in-0 slide-in-from-bottom-6 relative translate-y-10 delay-300 duration-1000 fill-mode-both">
-            <InvoiceDocument />
-          </div>
+        <div className="relative pb-8 text-xs text-white/75">
+          <ul className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {FACTS.map((fact, i) => (
+              <li key={fact} className="flex items-center gap-3">
+                {i > 0 && <span aria-hidden className="size-1 rounded-full bg-white/60" />}
+                {fact}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>

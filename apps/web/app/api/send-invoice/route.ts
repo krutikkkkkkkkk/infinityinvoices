@@ -8,7 +8,7 @@ import { formatDate, formatMoney, isTemplateType, type DocumentWithItems, type T
 import { parseTemplateColors } from "@/lib/document-style"
 import { renderDocumentPdf } from "@/lib/pdf/render"
 import { getInvoiceBalance } from "@/lib/invoice-balance"
-import { buildDocumentEmail } from "@/lib/email/templates"
+import { buildDocumentEmail, senderFrom } from "@/lib/email/templates"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -25,8 +25,8 @@ const MAX_MESSAGE_LENGTH = 2000
  * Body: { documentId, recipientEmail, message?, template?, colors?: { primary?, accent? } }
  *
  * Sends a short, plain email to the client with the document attached as a PDF
- * (rendered with the chosen template). If the PDF cannot be rendered on this
- * host the email still goes out with the online link only.
+ * (rendered with the chosen template). If the PDF can't be rendered the email
+ * isn't sent (502) and nothing is counted against the email limit.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -82,7 +82,18 @@ export async function POST(request: NextRequest) {
 
     const [profile] = await db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1)
 
-    // Count the email against the monthly limit before doing the expensive render
+    const rendered = await renderDocumentPdf(document as DocumentWithItems, profile, template, colors)
+
+    // Never send without the PDF: the email body points the client to the attachment. Nothing is
+    // counted against the email limit, so the user can simply retry.
+    if (!rendered.pdf) {
+      return NextResponse.json(
+        { error: "Couldn't generate the PDF, so the email wasn't sent. Please try again in a moment." },
+        { status: 502 }
+      )
+    }
+
+    // Count the email against the monthly limit only once there's a PDF to send
     const usage = await checkAndIncrementUsage("email")
     if (!usage.allowed) {
       return NextResponse.json(
@@ -93,8 +104,6 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
-
-    const rendered = await renderDocumentPdf(document as DocumentWithItems, profile, template, colors)
 
     const isQuote = document.type === "quotation"
     // Invoices are billed for what is still owed after payments and credit notes
@@ -109,22 +118,18 @@ export async function POST(request: NextRequest) {
       dateLine: dateValue ? formatDate(dateValue, "long") : null,
       message,
       clientName: document.client_name,
-      hasAttachment: Boolean(rendered.pdf),
+      hasAttachment: true,
       sender: { companyName, email: profile?.email, phone: profile?.phone },
     })
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@new.infinityinvoices.com"
-
     const { data, error } = await resend.emails.send({
-      from: `${companyName.replace(/["<>]/g, "")} via Infinity Invoices <${fromEmail}>`,
+      from: senderFrom(profile?.company_name),
       to: recipientEmail,
       replyTo: profile?.email || undefined,
       subject: email.subject,
       html: email.html,
       text: email.text,
-      attachments: rendered.pdf
-        ? [{ filename: rendered.fileName, content: rendered.pdf, contentType: "application/pdf" }]
-        : undefined,
+      attachments: [{ filename: rendered.fileName, content: rendered.pdf, contentType: "application/pdf" }],
       headers: { "X-Mailer": "Infinity Invoices" },
     })
 
@@ -140,8 +145,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       messageId: data?.id,
-      attached: Boolean(rendered.pdf),
-      ...(rendered.pdf ? {} : { warning: "PDF could not be generated; the email was sent with the online link only." }),
+      attached: true,
     })
   } catch (error) {
     console.error("Send invoice error:", error)

@@ -12,6 +12,7 @@ import type { Document, DocumentFormData, LineItem } from "@/lib/types"
 import { readStoredDocumentStyle } from "@/lib/document-style"
 
 export function SaveAsPresetButton({ document }: { document: Document & { line_items: LineItem[] } }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [pending, startTransition] = useTransition()
@@ -28,7 +29,15 @@ export function SaveAsPresetButton({ document }: { document: Document & { line_i
       try {
         // The look (template + colours) currently selected in the preview is saved with the preset
         const style = readStoredDocumentStyle()
-        await saveInvoicePreset(name, { ...data, ...(style ? { style } : {}) } as Record<string, unknown>)
+        const { error } = await saveInvoicePreset(name, { ...data, ...(style ? { style } : {}) } as Record<string, unknown>)
+        if (error?.startsWith("PRO_REQUIRED:")) {
+          toast.error(error.replace("PRO_REQUIRED:", ""), { action: { label: "Upgrade", onClick: () => router.push("/dashboard/plan") } })
+          return
+        }
+        if (error) {
+          toast.error(error)
+          return
+        }
         toast.success("Preset saved")
         setOpen(false)
       } catch (error) {

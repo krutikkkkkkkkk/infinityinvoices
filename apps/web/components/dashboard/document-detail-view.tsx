@@ -1,14 +1,16 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 import { DocumentPrintPreview } from "./document-print-preview"
 import { TemplateSelector, type TemplateType } from "./template-selector"
 import { DocumentStyleControls } from "./document-style-controls"
 import { DocumentActions } from "./document-actions"
-import type { Document, LineItem, Profile } from "@/lib/types"
+import type { Document, LineItem, LogoSize, Profile } from "@/lib/types"
+import { updateLogoSize } from "@/app/dashboard/settings/actions"
 import { useSubscription } from "@/hooks/use-subscription"
 import { applyBranding, canUseTemplate } from "@/lib/plans"
-import type { TemplateColors } from "@/lib/generate-document-html"
+import { isLogoSize, type TemplateColors } from "@/lib/generate-document-html"
 import {
   DEFAULT_DOCUMENT_STYLE,
   readStoredDocumentStyle,
@@ -24,6 +26,9 @@ interface DocumentDetailViewProps {
 
 export function DocumentDetailView({ document, profile, showActions = false }: DocumentDetailViewProps) {
   const [style, setStyleState] = useState<DocumentStyle>(DEFAULT_DOCUMENT_STYLE)
+  // Logo size is a profile setting (it applies to every document and the PDF/email/share
+  // renderers read it from the profile); kept locally too so the preview updates instantly.
+  const [logoSize, setLogoSizeState] = useState<LogoSize>(isLogoSize(profile?.logo_size) ? profile.logo_size : "medium")
   const { plan, isLoading: isPlanLoading } = useSubscription()
 
   // A remembered Pro template on a Free plan falls back to Classic, matching what the PDF route renders
@@ -53,6 +58,16 @@ export function DocumentDetailView({ document, profile, showActions = false }: D
     updateStyle({ ...style, colors: next })
   }
 
+  const setLogoSize = async (next: LogoSize) => {
+    const previous = logoSize
+    setLogoSizeState(next)
+    const result = await updateLogoSize(next).catch(() => ({ error: "Couldn't save the logo size" }))
+    if (result.error) {
+      setLogoSizeState(previous)
+      toast.error(result.error)
+    }
+  }
+
   // A preset brings its template and the colours it saved; colours for other templates are kept.
   const applyPresetStyle = (preset: DocumentStyle) =>
     updateStyle({ template: preset.template, colors: { ...style.colors, ...preset.colors } })
@@ -60,10 +75,10 @@ export function DocumentDetailView({ document, profile, showActions = false }: D
   // The preview is the same HTML the PDF export and email attachment use, with the
   // plan's branding rules applied, so it always matches the downloaded file.
   // Memoised so the preview and the template thumbnails don't reload their iframes on every render.
-  const previewProfile = useMemo(
-    () => (isPlanLoading ? profile : applyBranding(plan, profile)),
-    [isPlanLoading, plan, profile]
-  )
+  const previewProfile = useMemo(() => {
+    const withSize = profile ? { ...profile, logo_size: logoSize } : profile
+    return isPlanLoading ? withSize : applyBranding(plan, withSize)
+  }, [isPlanLoading, plan, profile, logoSize])
 
   return (
     <div className="space-y-4">
@@ -95,6 +110,9 @@ export function DocumentDetailView({ document, profile, showActions = false }: D
             colors={activeColors}
             onChange={setColors}
             onApplyPreset={applyPresetStyle}
+            logoSize={logoSize}
+            onLogoSizeChange={setLogoSize}
+            hasLogo={Boolean(profile?.logo_url)}
             locked={!isPlanLoading && !plan.customBranding}
           />
         </div>

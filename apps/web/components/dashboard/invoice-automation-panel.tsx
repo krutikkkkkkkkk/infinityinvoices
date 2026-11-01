@@ -25,11 +25,24 @@ export function InvoiceAutomationPanel({ documentId, lateFeeType, lateFeeValue, 
   const [frequency, setFrequency] = useState<"weekly" | "monthly" | "quarterly" | "yearly">("monthly")
   const [nextRunAt, setNextRunAt] = useState(new Date(Date.now() + 86400000).toISOString().slice(0, 10))
 
-  function run(action: () => Promise<void>, message: string) {
+  function run(action: () => Promise<void | { error?: string }>, message: string) {
     startTransition(async () => {
-      try { await action(); toast.success(message); router.refresh() }
+      try {
+        const result = await action()
+        if (result?.error) {
+          showError(result.error)
+          return
+        }
+        toast.success(message)
+        router.refresh()
+      }
       catch (error) { toast.error(error instanceof Error ? error.message : "Something went wrong") }
     })
+  }
+
+  function showError(error: string) {
+    if (!error.startsWith("PRO_REQUIRED:")) return toast.error(error)
+    toast.error(error.replace("PRO_REQUIRED:", ""), { action: { label: "Upgrade", onClick: () => router.push("/dashboard/plan") } })
   }
 
   return <Card>

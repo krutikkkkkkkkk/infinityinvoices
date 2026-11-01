@@ -12,7 +12,7 @@ export const LANDING_PLANS = [
     cta: "Start free",
     path: "/auth/sign-up",
     highlighted: false,
-    features: ["5 invoices a month", "5 quotations a month", "Up to 10 clients", "4 of 6 templates", "PDF download"],
+    features: ["5 invoices a month", "5 quotations a month", "Up to 10 clients", "1 invoice preset", "4 of 6 templates", "PDF download"],
   },
   {
     id: "pro",
@@ -30,6 +30,7 @@ export const LANDING_PLANS = [
       "Your logo & colors",
       "Email sending & reminders",
       "Share invoices via link",
+      "Recurring invoices",
     ],
   },
   {

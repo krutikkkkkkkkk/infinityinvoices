@@ -14,6 +14,7 @@ export interface Plan {
     quotationsPerMonth: number
     emailsPerMonth: number
     clients: number // -1 means unlimited
+    presets: number // -1 means unlimited
   }
   /** Templates this plan may use; "all" means every template. */
   templates: readonly TemplateType[] | "all"
@@ -21,6 +22,8 @@ export interface Plan {
   customBranding: boolean
   /** Public share links for documents. */
   shareLinks: boolean
+  /** Recurring schedules that create draft invoices automatically. */
+  recurringInvoices: boolean
 }
 
 export const PLANS: Plan[] = [
@@ -33,21 +36,29 @@ export const PLANS: Plan[] = [
       "5 invoices per month",
       "5 quotations per month",
       "Up to 10 clients",
+      "1 invoice preset",
       "4 of 6 templates",
       "PDF downloads",
       "UPI QR codes",
       "Multi-currency support",
     ],
-    excludedFeatures: ["Custom branding (your logo & colours)", "Share invoices via link", "Email sending & payment reminders"],
+    excludedFeatures: [
+      "Custom branding (your logo & colours)",
+      "Share invoices via link",
+      "Email sending & payment reminders",
+      "Recurring invoices",
+    ],
     limits: {
       invoicesPerMonth: 5,
       quotationsPerMonth: 5,
       emailsPerMonth: 0, // email sending is Pro-only (enforced in the send routes)
       clients: 10, // enforced on the server by addClient (app/dashboard/clients/actions.ts)
+      presets: 1, // enforced on the server by saveInvoicePreset (app/dashboard/invoicing/actions.ts)
     },
     templates: ["classic", "minimal", "tax", "dark"],
     customBranding: false,
     shareLinks: false,
+    recurringInvoices: false,
   },
   {
     id: "pro",
@@ -63,16 +74,20 @@ export const PLANS: Plan[] = [
       "Custom branding (your logo & colours)",
       "Share invoices via link",
       "Unlimited email sending",
+      "Recurring invoices",
+      "Unlimited invoice presets",
     ],
     limits: {
       invoicesPerMonth: -1,
       quotationsPerMonth: -1,
       emailsPerMonth: -1,
       clients: -1,
+      presets: -1,
     },
     templates: "all",
     customBranding: true,
     shareLinks: true,
+    recurringInvoices: true,
   },
 ]
 
@@ -124,6 +139,10 @@ export function allowedColors<T>(plan: Plan, colors: T | null | undefined): T | 
 
 export function canAddClient(plan: Plan, currentCount: number): boolean {
   return plan.limits.clients === -1 || currentCount < plan.limits.clients
+}
+
+export function canAddPreset(plan: Plan, currentCount: number): boolean {
+  return plan.limits.presets === -1 || currentCount < plan.limits.presets
 }
 
 type SubscriptionLike = { plan?: string | null; status?: string | null } | null | undefined

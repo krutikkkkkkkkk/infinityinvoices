@@ -27,6 +27,7 @@ import { Client } from "@/lib/types"
 import { setClientAutoReminder } from "@/app/dashboard/clients/actions"
 import { EditClientDialog, DeleteClientDialog } from "@/components/dashboard/client-dialogs"
 import { ClientAvatar } from "@/components/dashboard/client-avatar"
+import { useSubscription } from "@/hooks/use-subscription"
 
 interface ClientsTableProps {
   clients: Client[]
@@ -37,6 +38,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
   const [deletingClient, setDeletingClient] = useState<Client | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
+  const { isPro } = useSubscription()
 
   const toggleReminder = (client: Client, checked: boolean) => {
     startTransition(async () => {
@@ -89,7 +91,8 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                 <Switch
                   checked={client.auto_reminder}
                   onCheckedChange={(checked) => toggleReminder(client, checked)}
-                  disabled={isPending}
+                  // Pro-only; a downgraded user can still switch an existing one off
+                  disabled={isPending || (!isPro && !client.auto_reminder)}
                   aria-label={`Auto reminders for ${client.name}`}
                 />
               </TableCell>

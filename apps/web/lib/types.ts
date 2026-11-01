@@ -1,6 +1,8 @@
 export type DocumentType = 'invoice' | 'quotation'
 export type DocumentStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
 export type DiscountType = 'percentage' | 'fixed'
+/** How large the company logo is drawn on documents, relative to each template's default. */
+export type LogoSize = 'small' | 'medium' | 'large' | 'xlarge'
 export type PaymentMethodType = 'bank' | 'upi' | 'paypal' | 'other'
 export type Currency = 'INR' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY' | 'CNY' | 'CHF' | 'SGD' | 'AED' | 'SAR' | 'MXN' | 'BRL' | 'ZAR'
 
@@ -12,6 +14,7 @@ export interface Profile {
   email: string | null
   phone: string | null
   logo_url: string | null
+  logo_size?: LogoSize
   upi_id: string | null
   paypal_email: string | null
   bank_name: string | null
@@ -94,6 +97,9 @@ export interface Document {
   late_fee_type?: 'fixed' | 'percentage' | null
   late_fee_value?: number | null
   parent_document_id?: string | null
+  /** Public link /invoice/[share_token]; works while share_enabled is on and the owner is Pro. */
+  share_token?: string
+  share_enabled?: boolean
   created_at: string
   updated_at: string
   line_items?: LineItem[]

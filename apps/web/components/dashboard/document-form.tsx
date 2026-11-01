@@ -5,6 +5,7 @@ import React from "react"
 import { useState, useEffect, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DecimalInput } from "@/components/dashboard/decimal-input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -66,6 +67,11 @@ const emptyLineItem: NewLineItem = {
   tax_percent: 0,
 }
 
+/** YYYY-MM-DD `days` after today, in the same (UTC) calendar as the default issue date. */
+function daysFromToday(days: number): string {
+  return new Date(Date.now() + days * 86_400_000).toISOString().split("T")[0]
+}
+
 export function DocumentForm({ type, document, clients = [], nextNumber, profile, preset }: DocumentFormProps) {
   const [isPending, startTransition] = useTransition()
   const source = (document || preset || {}) as Partial<Document> & Partial<DocumentFormData>
@@ -102,8 +108,9 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
     type: source?.type || type,
     number: document?.number || nextNumber,
     issue_date: document?.issue_date || new Date().toISOString().split("T")[0],
-    due_date: document?.due_date || "",
-    valid_until: document?.valid_until || "",
+    // New documents default to net 30 so the due / valid-until date isn't silently left blank
+    due_date: document ? document.due_date || "" : type === "invoice" ? daysFromToday(30) : "",
+    valid_until: document ? document.valid_until?.slice(0, 10) || "" : type === "quotation" ? daysFromToday(30) : "",
     status: document?.status || "draft",
     currency: source?.currency || profile?.default_currency || "INR",
     client_id: source?.client_id || null,
@@ -507,36 +514,27 @@ const addLineItem = () => {
                 </div>
                 <div className="lg:col-span-2 space-y-1">
                   <Label className="lg:hidden">Quantity</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
+                  <DecimalInput
                     value={item.quantity}
-                    onChange={(e) => updateLineItem(index, "quantity", parseFloat(e.target.value) || 0)}
+                    onValueChange={(value) => updateLineItem(index, "quantity", value)}
                     required
                   />
                 </div>
                 <div className="lg:col-span-2 space-y-1">
                   <Label className="lg:hidden">Rate</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
+                  <DecimalInput
                     value={item.rate}
-                    onChange={(e) => updateLineItem(index, "rate", parseFloat(e.target.value) || 0)}
+                    onValueChange={(value) => updateLineItem(index, "rate", value)}
                     required
                   />
                 </div>
                 {formData.include_tax && (
                   <div className="lg:col-span-2 space-y-1">
                     <Label className="lg:hidden">Tax %</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
+                    <DecimalInput
                       value={item.tax_percent}
-                      onChange={(e) => updateLineItem(index, "tax_percent", parseFloat(e.target.value) || 0)}
+                      onValueChange={(value) => updateLineItem(index, "tax_percent", value)}
+                      max={100}
                     />
                   </div>
                 )}
@@ -602,17 +600,15 @@ const addLineItem = () => {
                 </SelectContent>
               </Select>
               {formData.discount_type && (
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <DecimalInput
                   value={formData.discount_value}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
-                      discount_value: parseFloat(e.target.value) || 0,
+                      discount_value: value,
                     }))
                   }
+                  max={formData.discount_type === "percentage" ? 100 : undefined}
                   className="w-full sm:w-24"
                   placeholder={formData.discount_type === "percentage" ? "%" : currencySymbol}
                 />

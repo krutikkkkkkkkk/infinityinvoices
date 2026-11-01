@@ -1,4 +1,4 @@
-import { CURRENCIES, type Document, type LineItem, type PaymentMethodType } from "./types"
+import { CURRENCIES, type Document, type LineItem, type LogoSize, type PaymentMethodType } from "./types"
 import { escapeHtml, safeHttpUrl } from "./escape-html"
 
 /**
@@ -43,7 +43,7 @@ export interface TemplateColors {
 }
 
 export const TEMPLATE_DEFAULT_COLORS: Record<TemplateType, TemplateColors> = {
-  classic: { primary: "#111827", accent: "#b45309" },
+  classic: { primary: "#1a1a1a", accent: "#635bff" },
   minimal: { primary: "#1a1a1a", accent: "#8a8a80" },
   tax: { primary: "#1f2937", accent: "#b91c1c" },
   dark: { primary: "#1c1c1e", accent: "#fbbf24" },
@@ -116,6 +116,20 @@ export function contrastText(background: string): "#ffffff" | "#111827" {
   return luminance > 0.4 ? "#111827" : "#ffffff"
 }
 
+export const LOGO_SIZES: { value: LogoSize; label: string }[] = [
+  { value: "small", label: "S" },
+  { value: "medium", label: "M" },
+  { value: "large", label: "L" },
+  { value: "xlarge", label: "XL" },
+]
+
+/** Multiplier on each template's own logo box; medium is the original design. */
+const LOGO_SCALE: Record<LogoSize, number> = { small: 0.75, medium: 1, large: 1.4, xlarge: 1.8 }
+
+export function isLogoSize(value: unknown): value is LogoSize {
+  return typeof value === "string" && value in LOGO_SCALE
+}
+
 export interface TemplateProfile {
   company_name?: string | null
   company_address?: string | null
@@ -123,6 +137,7 @@ export interface TemplateProfile {
   email?: string | null
   phone?: string | null
   logo_url?: string | null
+  logo_size?: string | null
   upi_id?: string | null
   paypal_email?: string | null
   bank_name?: string | null
@@ -237,6 +252,8 @@ interface Ctx {
   statusBadge: string
   company: Party
   logo: string
+  /** Scales a template's logo dimension (px) by the profile's logo size. */
+  logoPx: (px: number) => string
   client: Party
   totals: Totals
   payment: PaymentInfo
@@ -372,6 +389,7 @@ function buildContext(
       gst: esc(p.gst_id),
     },
     logo: logoUrl ? esc(logoUrl) : "",
+    logoPx: (px) => `${Math.round(px * LOGO_SCALE[isLogoSize(p.logo_size) ? p.logo_size : "medium"])}px`,
     client: {
       name: esc(doc.client_name || "Client"),
       address: esc(doc.client_address),
@@ -584,15 +602,22 @@ function notesBlock(ctx: Ctx): string {
   return parts.join("")
 }
 
+/** The due / valid-until date as shown; an invoice without a due date is due on receipt. */
+function secondaryDateText(ctx: Ctx, style: DateStyle): string {
+  if (ctx.secondaryDate.value) return formatDate(ctx.secondaryDate.value, style)
+  return ctx.isQuote ? "" : "On receipt"
+}
+
 function metaRows(ctx: Ctx, style: DateStyle, opts: { numberLabel?: string } = {}): string {
   const numberLabel = opts.numberLabel ?? `${ctx.label} No.`
   const rows = [
     `<div class="meta-row"><span class="meta-k">${numberLabel}</span><span class="meta-v">${ctx.number}</span></div>`,
     `<div class="meta-row"><span class="meta-k">Date</span><span class="meta-v">${ctx.issueDate(style)}</span></div>`,
   ]
-  if (ctx.secondaryDate.value) {
+  const due = secondaryDateText(ctx, style)
+  if (due) {
     rows.push(
-      `<div class="meta-row meta-secondary"><span class="meta-k">${ctx.secondaryDate.label}</span><span class="meta-v">${formatDate(ctx.secondaryDate.value, style)}</span></div>`
+      `<div class="meta-row meta-secondary"><span class="meta-k">${ctx.secondaryDate.label}</span><span class="meta-v">${due}</span></div>`
     )
   }
   return rows.join("")
@@ -749,73 +774,121 @@ export function documentFileName(document: Pick<Document, "type" | "number">): s
 // Classic
 // ---------------------------------------------------------------------------
 
+/** "₹48.99 due 5 February 2022" style summary used in the classic headline and footer. */
+function amountSummary(ctx: Ctx): string {
+  const t = ctx.totals
+  const date = ctx.secondaryDate.value ? formatDate(ctx.secondaryDate.value, "long") : ""
+  if (ctx.isQuote) return date ? `${ctx.money(t.total)} valid until ${date}` : ctx.money(t.total)
+  if (t.balanceDue <= 0 && t.total > 0) return `${ctx.money(t.total)} paid`
+  return date ? `${ctx.money(t.balanceDue)} due ${date}` : `${ctx.money(t.balanceDue)} due on receipt`
+}
+
 function classicTemplate(ctx: Ctx): string {
   const c = ctx.colors
+  const t = ctx.totals
   const css = `
-body { color: #1f2937; background: #ffffff; }
-.wrap { padding: 0 16mm; }
-.header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 26px; }
-.logo { max-height: 56px; max-width: 160px; object-fit: contain; display: block; margin-bottom: 10px; }
-.company-name { font-size: 17px; font-weight: 700; }
-.party-line { font-size: 11px; color: #6b7280; }
-.title { font-size: 30px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; line-height: 1.1; color: ${ink(c.primary)}; }
-.title-row { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 8px; }
-.meta { font-size: 11.5px; }
-.meta-secondary .meta-v { color: ${ink(c.accent)}; }
-.bill-to { background: #f9fafb; border: 1px solid #eef0f3; border-left: 3px solid ${c.accent}; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; }
-.section-title { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; }
-.client-name { font-size: 14px; font-weight: 600; }
-table.items { margin-bottom: 18px; }
-table.items th { padding: 9px 8px; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid ${c.primary}; }
-table.items td { padding: 10px 8px; border-bottom: 1px solid #eef0f3; }
-table.items td.c-amount { font-weight: 600; }
-.totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 26px; }
-.totals { width: 74mm; }
-.totals .tr { color: #4b5563; }
-.totals .tr .num { color: #111827; }
-.totals .tr-discount, .totals .tr-discount .num { color: #dc2626; }
-.totals .tr-total { border-top: 2px solid ${c.primary}; margin-top: 6px; padding-top: 10px; font-size: 15px; color: ${ink(c.primary)}; }
-.totals .tr-paid, .totals .tr-paid .num { color: #16a34a; }
-.totals .tr-balance { font-weight: 700; color: #111827; background: #f9fafb; padding: 8px 10px; margin: 6px -10px 0; border-radius: 6px; }
-.payment { border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; }
-.pay-method { font-size: 11px; }
-.pay-method-title { color: #1f2937; }
-.kv .k { color: #6b7280; }
-.notes { margin-bottom: 16px; }
-.notes-text { color: #374151; }
-.footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10.5px; color: #9ca3af; }
+body { color: #1a1a1a; background: #ffffff; font-size: 12px; }
+.top-bar { position: absolute; top: 0; left: 0; right: 0; height: 6px; background: ${c.accent}; }
+.wrap { padding: 4mm 18mm 0; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 18px; }
+.title-row { display: flex; align-items: center; gap: 10px; }
+.title { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1; color: ${ink(c.primary)}; }
+.logo { max-height: ${ctx.logoPx(56)}; max-width: ${ctx.logoPx(160)}; object-fit: contain; display: block; }
+.monogram { width: ${ctx.logoPx(48)}; height: ${ctx.logoPx(48)}; border-radius: 999px; background: ${c.accent}; color: ${contrastText(c.accent)}; display: flex; align-items: center; justify-content: center; font-size: ${ctx.logoPx(24)}; font-weight: 800; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin-bottom: 34px; }
+.meta .strong { font-weight: 600; }
+.parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px; }
+.party-name { font-weight: 600; }
+.party-line { color: #1a1a1a; }
+.party-label { font-weight: 600; }
+.headline { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; letter-spacing: -0.2px; color: ${ink(c.primary)}; margin-bottom: 14px; }
+.memo { margin-bottom: 30px; }
+table.items { margin-bottom: 4px; }
+table.items th { padding: 0 8px 6px 0; font-size: 11px; font-weight: 400; color: #1a1a1a; border-bottom: 1px solid ${c.primary}; }
+table.items th.num, table.items td.num { text-align: left; }
+table.items th:last-child, table.items td:last-child { text-align: right; padding-right: 0; }
+table.items td { padding: 10px 8px 10px 0; }
+.totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 40px; }
+.totals { width: 50%; }
+.totals .tr { padding: 9px 0; border-top: 1px solid #e6e6e6; }
+.totals .tr-total { font-weight: 400; }
+.totals.is-quote .tr-total { font-weight: 600; }
+.totals .tr-discount .num { color: #dc2626; }
+.totals .tr-paid .num { color: #16a34a; }
+.totals .tr-balance { font-weight: 600; }
+.lower { border-top: 1px solid #e6e6e6; padding-top: 22px; }
+.section-title { font-weight: 600; margin-bottom: 4px; }
+.payment { margin-bottom: 22px; }
+.pay-method-title { font-weight: 400; color: #6b7280; }
+.kv .k { width: 30mm; opacity: 1; }
+.kv .mono { font-family: inherit; font-size: inherit; font-variant-numeric: tabular-nums; }
+.notes { margin-bottom: 18px; }
+.notes-text { font-size: 12px; }
+.footer { margin-top: 26px; font-size: 11px; color: #1a1a1a; }
 `
+
+  const initial = /^[\p{L}\p{N}]/u.exec(ctx.company.name)?.[0].toUpperCase() ?? ""
+  const mark = ctx.logo
+    ? `<img class="logo" src="${ctx.logo}" alt="Logo">`
+    : initial
+      ? `<div class="monogram">${initial}</div>`
+      : ""
+
+  const totals = `${totalsRows(ctx)}${
+    !ctx.isQuote && t.amountPaid <= 0 && t.credited <= 0
+      ? `<div class="tr tr-balance"><span>Amount due</span><span class="num">${ctx.money(t.balanceDue)}</span></div>`
+      : ""
+  }`
+
+  const terms = ctx.terms
+    ? `<section class="notes avoid-break"><div class="section-title">${ctx.termsLabel}</div><div class="pre notes-text">${ctx.terms}</div></section>`
+    : ""
 
   const body = `<div class="wrap">
   <header class="header">
+    <div class="title-row"><div class="title">${ctx.label}</div>${ctx.statusBadge}</div>
+    ${mark}
+  </header>
+
+  <div class="meta">
+    <span class="strong">${ctx.label} number</span><span class="strong">${ctx.number}</span>
+    <span>Date of issue</span><span>${ctx.issueDate("long")}</span>
+    ${
+      secondaryDateText(ctx, "long")
+        ? `<span>${ctx.isQuote ? "Valid until" : "Date due"}</span><span>${secondaryDateText(ctx, "long")}</span>`
+        : ""
+    }
+  </div>
+
+  <section class="parties avoid-break">
     <div>
-      ${ctx.logo ? `<img class="logo" src="${ctx.logo}" alt="Logo">` : ""}
-      <div class="company-name">${ctx.company.name}</div>
+      <div class="party-name">${ctx.company.name}</div>
       ${partyLines(ctx.company)}
     </div>
     <div>
-      <div class="title-row">${ctx.statusBadge}<div class="title">${ctx.label}</div></div>
-      <div class="meta">${metaRows(ctx, "long")}</div>
+      <div class="party-label">Bill to</div>
+      <div>${ctx.client.name}</div>
+      ${partyLines(ctx.client)}
     </div>
-  </header>
-
-  <section class="bill-to avoid-break">
-    <div class="section-title">Bill To</div>
-    <div class="client-name">${ctx.client.name}</div>
-    ${partyLines(ctx.client)}
   </section>
 
-  ${itemsTable(ctx)}
+  <div class="headline">${amountSummary(ctx)}</div>
+  <div class="memo pre">${ctx.notes || "Thank you for your business!"}</div>
 
-  <div class="totals-wrap"><div class="totals">${totalsRows(ctx)}</div></div>
+  ${itemsTable(ctx, { labels: { item: "Description", rate: "Unit price" } })}
 
-  ${paymentBlock(ctx)}
-  ${notesBlock(ctx)}
+  <div class="totals-wrap"><div class="totals${ctx.isQuote ? " is-quote" : ""}">${totals}</div></div>
 
-  <footer class="footer">Thank you for your business!</footer>
+  ${
+    ctx.payment.show || terms
+      ? `<div class="lower">${paymentBlock(ctx, { title: "Payment details" })}${terms}</div>`
+      : ""
+  }
+
+  <footer class="footer">${ctx.number} · ${amountSummary(ctx)}</footer>
 </div>`
 
-  return shell({ title: `${ctx.label} ${ctx.number}`, css, body })
+  return shell({ title: `${ctx.label} ${ctx.number}`, css, body, fixed: `<div class="top-bar"></div>` })
 }
 
 // ---------------------------------------------------------------------------
@@ -829,7 +902,7 @@ html, body { background: #f5f5f0; }
 body { color: #1a1a1a; }
 .wrap { padding: 0 18mm; }
 .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 36px; }
-.logo { max-height: 44px; max-width: 150px; object-fit: contain; display: block; margin-bottom: 14px; }
+.logo { max-height: ${ctx.logoPx(44)}; max-width: ${ctx.logoPx(150)}; object-fit: contain; display: block; margin-bottom: 14px; }
 .title { font-size: 44px; font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: ${ink(c.primary)}; }
 .meta { font-size: 12px; color: #666; }
 .meta-k { color: #999; opacity: 1; }
@@ -936,7 +1009,7 @@ body { color: #1f2937; background: #ffffff; }
 
 .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 14px; margin-bottom: 18px; border-bottom: 2px solid ${c.accent}; }
 .brand { display: flex; gap: 14px; align-items: flex-start; }
-.logo { max-height: 50px; max-width: 150px; object-fit: contain; display: block; }
+.logo { max-height: ${ctx.logoPx(50)}; max-width: ${ctx.logoPx(150)}; object-fit: contain; display: block; }
 .company-name { font-size: 20px; font-weight: 800; line-height: 1.2; letter-spacing: -0.2px; }
 .company-line { font-size: 11px; color: #4b5563; }
 .contact { text-align: right; font-size: 11px; color: #4b5563; }
@@ -1024,8 +1097,8 @@ table.taxes tfoot td { font-weight: 700; color: #111827; border-top: 1px solid #
   const details = [
     `<div><div class="detail-k">${ctx.label} No.</div><div class="detail-v">${ctx.number}</div></div>`,
     `<div><div class="detail-k">Date</div><div class="detail-v">${ctx.issueDate("numeric")}</div></div>`,
-    ctx.secondaryDate.value
-      ? `<div><div class="detail-k">${ctx.secondaryDate.label}</div><div class="detail-v due">${formatDate(ctx.secondaryDate.value, "numeric")}</div></div>`
+    secondaryDateText(ctx, "numeric")
+      ? `<div><div class="detail-k">${ctx.secondaryDate.label}</div><div class="detail-v due">${secondaryDateText(ctx, "numeric")}</div></div>`
       : "",
     `<div><div class="detail-k">Currency</div><div class="detail-v">${esc(ctx.currency)}</div></div>`,
   ].join("")
@@ -1117,7 +1190,7 @@ body { color: ${text}; }
 .wrap { padding: 0 16mm; }
 .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 26px; padding-bottom: 22px; border-bottom: 1px solid ${border}; }
 .brand { display: flex; gap: 14px; align-items: flex-start; }
-.logo-box { width: 56px; height: 56px; background: #ffffff; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 6px; flex: 0 0 auto; }
+.logo-box { width: ${ctx.logoPx(56)}; height: ${ctx.logoPx(56)}; background: #ffffff; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 6px; flex: 0 0 auto; }
 .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .company-name { font-size: 16px; font-weight: 700; color: ${text}; }
 .party-line { font-size: 11px; color: ${muted}; }
@@ -1223,7 +1296,7 @@ function executiveTemplate(ctx: Ctx): string {
 body { color: #111827; background: #ffffff; }
 .sidebar { position: fixed; top: 0; left: 0; width: ${sidebarWidth}mm; height: 297mm; background: linear-gradient(180deg, ${c.primary} 0%, ${shade(c.primary, 0.3)} 100%); color: ${onPrimary}; padding: 14mm 6mm 12mm; display: flex; flex-direction: column; border-right: 2px solid ${c.accent}; }
 .sidebar .logo-strip { background: #ffffff; margin: -14mm -6mm 16px; padding: 10mm 6mm 7mm; border-bottom: 3px solid ${c.accent}; }
-.sidebar .logo-strip img { display: block; max-height: 48px; max-width: 100%; object-fit: contain; margin: 0 auto; }
+.sidebar .logo-strip img { display: block; max-height: ${ctx.logoPx(48)}; max-width: 100%; object-fit: contain; margin: 0 auto; }
 .sidebar .company-name { font-size: 12.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; line-height: 1.3; }
 .sidebar .party-line { font-size: 10px; color: ${onPrimarySoft}; line-height: 1.55; }
 .sidebar .party-gst { margin-top: 6px; color: ${onPrimary}; }
@@ -1310,7 +1383,7 @@ table.items td.c-amount { color: ${ink(c.primary)}; font-weight: 700; }
   <div class="gold-rule"></div>
   <div class="side-section">${headline}</div>
   <div class="side-total">${ctx.money(headlineAmount)}</div>
-  ${ctx.secondaryDate.value ? `<div class="side-muted">${ctx.secondaryDate.label}: ${formatDate(ctx.secondaryDate.value, "short")}</div>` : ""}
+  ${secondaryDateText(ctx, "short") ? `<div class="side-muted">${ctx.secondaryDate.label}: ${secondaryDateText(ctx, "short")}</div>` : ""}
   ${sidePayment}
   ${
     ctx.payment.show && ctx.payment.upi
@@ -1367,7 +1440,7 @@ body { color: #111827; background: #ffffff; }
 .page-top { height: 10mm; background: ${c.primary}; }
 .band { background: ${c.primary}; color: ${onPrimary}; padding: 2mm 16mm 9mm; }
 .band-inner { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
-.logo { max-height: 46px; max-width: 160px; object-fit: contain; display: block; margin-bottom: 12px; }
+.logo { max-height: ${ctx.logoPx(46)}; max-width: ${ctx.logoPx(160)}; object-fit: contain; display: block; margin-bottom: 12px; }
 .company-name { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 2px; }
 .band .party-line { font-size: 10.5px; color: ${bandMuted}; }
 .title { font-size: 50px; font-weight: 900; letter-spacing: -1.5px; text-transform: uppercase; line-height: 0.95; text-align: right; }
@@ -1424,7 +1497,9 @@ table.items td.c-amount { color: #111827; font-weight: 800; }
   const heroAmount = ctx.totals.amountPaid > 0 ? ctx.totals.balanceDue : ctx.totals.total
   const heroSub = ctx.secondaryDate.value
     ? `${ctx.isQuote ? "Valid until" : "Due by"} <strong>${formatDate(ctx.secondaryDate.value, "long")}</strong>`
-    : ctx.items.length > 0
+    : !ctx.isQuote
+      ? `Due <strong>on receipt</strong>`
+      : ctx.items.length > 0
       ? `${ctx.items.length} ${ctx.items.length === 1 ? "item" : "items"}`
       : ""
 
@@ -1541,7 +1616,8 @@ const CURRENCY_WORDS: Record<string, { major: string; minor: string }> = {
 
 export function amountInWords(amount: number, currency: string): string {
   if (!Number.isFinite(amount)) return ""
-  const words = CURRENCY_WORDS[currency] ?? { major: currency, minor: "Cents" }
+  // The result goes into HTML unescaped: an unknown currency code is user data
+  const words = CURRENCY_WORDS[currency] ?? { major: esc(currency), minor: "Cents" }
   const abs = Math.abs(amount)
   const major = Math.floor(abs)
   const minor = Math.round((abs - major) * 100)

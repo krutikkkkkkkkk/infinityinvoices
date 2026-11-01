@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { listInvoicePresets, type InvoicePresetSummary } from "@/app/dashboard/invoicing/actions"
 import type { DocumentStyle } from "@/lib/document-style"
+import type { LogoSize } from "@/lib/types"
 import {
+  LOGO_SIZES,
   TEMPLATE_DEFAULT_COLORS,
   normalizeHexColor,
   resolveTemplateColors,
@@ -122,6 +124,11 @@ interface DocumentStyleControlsProps {
   onChange: (colors: Partial<TemplateColors> | undefined) => void
   /** Applies a preset's saved template and colours. */
   onApplyPreset: (style: DocumentStyle) => void
+  /** How large the profile logo is drawn; saved on the profile, not per template. */
+  logoSize: LogoSize
+  onLogoSizeChange: (size: LogoSize) => void
+  /** Whether the profile has a logo to resize. */
+  hasLogo: boolean
   /** True on plans without custom branding: controls show but can't be used. */
   locked: boolean
 }
@@ -132,7 +139,16 @@ interface DocumentStyleControlsProps {
  * is an exact picture of what gets sent. Saved presets carry a look that can be
  * applied here, and "Save as preset" stores the current one.
  */
-export function DocumentStyleControls({ template, colors, onChange, onApplyPreset, locked }: DocumentStyleControlsProps) {
+export function DocumentStyleControls({
+  template,
+  colors,
+  onChange,
+  onApplyPreset,
+  logoSize,
+  onLogoSizeChange,
+  hasLogo,
+  locked,
+}: DocumentStyleControlsProps) {
   const defaults = TEMPLATE_DEFAULT_COLORS[template]
   const resolved = resolveTemplateColors(template, colors)
   const isCustom = resolved.primary !== defaults.primary || resolved.accent !== defaults.accent
@@ -173,10 +189,10 @@ export function DocumentStyleControls({ template, colors, onChange, onApplyPrese
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">
-            <CardTitle className="text-base">Colours</CardTitle>
+            <CardTitle className="text-base">Colours & logo</CardTitle>
             <CardDescription>
               {locked
-                ? "Pick your own primary and accent colours on the Pro plan."
+                ? "Pick your own colours and logo size on the Pro plan."
                 : "Your own primary and accent colours for this template. Use “Save as preset” to keep a look."}
             </CardDescription>
           </div>
@@ -215,6 +231,41 @@ export function DocumentStyleControls({ template, colors, onChange, onApplyPrese
           onChange={(hex) => update("accent", hex)}
         />
 
+        <div className="space-y-2 border-t pt-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <Label id="style-logo-size">Logo size</Label>
+            <span className="text-xs text-muted-foreground">all documents</span>
+          </div>
+          <div role="radiogroup" aria-labelledby="style-logo-size" className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+            {LOGO_SIZES.map((size) => (
+              <button
+                key={size.value}
+                type="button"
+                role="radio"
+                aria-checked={logoSize === size.value}
+                disabled={locked || !hasLogo}
+                onClick={() => onLogoSizeChange(size.value)}
+                className={cn(
+                  "rounded-md py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  logoSize === size.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {size.label}
+              </button>
+            ))}
+          </div>
+          {!locked && !hasLogo && (
+            <p className="text-xs text-muted-foreground">
+              <Link href="/dashboard/settings" className="font-medium text-primary underline-offset-4 hover:underline">
+                Upload a logo
+              </Link>{" "}
+              in Settings to resize it here.
+            </p>
+          )}
+        </div>
+
         {!locked && presets.length > 0 && (
           <div className="space-y-2 border-t pt-4">
             <Label htmlFor="style-preset">Saved looks</Label>
@@ -252,7 +303,7 @@ export function DocumentStyleControls({ template, colors, onChange, onApplyPrese
                 Pro
               </span>
               <Link href="/dashboard/plan" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
-                Upgrade to use custom colours
+                Upgrade to customise colours & logo
               </Link>
             </div>
           </div>

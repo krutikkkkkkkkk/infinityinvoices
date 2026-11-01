@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { and, clients, db, eq } from "@infinity/db"
 import { requireUser } from "@/lib/auth/server"
 import { getPlanForUser } from "@/lib/plan-server"
-import { canAddClient } from "@/lib/plans"
+import { canAddClient, PRO_PLAN, type Plan } from "@/lib/plans"
 
 export interface ClientInput {
   name: string
@@ -19,6 +19,13 @@ export interface ClientInput {
 }
 
 type Result = { error?: string }
+
+const AUTO_REMINDER_PRO_ERROR = "Auto reminders are a Pro feature. Upgrade to Pro to email clients before and after the due date."
+
+/** Auto reminders send email, which is Pro / Lifetime only. */
+function canUseAutoReminders(plan: Plan) {
+  return plan.id === PRO_PLAN.id
+}
 
 function toRow(input: ClientInput) {
   return {
@@ -52,7 +59,9 @@ export async function addClient(input: ClientInput): Promise<Result> {
     }
   }
 
-  await db.insert(clients).values({ ...toRow(input), user_id: user.id })
+  // Free plans can't turn auto reminders on (the cron also skips them, but don't store a dead setting)
+  const row = { ...toRow(input), auto_reminder: canUseAutoReminders(plan) && Boolean(input.auto_reminder) }
+  await db.insert(clients).values({ ...row, user_id: user.id })
   revalidateClients()
   return {}
 }
@@ -61,9 +70,12 @@ export async function updateClient(clientId: string, input: ClientInput): Promis
   const user = await requireUser()
   if (!input.name?.trim()) return { error: "Client name is required" }
 
+  // On a Free plan the reminder setting is left as it was, so editing details can't turn it on
+  const plan = await getPlanForUser(user.id)
+  const { auto_reminder, ...details } = toRow(input)
   const updated = await db
     .update(clients)
-    .set(toRow(input))
+    .set(canUseAutoReminders(plan) ? { ...details, auto_reminder } : details)
     .where(and(eq(clients.id, clientId), eq(clients.user_id, user.id)))
     .returning({ id: clients.id })
   if (!updated.length) return { error: "Client not found" }
@@ -74,6 +86,8 @@ export async function updateClient(clientId: string, input: ClientInput): Promis
 
 export async function setClientAutoReminder(clientId: string, enabled: boolean): Promise<Result> {
   const user = await requireUser()
+  // Turning reminders off is always allowed, so a downgraded user can still clear the setting
+  if (enabled && !canUseAutoReminders(await getPlanForUser(user.id))) return { error: AUTO_REMINDER_PRO_ERROR }
 
   const updated = await db
     .update(clients)

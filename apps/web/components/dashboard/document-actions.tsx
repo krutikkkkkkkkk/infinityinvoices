@@ -39,6 +39,7 @@ import {
   SentIcon,
   CheckmarkCircle02Icon,
   Notification01Icon,
+  Share08Icon,
 } from "@hugeicons/core-free-icons"
 import {
   Dialog,
@@ -54,6 +55,8 @@ import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
 import { toast } from "sonner"
 import { useSubscription } from "@/hooks/use-subscription"
+import { downloadPdf } from "@/lib/pdf-download"
+import { ShareLinkDialog } from "./share-link-dialog"
 import type { Document, LineItem } from "@/lib/types"
 import type { TemplateType } from "./template-selector"
 import type { TemplateColors } from "@/lib/generate-document-html"
@@ -63,62 +66,6 @@ import {
   convertToInvoice,
   updateDocumentStatus,
 } from "@/app/dashboard/documents/actions"
-
-function saveBlob(blob: Blob, fileName: string) {
-  const url = window.URL.createObjectURL(blob)
-  const anchor = window.document.createElement("a")
-  anchor.href = url
-  anchor.download = fileName
-  anchor.rel = "noopener"
-  window.document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  setTimeout(() => window.URL.revokeObjectURL(url), 1000)
-}
-
-function fileNameFromDisposition(header: string | null): string | null {
-  const match = header?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i)
-  if (!match) return null
-  try {
-    return decodeURIComponent(match[1])
-  } catch {
-    return match[1]
-  }
-}
-
-/** Opens the browser's print dialog for a print-ready HTML document via a hidden iframe. */
-function printHtml(html: string): Promise<void> {
-  return new Promise((resolve) => {
-    const iframe = window.document.createElement("iframe")
-    iframe.setAttribute("aria-hidden", "true")
-    iframe.title = "Print preview"
-    iframe.style.cssText =
-      "position:fixed;right:0;bottom:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none;"
-    let finished = false
-    const cleanup = () => {
-      if (finished) return
-      finished = true
-      iframe.remove()
-      resolve()
-    }
-    iframe.onload = async () => {
-      const frameWindow = iframe.contentWindow
-      if (!frameWindow) return cleanup()
-      try {
-        await frameWindow.document.fonts?.ready
-      } catch {
-        // fonts are optional
-      }
-      frameWindow.addEventListener("afterprint", cleanup, { once: true })
-      // Safety net for browsers that never fire afterprint.
-      setTimeout(cleanup, 120_000)
-      frameWindow.focus()
-      frameWindow.print()
-    }
-    iframe.srcdoc = html
-    window.document.body.appendChild(iframe)
-  })
-}
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
@@ -138,6 +85,7 @@ interface DocumentActionsProps {
 export function DocumentActions({ document, template = "classic", colors }: DocumentActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(document.status)
   const [isPending, startTransition] = useTransition()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
@@ -173,6 +121,11 @@ export function DocumentActions({ document, template = "classic", colors }: Docu
   const handleOpenEmailDialog = () => {
     if (!requirePaidPlan("Sending documents by email")) return
     setShowEmailDialog(true)
+  }
+
+  const handleOpenShareDialog = () => {
+    if (!requirePaidPlan("Sharing via link")) return
+    setShowShareDialog(true)
   }
 
   const handleSendReminder = async () => {
@@ -219,40 +172,14 @@ export function DocumentActions({ document, template = "classic", colors }: Docu
 
   const handleDownloadPdf = async () => {
     setIsGeneratingPdf(true)
-    try {
-      const response = await fetch(pdfUrl())
-      const contentType = response.headers.get("content-type") || ""
-
-      if (response.ok && contentType.includes("application/pdf")) {
-        const blob = await response.blob()
-        const fileName =
-          fileNameFromDisposition(response.headers.get("content-disposition")) ||
-          `${document.type === "quotation" ? "Quotation" : "Invoice"}-${document.number}.pdf`
-        saveBlob(blob, fileName)
-        return
-      }
-
-      const data = await response.json().catch(() => null)
-      if (!response.ok || !data) {
-        toast.error(data?.error || "Could not generate the PDF. Please try again.")
-        return
-      }
-
-      if (data.fallback && typeof data.html === "string") {
-        // No headless browser on this server: use the browser's own print engine,
-        // which honours the same page CSS and lets the user "Save as PDF".
-        toast.info("Opening the print dialog. Choose “Save as PDF” to download.")
-        await printHtml(data.html)
-        return
-      }
-
-      toast.error("Unexpected response while generating the PDF.")
-    } catch (error) {
-      console.error("Error downloading PDF:", error)
-      toast.error("Could not download the PDF. Check your connection and try again.")
-    } finally {
-      setIsGeneratingPdf(false)
-    }
+    const result = await downloadPdf(
+      pdfUrl(),
+      `${document.type === "quotation" ? "Quotation" : "Invoice"}-${document.number}.pdf`,
+      // No headless browser on this server: the browser's print engine honours the same page CSS
+      () => toast.info("Opening the print dialog. Choose “Save as PDF” to download.")
+    )
+    if (result.status === "error") toast.error(result.message)
+    setIsGeneratingPdf(false)
   }
 
   const handleSendEmail = async () => {
@@ -284,12 +211,7 @@ export function DocumentActions({ document, template = "classic", colors }: Docu
           setEmailStatus({ type: "error", text: data.error || "Failed to send email" })
         }
       } else {
-        setEmailStatus({
-          type: "success",
-          text: data.attached
-            ? "Email sent with the PDF attached."
-            : "Email sent with the online link (the PDF could not be generated).",
-        })
+        setEmailStatus({ type: "success", text: "Email sent with the PDF attached." })
         setCurrentStatus("sent")
         setTimeout(() => {
           setShowEmailDialog(false)
@@ -382,6 +304,10 @@ export function DocumentActions({ document, template = "classic", colors }: Docu
             {reminderStatus?.type === "success" ? "Sent!" : "Send Reminder"}
           </Button>
         )}
+        <Button variant="outline" onClick={handleOpenShareDialog}>
+          <HugeiconsIcon icon={Share08Icon} size={16} className="mr-2" />
+          Share
+        </Button>
         <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
           {isGeneratingPdf ? (
             <HugeiconsIcon icon={Loading01Icon} size={16} className="mr-2 animate-spin" />
@@ -527,6 +453,15 @@ export function DocumentActions({ document, template = "classic", colors }: Docu
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ShareLinkDialog
+        document={document}
+        template={template}
+        colors={colors}
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        onProRequired={showProRequired}
+      />
 
       {/* Usage Limit Dialog */}
       <AlertDialog open={showUsageLimitDialog} onOpenChange={setShowUsageLimitDialog}>

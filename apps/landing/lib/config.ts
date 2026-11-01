@@ -1,3 +1,6 @@
+// Public URL of this marketing site, used for canonical and social share links. Override with NEXT_PUBLIC_LANDING_URL.
+export const SITE_URL = (process.env.NEXT_PUBLIC_LANDING_URL ?? "https://infinityinvoices.com").replace(/\/$/, "")
+
 // URL of the invoicing app (apps/web). Override with NEXT_PUBLIC_APP_URL.
 const DEFAULT_APP_URL =
   process.env.NODE_ENV === "production" ? "https://app.infinityinvoices.com" : "http://localhost:3000"

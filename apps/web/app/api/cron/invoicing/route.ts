@@ -1,23 +1,40 @@
 import { headers } from "next/headers"
-import { and, asc, clients, db, documents, eq, inArray, isNotNull, isNull, lateFeeApplications, lineItems, lt, lte, ne, or, recurringSchedules, sql } from "@infinity/db"
+import { and, asc, clients, db, documents, eq, inArray, isNotNull, isNull, lateFeeApplications, lineItems, lt, lte, ne, or, recurringSchedules, sql, subscriptions } from "@infinity/db"
 import { consumeUsage } from "@/lib/usage"
 import { sendInvoiceReminder } from "@/lib/reminders"
 
 // Rendering a PDF per reminder is slow; give the job room beyond the default
 export const maxDuration = 300
 
-// Once an invoice is overdue, clients with auto reminders get one email per week
+// Clients with auto reminders get the first email the day before the due date, then one per week
+const REMINDER_LEAD_DAYS = 1
 const REMINDER_INTERVAL_DAYS = 7
 // Cap per run so a backlog cannot blow the function timeout; the rest go next night
 const MAX_REMINDERS_PER_RUN = 50
 
+/** Adds whole months, clamping to the month's last day so a schedule on the 31st never skips February. */
+function addMonths(date: Date, months: number) {
+  const next = new Date(date)
+  const day = next.getUTCDate()
+  next.setUTCDate(1)
+  next.setUTCMonth(next.getUTCMonth() + months)
+  const lastDay = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate()
+  next.setUTCDate(Math.min(day, lastDay))
+  return next
+}
+
 function advanceDate(date: Date, frequency: string) {
+  if (frequency === "monthly") return addMonths(date, 1)
+  if (frequency === "quarterly") return addMonths(date, 3)
+  if (frequency === "yearly") return addMonths(date, 12)
   const next = new Date(date)
   if (frequency === "weekly") next.setUTCDate(next.getUTCDate() + 7)
-  if (frequency === "monthly") next.setUTCMonth(next.getUTCMonth() + 1)
-  if (frequency === "quarterly") next.setUTCMonth(next.getUTCMonth() + 3)
-  if (frequency === "yearly") next.setUTCFullYear(next.getUTCFullYear() + 1)
   return next
+}
+
+/** YYYY-MM-DD (UTC) for `days` days from `date`. */
+function utcDay(date: Date, days = 0) {
+  return new Date(date.getTime() + days * 86400000).toISOString().slice(0, 10)
 }
 
 export async function GET() {
@@ -30,8 +47,18 @@ export async function GET() {
   const now = new Date()
   let schedules
   try {
+    // Recurring invoices are Pro / Lifetime only. A lapsed user's schedules stay due and resume on
+    // upgrade; filtering here keeps them from filling the batch limit.
+    const paidUsers = db
+      .select({ user_id: subscriptions.user_id })
+      .from(subscriptions)
+      .where(and(inArray(subscriptions.plan, ["pro", "lifetime"]), eq(subscriptions.status, "active")))
     schedules = await db.query.recurringSchedules.findMany({
-      where: and(eq(recurringSchedules.active, true), lte(recurringSchedules.next_run_at, now.toISOString())),
+      where: and(
+        eq(recurringSchedules.active, true),
+        lte(recurringSchedules.next_run_at, now.toISOString()),
+        inArray(recurringSchedules.user_id, paidUsers),
+      ),
       with: { source: { with: { line_items: { orderBy: [asc(lineItems.sort_order)] } } } },
       limit: 100,
     })
@@ -119,22 +146,28 @@ export async function GET() {
     }
   }
 
-  // Weekly overdue reminders: only for clients that opted in, only once per 7 days per
-  // invoice (manual reminders also set last_reminder_sent, so they push the next one out).
-  const reminderCutoff = new Date(now.getTime() - REMINDER_INTERVAL_DAYS * 86400000).toISOString()
+  // Auto reminders (Pro / Lifetime only, clients that opted in): the first goes out the day before
+  // the due date, then one every 7 days until the invoice is paid or the client is switched off.
+  // Manual reminders also set last_reminder_sent, so they push the next one out. The cutoff is a
+  // calendar day, not an exact timestamp, so a few seconds of cron jitter can't slip a week to 8 days.
+  const reminderCutoff = `${utcDay(now, -(REMINDER_INTERVAL_DAYS - 1))}T00:00:00.000Z`
   let dueForReminder: { id: string; user_id: string }[] = []
   try {
     dueForReminder = await db
       .select({ id: documents.id, user_id: documents.user_id })
       .from(documents)
       .innerJoin(clients, and(eq(clients.id, documents.client_id), eq(clients.user_id, documents.user_id)))
+      // Filter by plan here, not only at send time, so free users' invoices can't fill the per-run cap
+      .innerJoin(subscriptions, eq(subscriptions.user_id, documents.user_id))
       .where(and(
         eq(documents.type, "invoice"),
         inArray(documents.status, ["sent", "overdue"]),
-        lt(documents.due_date, today),
+        lte(documents.due_date, utcDay(now, REMINDER_LEAD_DAYS)),
         isNotNull(documents.client_email),
         eq(clients.auto_reminder, true),
-        or(isNull(documents.last_reminder_sent), lte(documents.last_reminder_sent, reminderCutoff)),
+        inArray(subscriptions.plan, ["pro", "lifetime"]),
+        eq(subscriptions.status, "active"),
+        or(isNull(documents.last_reminder_sent), lt(documents.last_reminder_sent, reminderCutoff)),
       ))
       .orderBy(sql`${documents.last_reminder_sent} asc nulls first`)
       .limit(MAX_REMINDERS_PER_RUN)

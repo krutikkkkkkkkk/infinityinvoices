@@ -7,10 +7,10 @@ import { button, buttonSize } from "./ui"
 
 export function FinalCta() {
   return (
-    <section className="px-3 sm:px-4">
+    <section id="get-started" className="px-3 sm:px-4">
       <InView
         reveal
-        className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-b from-primary/15 via-primary/5 to-card px-5 py-16 text-center sm:px-10 sm:py-24"
+        className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-border/60 bg-linear-to-b from-primary/15 via-primary/5 to-card px-5 py-16 text-center sm:px-10 sm:py-24"
       >
         <h2 className="mx-auto max-w-2xl font-heading text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
           Your next invoice could take 30 seconds.

@@ -30,7 +30,7 @@ export function AddClientDialog({ clientCount = 0 }: { clientCount?: number }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const { plan, isLoading: isPlanLoading } = useSubscription()
+  const { plan, isPro, isLoading: isPlanLoading } = useSubscription()
   // The Free plan caps clients; addClient enforces the same limit on the server
   const atLimit = !isPlanLoading && !canAddClient(plan, clientCount)
   const limitMessage = `The ${plan.name} plan includes up to ${plan.limits.clients} clients. Upgrade to Pro for unlimited clients.`
@@ -212,10 +212,13 @@ export function AddClientDialog({ clientCount = 0 }: { clientCount?: number }) {
             <div className="flex items-center justify-between rounded-lg border border-input bg-card p-3">
               <div className="space-y-0.5">
                 <Label className="text-sm font-medium">Auto Reminders</Label>
-                <p className="text-xs text-muted-foreground">Email a payment reminder every week while an invoice is overdue</p>
+                <p className="text-xs text-muted-foreground">
+                  {isPro || isPlanLoading ? "Email a payment reminder the day before the due date, then every week until paid" : "Pro feature: upgrade to email clients before and after the due date"}
+                </p>
               </div>
               <Switch
                 checked={formData.auto_reminder}
+                disabled={!isPro}
                 onCheckedChange={(checked) =>
                   setFormData((prev) => ({ ...prev, auto_reminder: checked }))
                 }

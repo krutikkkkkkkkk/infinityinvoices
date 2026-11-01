@@ -27,7 +27,7 @@ export interface TemplateMeta {
 }
 
 export const INVOICE_TEMPLATES: readonly TemplateMeta[] = [
-  { id: "classic", label: "Classic", description: "Clean and professional" },
+  { id: "classic", label: "Classic", description: "Clean, modern, accent bar" },
   { id: "minimal", label: "Minimal", description: "Cream paper, typographic" },
   { id: "tax", label: "Tax Invoice", description: "GST layout, amount in words" },
   { id: "dark", label: "Dark Modern", description: "Charcoal, high contrast" },

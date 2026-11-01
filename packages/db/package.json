@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./share": "./src/share.ts"
   },
   "scripts": {
     "db:push": "node --env-file=../../apps/web/.env ./node_modules/drizzle-kit/bin.cjs push",

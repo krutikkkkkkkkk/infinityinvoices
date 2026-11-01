@@ -32,10 +32,17 @@ export async function renderHtmlToPdf(html: string): Promise<Uint8Array> {
     })
 
     await page.emulateMediaType("print")
-    await page.setContent(html, {
-      waitUntil: ["load", "networkidle0"],
-      timeout: RENDER_TIMEOUT_MS,
-    })
+    try {
+      await page.setContent(html, {
+        waitUntil: ["load", "networkidle0"],
+        timeout: RENDER_TIMEOUT_MS,
+      })
+    } catch (error) {
+      // A slow web font or image shouldn't cost the whole PDF: the content is in the page, print it
+      // with whatever has loaded (fallback fonts at worst).
+      if (!(error instanceof Error && error.name === "TimeoutError")) throw error
+      console.warn("[pdf] Page resources still loading after timeout; rendering anyway")
+    }
 
     // Give web fonts a moment to finish applying once their files are loaded.
     try {
@@ -83,16 +90,21 @@ export async function renderDocumentPdf(
 ): Promise<RenderedDocument> {
   const html = await inlineRemoteImages(generateDocumentHTML(document, profile, template, colors))
   const fileName = documentFileName(document)
-  try {
-    const pdf = await renderHtmlToPdf(html)
-    return { html, fileName, pdf: Buffer.from(pdf) }
-  } catch (error) {
-    console.error("[pdf] Rendering failed:", error)
-    return {
-      html,
-      fileName,
-      pdf: null,
-      error: error instanceof Error ? error.message : "Rendering failed",
+  let lastError: unknown
+  // One retry: browser launches occasionally fail on a cold or busy host
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const pdf = await renderHtmlToPdf(html)
+      return { html, fileName, pdf: Buffer.from(pdf) }
+    } catch (error) {
+      lastError = error
+      console.error(`[pdf] Rendering failed (attempt ${attempt}/2):`, error)
     }
+  }
+  return {
+    html,
+    fileName,
+    pdf: null,
+    error: lastError instanceof Error ? lastError.message : "Rendering failed",
   }
 }

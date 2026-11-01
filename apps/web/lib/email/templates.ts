@@ -8,6 +8,21 @@ import { escapeHtml } from "@/lib/escape-html"
  * message body stays short and renders consistently across mail clients.
  */
 
+/**
+ * The From header for emails sent on a business's behalf: shown as the business name, sent from our
+ * verified address (replies go to the business via Reply-To). The name is user input, so it is
+ * stripped of characters that could break out of the quoted display name or add header lines.
+ */
+export function senderFrom(companyName: string | null | undefined): string {
+  const address = process.env.RESEND_FROM_EMAIL || "noreply@new.infinityinvoices.com"
+  const name = (companyName ?? "")
+    .replace(/[\u0000-\u001f\u007f"\\<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 70)
+  return `"${name || "Infinity Invoices"}" <${address}>`
+}
+
 export interface EmailContent {
   subject: string
   html: string

@@ -8,6 +8,8 @@ const BUTTON_BASE =
   "inline-flex items-center justify-center gap-2 rounded-full text-sm font-medium whitespace-nowrap transition-[color,background-color,box-shadow,transform] duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.97]"
 
 export const button = {
+  // Shape and behaviour only, for one-off colourways (e.g. on the dark hero).
+  base: BUTTON_BASE,
   // Ink pill: the primary action on any surface.
   default: cn(BUTTON_BASE, "bg-foreground text-background shadow-[0_1px_2px_rgb(0_0_0/0.12),inset_0_1px_0_rgb(255_255_255/0.08)] hover:bg-foreground/85"),
   // Brand pill for the few places that should carry the accent color.

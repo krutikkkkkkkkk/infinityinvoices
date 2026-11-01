@@ -15,6 +15,14 @@ export function getSiteUrl(): string {
   return "http://localhost:3000"
 }
 
+/**
+ * Public share link for a document. Always the production app, even from local dev or previews:
+ * these links are sent to clients, and production reads the same database.
+ */
+export function getShareLinkUrl(token: string): string {
+  return `https://app.infinityinvoices.com/invoice/${token}`
+}
+
 /** Where password reset emails send the user; Neon Auth appends `?token=...`. */
 export function getPasswordResetRedirectUrl(): string {
   return `${getSiteUrl()}/auth/reset-password`

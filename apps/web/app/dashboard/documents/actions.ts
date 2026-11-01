@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { and, asc, db, documents, eq, lineItems, products } from "@infinity/db"
+import { and, asc, clients, db, documents, eq, lineItems, products, sql } from "@infinity/db"
 import { requireUser } from "@/lib/auth/server"
-import type { DocumentFormData, DocumentStatus, Product } from "@/lib/types"
+import { isTemplateType } from "@/lib/generate-document-html"
+import { parseTemplateColors } from "@/lib/document-style"
+import { getPlanForUser } from "@/lib/plan-server"
+import { CURRENCIES, type DocumentFormData, type DocumentStatus, type Product } from "@/lib/types"
 import { checkAndIncrementUsage } from "@/lib/usage"
 
 type DocumentRow = typeof documents.$inferSelect
@@ -46,6 +49,7 @@ function documentValues(formData: DocumentFormData) {
     number: formData.number,
     issue_date: formData.issue_date,
     due_date: formData.due_date || null,
+    valid_until: formData.valid_until || null,
     status: formData.status,
     currency: formData.currency,
     client_id: formData.client_id || null,
@@ -86,6 +90,31 @@ function documentValues(formData: DocumentFormData) {
     }))
 
   return { values, items }
+}
+
+const DOCUMENT_TYPES: DocumentRow["type"][] = ["invoice", "quotation"]
+const DOCUMENT_STATUSES: DocumentStatus[] = ["draft", "sent", "paid", "overdue", "cancelled"]
+
+/**
+ * Server-side checks on form input before it is saved: the enum columns are plain text in the
+ * database, and client_id must be one of the user's own clients (it is a bare FK, so any user's
+ * client id would otherwise be accepted and later joined on).
+ */
+async function assertValidDocumentInput(userId: string, formData: DocumentFormData) {
+  if (!DOCUMENT_TYPES.includes(formData.type)) throw new Error("Invalid document type")
+  if (!DOCUMENT_STATUSES.includes(formData.status)) throw new Error("Invalid status")
+  if (!CURRENCIES.some((c) => c.value === formData.currency)) throw new Error("Invalid currency")
+  if (formData.discount_type != null && formData.discount_type !== "percentage" && formData.discount_type !== "fixed") {
+    throw new Error("Invalid discount type")
+  }
+  if (formData.client_id) {
+    const [client] = await db
+      .select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.id, formData.client_id), eq(clients.user_id, userId)))
+      .limit(1)
+    if (!client) throw new Error("Client not found")
+  }
 }
 
 /** Copies a document's content into a new draft (duplicate / quotation → invoice). */
@@ -155,6 +184,7 @@ export async function listActiveProducts(): Promise<Product[]> {
 
 export async function createDocument(formData: DocumentFormData) {
   const user = await requireUser()
+  await assertValidDocumentInput(user.id, formData)
 
   // Check usage limits
   const usageType = formData.type === "invoice" ? "invoice" : "quotation"
@@ -189,6 +219,7 @@ export async function createDocument(formData: DocumentFormData) {
 
 export async function updateDocument(id: string, formData: DocumentFormData) {
   const user = await requireUser()
+  await assertValidDocumentInput(user.id, formData)
   const { values, items } = documentValues(formData)
 
   // Update document; the returned row proves it belongs to the user before line items are touched
@@ -268,8 +299,7 @@ export async function duplicateDocument(id: string) {
 export async function updateDocumentStatus(id: string, status: string) {
   const user = await requireUser()
 
-  const validStatuses: DocumentStatus[] = ["draft", "sent", "paid", "overdue", "cancelled"]
-  if (!validStatuses.includes(status as DocumentStatus)) {
+  if (!DOCUMENT_STATUSES.includes(status as DocumentStatus)) {
     throw new Error("Invalid status")
   }
 
@@ -323,4 +353,50 @@ export async function convertToInvoice(id: string) {
 
   revalidatePath("/dashboard")
   redirect(`/dashboard/documents/${invoice.id}`)
+}
+
+/**
+ * Turns on the public link for a document (Pro only), or updates the template and colours it
+ * renders with. Returns the token for /invoice/[token], or an error (returned rather than thrown so
+ * production builds don't mask the message).
+ */
+export async function enableShareLink(
+  id: string,
+  style: { template?: unknown; colors?: unknown }
+): Promise<{ token: string; error?: never } | { token?: never; error: string }> {
+  const user = await requireUser()
+
+  const plan = await getPlanForUser(user.id)
+  if (!plan.shareLinks) {
+    return { error: "PRO_REQUIRED:Share links are a Pro feature. Upgrade to Pro to share invoices via link." }
+  }
+
+  const [row] = await db
+    .update(documents)
+    .set({
+      share_enabled: true,
+      share_template: isTemplateType(style.template) ? style.template : "classic",
+      share_colors: parseTemplateColors(style.colors) ?? null,
+    })
+    .where(and(eq(documents.id, id), eq(documents.user_id, user.id)))
+    .returning({ share_token: documents.share_token })
+
+  if (!row) {
+    return { error: "Document not found" }
+  }
+
+  revalidatePath(`/dashboard/documents/${id}`)
+  return { token: row.share_token }
+}
+
+/** Turns the public link off and replaces its token, so the old URL never works again. */
+export async function disableShareLink(id: string) {
+  const user = await requireUser()
+
+  await db
+    .update(documents)
+    .set({ share_enabled: false, share_token: sql`gen_random_uuid()` })
+    .where(and(eq(documents.id, id), eq(documents.user_id, user.id)))
+
+  revalidatePath(`/dashboard/documents/${id}`)
 }

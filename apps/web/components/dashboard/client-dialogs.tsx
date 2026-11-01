@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { deleteClient, updateClient } from "@/app/dashboard/clients/actions"
 import type { Client } from "@/lib/types"
+import { useSubscription } from "@/hooks/use-subscription"
 
 function toForm(client: Client | null) {
   return {
@@ -57,6 +58,7 @@ export function EditClientDialog({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [formData, setFormData] = useState(() => toForm(client))
+  const { isPro, isLoading: isPlanLoading } = useSubscription()
 
   // Reset the form whenever a (different) client is opened for editing.
   useEffect(() => {
@@ -139,9 +141,12 @@ export function EditClientDialog({
             <div className="flex items-center justify-between rounded-xl border bg-card p-3">
               <div className="space-y-0.5">
                 <Label htmlFor="edit-auto_reminder" className="text-sm font-medium">Auto reminders</Label>
-                <p className="text-xs text-muted-foreground">Email a payment reminder every week while an invoice is overdue</p>
+                <p className="text-xs text-muted-foreground">
+                  {isPro || isPlanLoading ? "Email a payment reminder the day before the due date, then every week until paid" : "Pro feature: upgrade to email clients before and after the due date"}
+                </p>
               </div>
-              <Switch id="edit-auto_reminder" checked={formData.auto_reminder} onCheckedChange={(v) => set("auto_reminder", v)} />
+              {/* Auto reminders are Pro-only; updateClient ignores this switch on Free plans */}
+              <Switch id="edit-auto_reminder" checked={formData.auto_reminder} onCheckedChange={(v) => set("auto_reminder", v)} disabled={!isPro} />
             </div>
           </div>
           <DialogFooter>

@@ -7,6 +7,8 @@ import {
   integer,
   jsonb,
   numeric,
+  pgPolicy,
+  pgRole,
   pgSchema,
   pgTable,
   text,
@@ -36,6 +38,23 @@ const updatedAt = () =>
 const userId = () => uuid("user_id").notNull()
 
 /**
+ * Read-only role behind public share links (/invoice/[token]). Created with its login and column
+ * grants by sql/share-reader.sql, not by Drizzle. Only this role is subject to the policies below:
+ * the app connects as the table owner, which bypasses RLS.
+ */
+export const shareReader = pgRole("share_reader").existing()
+
+// A share_reader transaction sees one document: the shared one whose token it set with
+// set_config('app.share_token', ...) (see share.ts). Every other policy hangs off that row.
+// drizzle-kit push creates these policies without USING (= no rows): after a push on a new branch,
+// run step 3 of sql/share-reader.sql.
+const sharedDocument = pgPolicy("share_reader_read_shared_document", {
+  for: "select",
+  to: shareReader,
+  using: sql`share_enabled and share_token = nullif(current_setting('app.share_token', true), '')::uuid`,
+})
+
+/**
  * Neon Auth's user table. Read-only for the app (admin user list); Neon Auth owns and migrates
  * it, and drizzle.config.ts filters pushes to the public schema.
  */
@@ -51,27 +70,38 @@ export const authUsers = pgSchema("neon_auth").table("user", {
   updatedAt: timestamptz("updatedAt").notNull(),
 })
 
-export const profiles = pgTable("profiles", {
-  id: uuid("id").primaryKey(),
-  full_name: text("full_name"),
-  company_name: text("company_name"),
-  company_address: text("company_address"),
-  gst_id: text("gst_id"),
-  email: text("email"),
-  phone: text("phone"),
-  logo_url: text("logo_url"),
-  upi_id: text("upi_id"),
-  paypal_email: text("paypal_email"),
-  bank_name: text("bank_name"),
-  bank_account_name: text("bank_account_name"),
-  bank_account_number: text("bank_account_number"),
-  bank_routing_number: text("bank_routing_number"),
-  bank_swift_code: text("bank_swift_code"),
-  financial_year_start: integer("financial_year_start").notNull().default(4),
-  default_currency: text("default_currency").notNull().default("INR"),
-  created_at: createdAt(),
-  updated_at: updatedAt(),
-})
+export const profiles = pgTable(
+  "profiles",
+  {
+    id: uuid("id").primaryKey(),
+    full_name: text("full_name"),
+    company_name: text("company_name"),
+    company_address: text("company_address"),
+    gst_id: text("gst_id"),
+    email: text("email"),
+    phone: text("phone"),
+    logo_url: text("logo_url"),
+    logo_size: text("logo_size", { enum: ["small", "medium", "large", "xlarge"] }).notNull().default("medium"),
+    upi_id: text("upi_id"),
+    paypal_email: text("paypal_email"),
+    bank_name: text("bank_name"),
+    bank_account_name: text("bank_account_name"),
+    bank_account_number: text("bank_account_number"),
+    bank_routing_number: text("bank_routing_number"),
+    bank_swift_code: text("bank_swift_code"),
+    financial_year_start: integer("financial_year_start").notNull().default(4),
+    default_currency: text("default_currency").notNull().default("INR"),
+    created_at: createdAt(),
+    updated_at: updatedAt(),
+  },
+  () => [
+    pgPolicy("share_reader_read_shared_owner_profile", {
+      for: "select",
+      to: shareReader,
+      using: sql`exists (select 1 from documents d where d.user_id = profiles.id)`,
+    }),
+  ],
+)
 
 export const clients = pgTable(
   "clients",
@@ -129,6 +159,11 @@ export const documents = pgTable(
     client_address: text("client_address"),
     client_gst_id: text("client_gst_id"),
     share_token: uuid("share_token").notNull().defaultRandom().unique(),
+    /** Pro feature: the public link only works while this is on and the owner is on a paid plan. */
+    share_enabled: boolean("share_enabled").notNull().default(false),
+    /** Template and colours the public link renders with, saved when the owner shares it. */
+    share_template: text("share_template"),
+    share_colors: jsonb("share_colors").$type<{ primary?: string; accent?: string }>(),
     amount_paid: money("amount_paid").notNull().default(0),
     credit_total: money("credit_total").notNull().default(0),
     last_reminder_sent: timestamptz("last_reminder_sent"),
@@ -142,6 +177,7 @@ export const documents = pgTable(
   (t) => [
     index("documents_user_type_idx").on(t.user_id, t.type),
     index("documents_client_id_idx").on(t.client_id),
+    sharedDocument,
   ],
 )
 
@@ -161,7 +197,14 @@ export const lineItems = pgTable(
     sort_order: integer("sort_order").notNull().default(0),
     created_at: createdAt(),
   },
-  (t) => [index("line_items_document_id_idx").on(t.document_id)],
+  (t) => [
+    index("line_items_document_id_idx").on(t.document_id),
+    pgPolicy("share_reader_read_shared_line_items", {
+      for: "select",
+      to: shareReader,
+      using: sql`exists (select 1 from documents d where d.id = line_items.document_id)`,
+    }),
+  ],
 )
 
 export const products = pgTable(
@@ -201,6 +244,12 @@ export const subscriptions = pgTable(
   (t) => [
     index("subscriptions_dodo_customer_id_idx").on(t.dodo_customer_id),
     index("subscriptions_dodo_subscription_id_idx").on(t.dodo_subscription_id),
+    // Read so the share page can check the owner is still on a paid plan
+    pgPolicy("share_reader_read_shared_owner_subscription", {
+      for: "select",
+      to: shareReader,
+      using: sql`exists (select 1 from documents d where d.user_id = subscriptions.user_id)`,
+    }),
   ],
 )
 

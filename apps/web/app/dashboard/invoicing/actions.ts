@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth/server"
 import { roundMoney } from "@/lib/invoice-balance"
 import { syncInvoiceSettlement } from "@/lib/invoice-settlement"
 import { parseDocumentStyle, type DocumentStyle } from "@/lib/document-style"
+import { getPlanForUser } from "@/lib/plan-server"
+import { canAddPreset } from "@/lib/plans"
 
 /** Paths that show invoice balances and need refreshing after a settlement change. */
 function revalidateInvoice(documentId: string) {
@@ -146,42 +148,92 @@ export async function configureLateFee(input: {
   revalidatePath(`/dashboard/documents/${input.documentId}`)
 }
 
+/**
+ * Recurring drafts are a Pro feature. Errors are returned rather than thrown so production builds
+ * don't mask the message.
+ */
 export async function createRecurringSchedule(input: {
   documentId: string
   frequency: "weekly" | "monthly" | "quarterly" | "yearly"
   nextRunAt: string
   endsAt?: string
-}) {
+}): Promise<{ error?: string }> {
   const user = await requireUser()
-  if (!["weekly", "monthly", "quarterly", "yearly"].includes(input.frequency)) throw new Error("Invalid frequency")
+  if (!(await getPlanForUser(user.id)).recurringInvoices) {
+    return { error: "PRO_REQUIRED:Recurring invoices are a Pro feature. Upgrade to Pro to create drafts automatically." }
+  }
+  if (!["weekly", "monthly", "quarterly", "yearly"].includes(input.frequency)) return { error: "Invalid frequency" }
+  const nextRunAt = new Date(input.nextRunAt)
+  const endsAt = input.endsAt ? new Date(input.endsAt) : null
+  if (Number.isNaN(nextRunAt.getTime())) return { error: "Choose a valid first draft date" }
+  if (endsAt && (Number.isNaN(endsAt.getTime()) || endsAt < nextRunAt)) return { error: "Choose a valid end date" }
+
   // The cron job copies the source for any user, so ownership must be checked here
   const [document] = await db
     .select({ id: documents.id })
     .from(documents)
     .where(and(eq(documents.id, input.documentId), eq(documents.user_id, user.id), eq(documents.type, "invoice")))
     .limit(1)
-  if (!document) throw new Error("Invoice not found")
+  if (!document) return { error: "Invoice not found" }
+
+  // One active schedule per invoice, or each run would create several drafts
+  const active = await db.$count(
+    recurringSchedules,
+    and(eq(recurringSchedules.source_document_id, input.documentId), eq(recurringSchedules.user_id, user.id), eq(recurringSchedules.active, true))
+  )
+  if (active > 0) return { error: "This invoice already has a recurring schedule" }
+
   await db.insert(recurringSchedules).values({
     user_id: user.id,
     source_document_id: input.documentId,
     frequency: input.frequency,
-    next_run_at: new Date(input.nextRunAt).toISOString(),
-    ends_at: input.endsAt ? new Date(input.endsAt).toISOString() : null,
+    next_run_at: nextRunAt.toISOString(),
+    ends_at: endsAt?.toISOString() ?? null,
   })
   revalidatePath(`/dashboard/documents/${input.documentId}`)
+  return {}
 }
 
-export async function saveInvoicePreset(name: string, data: Record<string, unknown>) {
+const MAX_PRESET_NAME_LENGTH = 100
+// A preset is a document's form data; this is far above a real one, but stops multi-MB rows
+const MAX_PRESET_BYTES = 64 * 1024
+
+/**
+ * Saves a preset, replacing the user's preset of the same name. Free plans are limited to
+ * `plan.limits.presets`; overwriting an existing preset is always allowed.
+ */
+export async function saveInvoicePreset(name: string, data: Record<string, unknown>): Promise<{ error?: string }> {
   const user = await requireUser()
-  if (!name.trim()) throw new Error("Preset name is required")
+  const presetName = typeof name === "string" ? name.trim() : ""
+  if (!presetName) return { error: "Preset name is required" }
+  if (presetName.length > MAX_PRESET_NAME_LENGTH) return { error: `Preset names can be at most ${MAX_PRESET_NAME_LENGTH} characters` }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { error: "Invalid preset data" }
+  if (Buffer.byteLength(JSON.stringify(data)) > MAX_PRESET_BYTES) return { error: "This preset is too large to save" }
+
+  const plan = await getPlanForUser(user.id)
+  if (plan.limits.presets !== -1) {
+    const [existing] = await db
+      .select({ id: invoicePresets.id })
+      .from(invoicePresets)
+      .where(and(eq(invoicePresets.user_id, user.id), eq(invoicePresets.name, presetName)))
+      .limit(1)
+    if (!existing && !canAddPreset(plan, await db.$count(invoicePresets, eq(invoicePresets.user_id, user.id)))) {
+      return {
+        error: `PRO_REQUIRED:The ${plan.name} plan includes ${plan.limits.presets} invoice preset. Delete it or upgrade to Pro for unlimited presets.`,
+      }
+    }
+  }
+
   await db
     .insert(invoicePresets)
-    .values({ user_id: user.id, name: name.trim(), data })
+    .values({ user_id: user.id, name: presetName, data })
     .onConflictDoUpdate({
       target: [invoicePresets.user_id, invoicePresets.name],
       set: { data, updated_at: new Date().toISOString() },
     })
   revalidatePath("/dashboard/documents/new")
+  revalidatePath("/dashboard/presets")
+  return {}
 }
 
 export interface InvoicePresetSummary {
