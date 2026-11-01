@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PasswordInput } from '@/components/ui/password-input'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -159,9 +160,8 @@ export default function Page() {
                         Forgot password?
                       </Link>
                     </div>
-                    <Input
+                    <PasswordInput
                       id="password"
-                      type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
