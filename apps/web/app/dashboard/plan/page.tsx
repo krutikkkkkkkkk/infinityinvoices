@@ -89,11 +89,11 @@ export default async function PlanPage({
             <PlanOption
               id="lifetime"
               overview={overview}
-              name="Lifetime"
+              name={LIFETIME.name}
               price={formatUsd(LIFETIME.priceInCents)}
               cadence="once, no renewals"
-              description="Pro, forever. Pay once."
-              features={["Everything in Pro", "Pay once, keep it forever", "All future features"]}
+              description={LIFETIME.description}
+              features={[...LIFETIME.features]}
             />
           )}
         </div>

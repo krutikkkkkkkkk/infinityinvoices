@@ -105,7 +105,10 @@ export const PRO_PLAN = PLANS.find((p) => p.id === "pro")!
 
 // Lifetime: a one-time Dodo product that grants Pro limits forever.
 export const LIFETIME = {
+  name: "Lifetime",
+  description: "Pro, forever. Pay once.",
   priceInCents: 2900, // $29 once — must match the Dodo lifetime product price
+  features: ["Everything in Pro", "Pay once, keep it forever", "All future features"],
 } as const
 
 /** "$5" for whole dollars, "$2.50" otherwise. */

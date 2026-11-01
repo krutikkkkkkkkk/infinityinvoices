@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Check, X } from "lucide-react"
 import Link from "next/link"
-import { PLANS } from "@/lib/plans"
-import { LifetimePrice } from "@/components/pricing/lifetime-price"
+import { LIFETIME, PLANS, PRO_PLAN, formatUsd, type Plan } from "@/lib/plans"
 
 export const metadata = {
   title: "Pricing - Infinity Invoice",
@@ -20,12 +19,12 @@ export default function PricingPage() {
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Start free with 5 invoices and 5 quotations a month. Upgrade to Pro for unlimited documents and
-            email sending.
+            email sending, or pay once for Lifetime.
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {PLANS.map((plan) => (
             <div
               key={plan.id}
@@ -54,7 +53,6 @@ export default function PricingPage() {
                       <span className="text-4xl font-bold">${(plan.priceInCents / 100).toFixed(0)}</span>
                       <span className="text-muted-foreground">/{plan.priceBillingCycle || "month"}</span>
                     </div>
-                    {plan.id === "pro" && <LifetimePrice className="mt-2" />}
                   </div>
                 )}
 
@@ -65,7 +63,7 @@ export default function PricingPage() {
                     className="w-full"
                     variant={plan.id === "pro" ? "default" : "outline"}
                   >
-                    <Link href="/auth/signup">Get Started</Link>
+                    <Link href="/auth/sign-up">Get Started</Link>
                   </Button>
                 </div>
 
@@ -87,32 +85,47 @@ export default function PricingPage() {
                   ))}
                 </div>
 
-                {/* Limits Info */}
-                <div className="mt-8 pt-8 border-t border-border">
-                  <p className="text-xs text-muted-foreground font-semibold mb-3">Limits:</p>
-                  <ul className="space-y-2 text-xs text-muted-foreground">
-                    <li>
-                      • Invoices: {plan.limits.invoicesPerMonth === -1 ? "Unlimited" : plan.limits.invoicesPerMonth}
-                    </li>
-                    <li>
-                      • Quotations: {plan.limits.quotationsPerMonth === -1 ? "Unlimited" : plan.limits.quotationsPerMonth}
-                    </li>
-                    <li>
-                      • Clients: {plan.limits.clients === -1 ? "Unlimited" : plan.limits.clients}
-                    </li>
-                    <li>
-                      • Email sending:{" "}
-                      {plan.limits.emailsPerMonth === -1
-                        ? "Unlimited"
-                        : plan.limits.emailsPerMonth === 0
-                          ? "Pro only"
-                          : `${plan.limits.emailsPerMonth} per month`}
-                    </li>
-                  </ul>
-                </div>
+                <Limits plan={plan} />
               </div>
             </div>
           ))}
+
+          {/* Lifetime: a one-time purchase with Pro limits */}
+          <div className="rounded-lg border border-primary/40 bg-card ring-1 ring-primary/20">
+            <div className="p-8">
+              <div className="mb-6">
+                <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold mb-2">
+                  Best Value
+                </div>
+                <h2 className="text-2xl font-bold mb-2">{LIFETIME.name}</h2>
+                <p className="text-sm text-muted-foreground">{LIFETIME.description}</p>
+              </div>
+
+              <div className="mb-6 pb-6 border-b border-border">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold">{formatUsd(LIFETIME.priceInCents)}</span>
+                  <span className="text-muted-foreground">once</span>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <Button asChild className="w-full">
+                  <Link href="/dashboard/plan">Get Lifetime Access</Link>
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {LIFETIME.features.map((feature) => (
+                  <div key={feature} className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Limits plan={PRO_PLAN} />
+            </div>
+          </div>
         </div>
 
         {/* FAQ Section */}
@@ -152,6 +165,27 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function Limits({ plan }: { plan: Plan }) {
+  return (
+    <div className="mt-8 pt-8 border-t border-border">
+      <p className="text-xs text-muted-foreground font-semibold mb-3">Limits:</p>
+      <ul className="space-y-2 text-xs text-muted-foreground">
+        <li>• Invoices: {plan.limits.invoicesPerMonth === -1 ? "Unlimited" : plan.limits.invoicesPerMonth}</li>
+        <li>• Quotations: {plan.limits.quotationsPerMonth === -1 ? "Unlimited" : plan.limits.quotationsPerMonth}</li>
+        <li>• Clients: {plan.limits.clients === -1 ? "Unlimited" : plan.limits.clients}</li>
+        <li>
+          • Email sending:{" "}
+          {plan.limits.emailsPerMonth === -1
+            ? "Unlimited"
+            : plan.limits.emailsPerMonth === 0
+              ? "Pro only"
+              : `${plan.limits.emailsPerMonth} per month`}
+        </li>
+      </ul>
     </div>
   )
 }
