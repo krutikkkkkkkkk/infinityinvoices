@@ -1,14 +1,12 @@
 import { requireAdmin } from "@/lib/admin"
 import { authUsers, db, desc, eq, getTableColumns, profiles, subscriptions as subscriptionsTable } from "@infinity/db"
-import { CreditCardIcon, CrownIcon, InfinityIcon, MoneyReceive01Icon } from "@hugeicons/core-free-icons"
+import { CreditCardIcon, Diamond02Icon, InfinityIcon, MoneyReceive01Icon } from "@hugeicons/core-free-icons"
 import { formatDate, formatMoney } from "@/lib/format"
 import { PageHeader } from "@/components/admin/page-header"
 import { StatCard, StatGrid } from "@/components/admin/stat-card"
 import { PlanBadge, StatusBadge } from "@/components/admin/badges"
 import { EmptyRow, SectionCard, TABLE_EDGE } from "@/components/admin/section-card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-
-const LIFETIME_SEATS = 200
 
 export default async function AdminSubscriptionsPage() {
   await requireAdmin()
@@ -45,13 +43,8 @@ export default async function AdminSubscriptionsPage() {
           value={allSubscriptions.length.toLocaleString()}
           hint={`${activeSubscriptions.length.toLocaleString()} active`}
         />
-        <StatCard icon={CrownIcon} label="Pro" value={proSubscriptions.length.toLocaleString()} />
-        <StatCard
-          icon={InfinityIcon}
-          label="Lifetime"
-          value={`${lifetimeSubscriptions.length}/${LIFETIME_SEATS}`}
-          hint={`${Math.max(0, LIFETIME_SEATS - lifetimeSubscriptions.length)} seats left`}
-        />
+        <StatCard icon={Diamond02Icon} label="Pro" value={proSubscriptions.length.toLocaleString()} />
+        <StatCard icon={InfinityIcon} label="Lifetime" value={lifetimeSubscriptions.length.toLocaleString()} />
         <StatCard icon={MoneyReceive01Icon} label="Est. MRR" value={formatMoney(mrr)} hint="Pro plans only" />
       </StatGrid>
 

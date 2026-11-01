@@ -4,7 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Alert02Icon,
   CheckmarkCircle02Icon,
-  Crown02Icon,
+  Diamond02Icon,
   FileValidationIcon,
   Invoice01Icon,
   Mail01Icon,
@@ -18,9 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { IconChip } from "@/components/dashboard/overview"
 import { getCurrentUser } from "@/lib/dashboard/overview"
 import { getPlanOverview, type PlanId, type PlanOverview } from "@/lib/dashboard/plan"
-import { FREE_PLAN, PRO_PLAN, PRO_YEARLY, formatUsd } from "@/lib/plans"
-import type { CheckoutPlan } from "@/lib/dodo"
-import { YearlyPrice } from "@/components/pricing/yearly-price"
+import { FREE_PLAN, LIFETIME, PRO_PLAN, formatUsd } from "@/lib/plans"
 import { formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -83,12 +81,6 @@ export default async function PlanPage({
             name="Pro"
             price={formatUsd(PRO_PLAN.priceInCents)}
             cadence="per month"
-            priceNote={overview.checkout.proYearly ? <YearlyPrice className="mt-1" /> : undefined}
-            secondaryCheckout={
-              overview.checkout.proYearly
-                ? { plan: "pro_yearly", label: `Get a year for ${formatUsd(PRO_YEARLY.priceInCents)}` }
-                : undefined
-            }
             description={PRO_PLAN.description}
             features={["Everything in Free", ...PRO_PLAN.features]}
             highlight
@@ -98,9 +90,9 @@ export default async function PlanPage({
               id="lifetime"
               overview={overview}
               name="Lifetime"
-              price="One payment"
-              cadence="no renewals"
-              description={`Pro, forever. Limited to ${overview.lifetime.limit} customers.`}
+              price={formatUsd(LIFETIME.priceInCents)}
+              cadence="once, no renewals"
+              description="Pro, forever. Pay once."
               features={["Everything in Pro", "Pay once, keep it forever", "All future features"]}
             />
           )}
@@ -117,7 +109,6 @@ export default async function PlanPage({
 function Notices({ success, error, overview }: { success?: string; error?: string; overview: PlanOverview }) {
   const notices: { tone: "good" | "bad"; text: React.ReactNode }[] = []
   if (success) notices.push({ tone: "good", text: "Payment received — your plan is now active. It can take a few seconds to show up here." })
-  if (error === "lifetime_sold_out") notices.push({ tone: "bad", text: "Sorry, the Lifetime plan just sold out." })
   if (error === "checkout_failed") notices.push({ tone: "bad", text: "We couldn't start checkout. Please try again in a moment." })
   if (error === "portal_failed") notices.push({ tone: "bad", text: "We couldn't open the billing portal. Please try again in a moment." })
   if (error === "invalid_plan") notices.push({ tone: "bad", text: "That plan isn't available." })
@@ -164,9 +155,7 @@ function CurrentPlanCard({ overview }: { overview: PlanOverview }) {
   const { planId, isPaid } = overview
   const priceLine =
     planId === "pro"
-      ? overview.billingInterval === "year"
-        ? `${formatUsd(PRO_YEARLY.priceInCents)} per year`
-        : `${formatUsd(PRO_PLAN.priceInCents)} per month`
+      ? `${formatUsd(PRO_PLAN.priceInCents)} per month`
       : planId === "lifetime"
         ? "Paid once — no renewals"
         : "Free forever"
@@ -182,7 +171,7 @@ function CurrentPlanCard({ overview }: { overview: PlanOverview }) {
     <Card className="gap-6 border-0 bg-spotlight p-6 text-spotlight-foreground shadow-[0_12px_32px_-16px_rgb(0_0_0/0.45)] lg:col-span-2 dark:border dark:border-white/10">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <IconChip icon={isPaid ? Crown02Icon : SparklesIcon} className="bg-spotlight-muted text-spotlight-foreground ring-white/10" />
+          <IconChip icon={isPaid ? Diamond02Icon : SparklesIcon} className="bg-spotlight-muted text-spotlight-foreground ring-white/10" />
           <span className="text-sm text-spotlight-foreground/60">Current plan</span>
         </div>
         <span
@@ -218,7 +207,7 @@ function CurrentPlanCard({ overview }: { overview: PlanOverview }) {
             href="/api/checkout?plan=pro"
             className="inline-flex h-10 items-center gap-2 rounded-full bg-spotlight-foreground px-5 text-sm font-medium text-spotlight transition-[opacity,transform] hover:opacity-90 active:scale-[0.97]"
           >
-            <HugeiconsIcon icon={Crown02Icon} size={16} />
+            <HugeiconsIcon icon={Diamond02Icon} size={16} />
             Upgrade to Pro
           </a>
         )}
@@ -352,8 +341,6 @@ function PlanOption({
   description,
   features,
   highlight,
-  priceNote,
-  secondaryCheckout,
 }: {
   id: PlanId
   overview: PlanOverview
@@ -363,15 +350,10 @@ function PlanOption({
   description: string
   features: string[]
   highlight?: boolean
-  /** Extra line under the price, e.g. the yearly alternative. */
-  priceNote?: React.ReactNode
-  /** A second way to buy this plan, shown under the main checkout button. */
-  secondaryCheckout?: { plan: CheckoutPlan; label: string }
 }) {
   const current = overview.planId === id
   // Lifetime already covers Pro; Free is never something you "buy".
   const covered = id === "free" || (id === "pro" && overview.planId === "lifetime")
-  const soldOut = id === "lifetime" && !overview.lifetime.available
 
   let action: React.ReactNode
   if (current) {
@@ -390,24 +372,11 @@ function PlanOption({
         {id === "free" ? "Included" : "Included in Lifetime"}
       </Button>
     )
-  } else if (soldOut) {
-    action = (
-      <Button variant="secondary" className="w-full" disabled>
-        Sold out
-      </Button>
-    )
   } else if (overview.checkout[id as "pro" | "lifetime"]) {
     action = (
-      <div className="flex flex-col gap-2">
-        <Button variant={highlight ? "brand" : "default"} className="w-full" asChild>
-          <a href={`/api/checkout?plan=${id}`}>{id === "lifetime" ? "Get lifetime access" : `Upgrade to ${name}`}</a>
-        </Button>
-        {secondaryCheckout && (
-          <Button variant="outline" className="w-full" asChild>
-            <a href={`/api/checkout?plan=${secondaryCheckout.plan}`}>{secondaryCheckout.label}</a>
-          </Button>
-        )}
-      </div>
+      <Button variant={highlight ? "brand" : "default"} className="w-full" asChild>
+        <a href={`/api/checkout?plan=${id}`}>{id === "lifetime" ? "Get lifetime access" : `Upgrade to ${name}`}</a>
+      </Button>
     )
   } else {
     action = (
@@ -428,19 +397,12 @@ function PlanOption({
           <Badge className="border-transparent bg-foreground text-background">Current</Badge>
         ) : highlight ? (
           <Badge className="border-transparent bg-primary/10 text-primary">Most popular</Badge>
-        ) : id === "lifetime" && !soldOut ? (
-          <Badge variant="outline" className="font-normal">
-            {overview.lifetime.remaining} left
-          </Badge>
         ) : null}
       </div>
-      <div>
-        <p className="flex items-baseline gap-1.5">
-          <span className="text-3xl font-semibold tracking-tight">{price}</span>
-          <span className="text-sm text-muted-foreground">{cadence}</span>
-        </p>
-        {priceNote}
-      </div>
+      <p className="flex items-baseline gap-1.5">
+        <span className="text-3xl font-semibold tracking-tight">{price}</span>
+        <span className="text-sm text-muted-foreground">{cadence}</span>
+      </p>
       <ul className="flex flex-1 flex-col gap-2.5">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2 text-sm">

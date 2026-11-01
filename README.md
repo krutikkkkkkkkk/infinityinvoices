@@ -66,7 +66,7 @@ Each app reads its own env files: `apps/web/.env` / `.env.local`, `apps/admin/.e
 | `NEXT_PUBLIC_SITE_URL` | Public URL of the app |
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Sending invoices and reminders |
 | `DODO_PAYMENTS_API_KEY`, `DODO_PAYMENTS_WEBHOOK_KEY`, `DODO_PAYMENTS_ENVIRONMENT` | Checkout and subscription webhooks |
-| `NEXT_PUBLIC_DODO_PRO_PRODUCT_ID`, `NEXT_PUBLIC_DODO_PRO_YEARLY_PRODUCT_ID`, `NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID` | Dodo product IDs per plan (Pro monthly, Pro yearly, Lifetime) |
+| `NEXT_PUBLIC_DODO_PRO_PRODUCT_ID`, `NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID` | Dodo product IDs per plan (Pro monthly, Lifetime one-time) |
 | `CRON_SECRET` | Protects `/api/cron/invoicing` |
 | `NEXT_PUBLIC_IMGBB_API_KEY` | Logo uploads (see [`IMGBB_SETUP.md`](apps/web/IMGBB_SETUP.md)) |
 

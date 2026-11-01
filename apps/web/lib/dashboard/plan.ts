@@ -2,8 +2,7 @@ import "server-only"
 
 import { and, clients, db, eq, subscriptions, usageTracking } from "@infinity/db"
 import { getPlanForSubscription, hasPaidPlan, type Plan } from "@/lib/plans"
-import { getProductIdForPlan, type BillingInterval } from "@/lib/dodo"
-import { getLifetimePlanAvailability } from "@/app/actions/lifetime"
+import { getProductIdForPlan } from "@/lib/dodo"
 
 export type PlanId = "free" | "pro" | "lifetime"
 
@@ -13,14 +12,11 @@ export interface PlanOverview {
   isPaid: boolean
   /** A Pro/Lifetime subscription exists but isn't active (payment on hold, failed, paused...). */
   inactivePaidPlan: "pro" | "lifetime" | null
-  /** How Pro is billed; null for Free, Lifetime, and Pro granted without a Dodo subscription. */
-  billingInterval: BillingInterval | null
   status: string
   renewsAt: string | null
   cancelsAtPeriodEnd: boolean
   canManageBilling: boolean
-  checkout: { pro: boolean; proYearly: boolean; lifetime: boolean }
-  lifetime: { available: boolean; remaining: number; limit: number }
+  checkout: { pro: boolean; lifetime: boolean }
   usage: {
     invoices: { used: number; limit: number }
     quotations: { used: number; limit: number }
@@ -39,7 +35,7 @@ export async function getPlanOverview(userId: string): Promise<PlanOverview> {
   const monthYear = now.toISOString().slice(0, 7)
   const resets = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
 
-  const [[sub], [usage], clientCount, lifetime] = await Promise.all([
+  const [[sub], [usage], clientCount] = await Promise.all([
     db.select().from(subscriptions).where(eq(subscriptions.user_id, userId)).limit(1),
     db
       .select({
@@ -51,7 +47,6 @@ export async function getPlanOverview(userId: string): Promise<PlanOverview> {
       .where(and(eq(usageTracking.user_id, userId), eq(usageTracking.month_year, monthYear)))
       .limit(1),
     db.$count(clients, eq(clients.user_id, userId)),
-    getLifetimePlanAvailability(),
   ])
 
   const isPaid = hasPaidPlan(sub)
@@ -64,18 +59,14 @@ export async function getPlanOverview(userId: string): Promise<PlanOverview> {
     isPaid,
     inactivePaidPlan:
       !isPaid && (sub?.plan === "pro" || sub?.plan === "lifetime") && sub.status !== "expired" ? sub.plan : null,
-    billingInterval:
-      planId === "pro" && (sub?.billing_interval === "month" || sub?.billing_interval === "year") ? sub.billing_interval : null,
     status: sub?.status ?? "active",
     renewsAt: sub?.current_period_end ?? null,
     cancelsAtPeriodEnd: Boolean(sub?.cancel_at_period_end),
     canManageBilling: Boolean(sub?.dodo_customer_id),
     checkout: {
       pro: Boolean(getProductIdForPlan("pro")),
-      proYearly: Boolean(getProductIdForPlan("pro_yearly")),
       lifetime: Boolean(getProductIdForPlan("lifetime")),
     },
-    lifetime: { available: lifetime.available, remaining: lifetime.remaining, limit: lifetime.limit },
     usage: {
       invoices: { used: usage?.invoices_created ?? 0, limit: plan.limits.invoicesPerMonth },
       quotations: { used: usage?.quotations_created ?? 0, limit: plan.limits.quotationsPerMonth },

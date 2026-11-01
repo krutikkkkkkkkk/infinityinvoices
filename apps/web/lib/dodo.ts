@@ -25,16 +25,14 @@ export function getDodo(): DodoPayments {
 
 /** What's stored in `subscriptions.plan` for paying users. */
 export type PaidPlan = "pro" | "lifetime"
-export type BillingInterval = "month" | "year"
-/** What a user can start checkout for. Yearly Pro is a separate Dodo product but the same "pro" plan. */
-export type CheckoutPlan = "pro" | "pro_yearly" | "lifetime"
+export type BillingInterval = "month"
+/** What a user can start checkout for: monthly Pro or the one-time Lifetime product. */
+export type CheckoutPlan = PaidPlan
 
 export function getProductIdForPlan(plan: CheckoutPlan): string | undefined {
   switch (plan) {
     case "lifetime":
       return process.env.NEXT_PUBLIC_DODO_LIFETIME_PRODUCT_ID
-    case "pro_yearly":
-      return process.env.NEXT_PUBLIC_DODO_PRO_YEARLY_PRODUCT_ID
     case "pro":
       return process.env.NEXT_PUBLIC_DODO_PRO_PRODUCT_ID
   }
@@ -47,6 +45,5 @@ export function getPlanFromProductId(
   if (!productId) return null
   if (productId === getProductIdForPlan("lifetime")) return { plan: "lifetime", billingInterval: null }
   if (productId === getProductIdForPlan("pro")) return { plan: "pro", billingInterval: "month" }
-  if (productId === getProductIdForPlan("pro_yearly")) return { plan: "pro", billingInterval: "year" }
   return null
 }

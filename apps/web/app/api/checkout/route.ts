@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db, eq, subscriptions } from "@infinity/db"
 import { getCurrentUser } from "@/lib/auth/server"
-import { getLifetimePlanAvailability } from "@/app/actions/lifetime"
 import { getDodo, getProductIdForPlan, type CheckoutPlan } from "@/lib/dodo"
 
-// GET /api/checkout?plan=pro|pro_yearly|lifetime
+// GET /api/checkout?plan=pro|lifetime
 // Creates a Dodo Payments checkout session for the signed-in user and redirects to it.
 export async function GET(request: NextRequest) {
   const pricingUrl = (query: string) => new URL(`/dashboard/plan?${query}`, request.url)
 
   const plan = request.nextUrl.searchParams.get("plan") as CheckoutPlan | null
-  if (plan !== "pro" && plan !== "pro_yearly" && plan !== "lifetime") {
+  if (plan !== "pro" && plan !== "lifetime") {
     return NextResponse.redirect(pricingUrl("error=invalid_plan"))
   }
 
@@ -23,14 +22,6 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user?.email) {
     return NextResponse.redirect(new URL("/auth/login", request.url))
-  }
-
-  // Validate lifetime plan availability before checkout
-  if (plan === "lifetime") {
-    const availability = await getLifetimePlanAvailability()
-    if (!availability.available) {
-      return NextResponse.redirect(pricingUrl("error=lifetime_sold_out"))
-    }
   }
 
   // Reuse the Dodo customer if this user has bought before

@@ -88,11 +88,9 @@ export function getFreePlan(): Plan {
 export const FREE_PLAN = PLANS.find((p) => p.id === "free")!
 export const PRO_PLAN = PLANS.find((p) => p.id === "pro")!
 
-// Pro billed yearly: a separate Dodo product, but the same "pro" plan and limits.
-export const PRO_YEARLY = {
-  priceInCents: 3000, // $30/year — must match the Dodo yearly product price
-  compareAtPriceInCents: 3600, // the pre-discount price, shown struck through
-  billingCycle: "year",
+// Lifetime: a one-time Dodo product that grants Pro limits forever.
+export const LIFETIME = {
+  priceInCents: 2900, // $29 once — must match the Dodo lifetime product price
 } as const
 
 /** "$5" for whole dollars, "$2.50" otherwise. */

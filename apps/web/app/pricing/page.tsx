@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Check, X } from "lucide-react"
 import Link from "next/link"
 import { PLANS } from "@/lib/plans"
-import { YearlyPrice } from "@/components/pricing/yearly-price"
+import { LifetimePrice } from "@/components/pricing/lifetime-price"
 
 export const metadata = {
   title: "Pricing - Infinity Invoice",
@@ -54,7 +54,7 @@ export default function PricingPage() {
                       <span className="text-4xl font-bold">${(plan.priceInCents / 100).toFixed(0)}</span>
                       <span className="text-muted-foreground">/{plan.priceBillingCycle || "month"}</span>
                     </div>
-                    {plan.id === "pro" && <YearlyPrice className="mt-2" />}
+                    {plan.id === "pro" && <LifetimePrice className="mt-2" />}
                   </div>
                 )}
 
