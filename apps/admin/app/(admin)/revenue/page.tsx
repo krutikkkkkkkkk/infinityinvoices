@@ -2,7 +2,7 @@ import { requireAdmin } from "@/lib/admin"
 import { and, authUsers, count, db, desc, eq, inArray, profiles as profilesTable, subscriptions } from "@infinity/db"
 import {
   Calendar03Icon,
-  CrownIcon,
+  Diamond02Icon,
   MoneyReceive01Icon,
   UserMultipleIcon,
 } from "@hugeicons/core-free-icons"
@@ -72,7 +72,7 @@ export default async function AdminRevenuePage() {
           value={formatMoney(activeProCount * PRO_PRICE)}
           hint={`${formatMoney(PRO_PRICE)} per Pro subscriber`}
         />
-        <StatCard icon={CrownIcon} label="Pro subscribers" value={activeProCount.toLocaleString()} />
+        <StatCard icon={Diamond02Icon} label="Pro subscribers" value={activeProCount.toLocaleString()} />
         <StatCard
           icon={UserMultipleIcon}
           label="Total users"

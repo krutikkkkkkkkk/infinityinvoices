@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from "@hugeicons/react"
-import { CrownIcon } from "@hugeicons/core-free-icons"
+import { Diamond02Icon } from "@hugeicons/core-free-icons"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -31,7 +31,7 @@ export function PlanBadge({ plan }: { plan: string | null | undefined }) {
   if (plan === "lifetime" || plan === "pro") {
     return (
       <ToneBadge tone={plan === "lifetime" ? "warning" : "brand"}>
-        <HugeiconsIcon icon={CrownIcon} size={12} />
+        <HugeiconsIcon icon={Diamond02Icon} size={12} />
         {plan === "lifetime" ? "Lifetime" : "Pro"}
       </ToneBadge>
     )
