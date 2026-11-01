@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
+import { and, asc, clients, db, documents, eq, lineItems, profiles } from "@infinity/db"
+import { getCurrentUser } from "@/lib/auth/server"
 import { getPlanForUser } from "@/lib/plan-server"
 import { applyBranding } from "@/lib/plans"
 import { notFound } from "next/navigation"
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
-import type { Document, LineItem, Client } from "@/lib/types"
+import type { Document, LineItem, Client, Profile } from "@/lib/types"
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -24,38 +25,28 @@ export default async function EditDocumentPage({
     notFound()
   }
 
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     notFound()
   }
 
   // Fetch document with line items
-  const { data: document, error } = await supabase
-    .from("documents")
-    .select("*, line_items(*)")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single()
+  const document = await db.query.documents.findFirst({
+    where: and(eq(documents.id, id), eq(documents.user_id, user.id)),
+    with: { line_items: { orderBy: [asc(lineItems.sort_order)] } },
+  })
 
-  if (error || !document) {
+  if (!document) {
     notFound()
   }
 
   // Get clients for selection
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("name")
+  const userClients = await db.select().from(clients).where(eq(clients.user_id, user.id)).orderBy(asc(clients.name))
 
   // Get profile for payment details fallback
-  const [{ data: profile }, plan] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
+  const [[profile], plan] = await Promise.all([
+    db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1),
     getPlanForUser(user.id),
   ])
 
@@ -80,9 +71,9 @@ export default async function EditDocumentPage({
       <DocumentForm
         type={document.type}
         document={document as Document & { line_items: LineItem[] }}
-        clients={(clients as Client[]) || []}
+        clients={userClients as Client[]}
         nextNumber={document.number}
-        profile={applyBranding(plan, profile)}
+        profile={applyBranding(plan, (profile ?? null) as Profile | null)}
       />
     </div>
   )

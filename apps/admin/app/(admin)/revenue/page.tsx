@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin"
-import { createClient } from "@/lib/supabase/server"
+import { and, authUsers, count, db, desc, eq, inArray, profiles as profilesTable, subscriptions } from "@infinity/db"
 import {
   Calendar03Icon,
   CrownIcon,
@@ -18,17 +18,12 @@ const PRO_PRICE = 5
 
 export default async function AdminRevenuePage() {
   await requireAdmin()
-  const supabase = await createClient()
-
   // Fetch all pro subscriptions with user profile
-  const { data: proSubs } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("plan", "pro")
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-
-  const proSubsData = proSubs || []
+  const proSubsData = await db
+    .select()
+    .from(subscriptions)
+    .where(and(eq(subscriptions.plan, "pro"), eq(subscriptions.status, "active")))
+    .orderBy(desc(subscriptions.created_at))
   const activeProCount = proSubsData.length
 
   const thirtyDaysFromNow = Date.now() + 30 * 24 * 60 * 60 * 1000
@@ -46,17 +41,23 @@ export default async function AdminRevenuePage() {
 
   // Fetch profiles for pro users
   const proUserIds = proSubsData.map((s) => s.user_id)
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, email, company_name, created_at")
-    .in("id", proUserIds)
+  const profiles = proUserIds.length
+    ? await db
+        .select({
+          id: profilesTable.id,
+          email: profilesTable.email,
+          company_name: profilesTable.company_name,
+          created_at: profilesTable.created_at,
+        })
+        .from(profilesTable)
+        .where(inArray(profilesTable.id, proUserIds))
+    : []
 
-  const profileMap: Record<string, any> = {}
-  profiles?.forEach((p) => { profileMap[p.id] = p })
+  const profileMap: Record<string, (typeof profiles)[number]> = {}
+  profiles.forEach((p) => { profileMap[p.id] = p })
 
-  const { count: totalUsers } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
+  // Every Neon Auth user counts, including ones who haven't opened the dashboard yet
+  const [{ value: totalUsers }] = await db.select({ value: count() }).from(authUsers)
 
   const conversion = totalUsers ? ((activeProCount / totalUsers) * 100).toFixed(1) : "0"
 
@@ -75,7 +76,7 @@ export default async function AdminRevenuePage() {
         <StatCard
           icon={UserMultipleIcon}
           label="Total users"
-          value={(totalUsers ?? 0).toLocaleString()}
+          value={totalUsers.toLocaleString()}
           hint={`${conversion}% on Pro`}
         />
         <StatCard icon={Calendar03Icon} label="Expiring soon" value={expiringSoon.size} hint="Within 30 days" />

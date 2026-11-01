@@ -1,21 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { db, eq, subscriptions } from "@infinity/db"
+import { getCurrentUser } from "@/lib/auth/server"
 import { getDodo } from "@/lib/dodo"
 
 // GET /api/portal — opens the Dodo Payments customer portal for the signed-in user.
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     return NextResponse.redirect(new URL("/auth/login", req.url))
   }
 
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("dodo_customer_id")
-    .eq("user_id", user.id)
-    .maybeSingle()
+  const [subscription] = await db
+    .select({ dodo_customer_id: subscriptions.dodo_customer_id })
+    .from(subscriptions)
+    .where(eq(subscriptions.user_id, user.id))
+    .limit(1)
 
   if (!subscription?.dodo_customer_id) {
     return NextResponse.redirect(new URL("/dashboard/plan", req.url))

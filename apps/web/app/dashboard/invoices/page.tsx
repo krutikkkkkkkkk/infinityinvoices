@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth/server"
+import { listDocuments } from "@/lib/document-list"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -42,10 +43,7 @@ export default async function InvoicesPage({
   const order = params.order || "desc"
   const tax = params.tax || "all"
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     return null
@@ -57,39 +55,19 @@ export default async function InvoicesPage({
 
   const offset = (page - 1) * PAGE_SIZE
 
-  // Build query
-  let query = supabase
-    .from("documents")
-    .select("*", { count: "exact" })
-    .eq("type", "invoice")
-    .eq("user_id", user.id)
-
-  if (status !== "all") {
-    query = query.eq("status", status)
-  }
-
-  if (tax === "taxed") {
-    query = query.eq("include_tax", true)
-  } else if (tax === "no-tax") {
-    query = query.eq("include_tax", false)
-  }
-
-  if (search) {
-    query = query.or(`number.ilike.%${search}%,client_name.ilike.%${search}%`)
-  }
-
-  if (from) {
-    query = query.gte("issue_date", from)
-  }
-
-  if (to) {
-    query = query.lte("issue_date", to)
-  }
-
-  query = query.order(sort, { ascending: order === "asc" })
-  query = query.range(offset, offset + PAGE_SIZE - 1)
-
-  const { data: invoices, count } = await query
+  const { rows: invoices, total: count } = await listDocuments({
+    userId: user.id,
+    type: "invoice",
+    status,
+    search,
+    from,
+    to,
+    sort,
+    order,
+    tax,
+    page,
+    pageSize: PAGE_SIZE,
+  })
 
   const totalCount = count || 0
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)

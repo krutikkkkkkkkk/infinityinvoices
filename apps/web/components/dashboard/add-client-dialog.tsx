@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { UserAdd01Icon, Loading01Icon } from "@hugeicons/core-free-icons"
-import { createClient } from "@/lib/supabase/client"
+import { addClient } from "@/app/dashboard/clients/actions"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useSubscription } from "@/hooks/use-subscription"
@@ -31,7 +31,7 @@ export function AddClientDialog({ clientCount = 0 }: { clientCount?: number }) {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const { plan, isLoading: isPlanLoading } = useSubscription()
-  // The Free plan caps clients; RLS enforces the same limit on insert
+  // The Free plan caps clients; addClient enforces the same limit on the server
   const atLimit = !isPlanLoading && !canAddClient(plan, clientCount)
   const limitMessage = `The ${plan.name} plan includes up to ${plan.limits.clients} clients. Upgrade to Pro for unlimited clients.`
   const [formData, setFormData] = useState({
@@ -49,33 +49,15 @@ export function AddClientDialog({ clientCount = 0 }: { clientCount?: number }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     startTransition(async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
       if (atLimit) {
         setError(limitMessage)
         return
       }
 
-      const { error } = await supabase.from("clients").insert({
-        user_id: user.id,
-        name: formData.name,
-        company_name: formData.company_name || null,
-        contact_person: formData.contact_person || null,
-        email: formData.email || null,
-        phone: formData.phone || null,
-        address: formData.address || null,
-        gst_id: formData.gst_id || null,
-        pan_number: formData.pan_number || null,
-        auto_reminder: formData.auto_reminder,
-      })
+      const { error } = await addClient(formData)
 
       if (error) {
-        // 42501: the insert was refused by RLS, which on Free means the client limit
-        setError(error.code === "42501" ? limitMessage : error.message)
+        setError(error)
         return
       }
 

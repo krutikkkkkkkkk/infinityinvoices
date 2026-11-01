@@ -1,0 +1,24 @@
+{
+  "name": "@infinity/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "db:push": "node --env-file=../../apps/web/.env ./node_modules/drizzle-kit/bin.cjs push",
+    "db:studio": "node --env-file=../../apps/web/.env ./node_modules/drizzle-kit/bin.cjs studio"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@infinity/typescript-config": "workspace:*",
+    "@types/node": "^22",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^5"
+  }
+}

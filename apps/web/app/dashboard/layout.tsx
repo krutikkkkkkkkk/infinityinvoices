@@ -6,6 +6,7 @@ import { DashboardTopBar } from "@/components/dashboard/top-bar"
 import { GitHubBanner, GITHUB_BANNER_COOKIE } from "@/components/dashboard/github-banner"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/sonner"
+import { ensureProfile } from "@/lib/auth/server"
 import { getCurrentUser, getProfile } from "@/lib/dashboard/overview"
 
 export default async function DashboardLayout({
@@ -19,6 +20,8 @@ export default async function DashboardLayout({
     redirect("/auth/login")
   }
 
+  // First visit after sign-up: create the profile row the rest of the dashboard reads
+  await ensureProfile(user)
   const [profile, cookieStore] = await Promise.all([getProfile(user.id), cookies()])
   const showGitHubBanner = cookieStore.get(GITHUB_BANNER_COOKIE)?.value !== "1"
   // Respect the persisted collapsed/expanded state of the sidebar (set by the shadcn sidebar).

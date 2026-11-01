@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR from "swr"
-import { createClient } from "@/lib/supabase/client"
+import { getSubscriptionData } from "@/app/actions/subscription"
 import { getPlanForSubscription, hasPaidPlan, type Plan } from "@/lib/plans"
 
 interface Subscription {
@@ -21,38 +21,7 @@ interface SubscriptionData {
   usage: Usage
 }
 
-const fetchSubscriptionData = async (): Promise<SubscriptionData> => {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return {
-      subscription: { plan: "free", status: "active" },
-      usage: { invoices_created: 0, quotations_created: 0, emails_sent: 0 }
-    }
-  }
-
-  // Fetch subscription
-  const { data: sub } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle()
-
-  // Fetch usage for current month
-  const monthYear = new Date().toISOString().slice(0, 7)
-  const { data: usageData } = await supabase
-    .from("usage_tracking")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("month_year", monthYear)
-    .maybeSingle()
-
-  return {
-    subscription: sub || { plan: "free", status: "active" },
-    usage: usageData || { invoices_created: 0, quotations_created: 0, emails_sent: 0 }
-  }
-}
+const fetchSubscriptionData = (): Promise<SubscriptionData> => getSubscriptionData()
 
 export function useSubscription() {
   const { data, error, isLoading, mutate } = useSWR<SubscriptionData>(

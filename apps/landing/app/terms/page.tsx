@@ -20,7 +20,7 @@ export default function TermsPage() {
           body: (
             <p>
               Infinity Invoice lets you create invoices, quotations and related documents, send them to your clients, track
-              their status, schedule recurring invoices, and manage your account through an optional Telegram bot. We may add,
+              their status, and schedule recurring invoices. We may add,
               change or remove features over time. We will give reasonable notice before removing anything you rely on.
             </p>
           ),
@@ -31,7 +31,7 @@ export default function TermsPage() {
           body: (
             <ul>
               <li>You must be at least 18 and provide accurate information when you sign up.</li>
-              <li>You are responsible for everything done through your account and for keeping your sign-in details, and any linked Telegram account, secure.</li>
+              <li>You are responsible for everything done through your account and for keeping your sign-in details secure.</li>
               <li>One person may not share an account with others. Tell us straight away if you think your account has been accessed without permission.</li>
             </ul>
           ),
@@ -101,17 +101,13 @@ export default function TermsPage() {
           ),
         },
         {
-          id: "email-and-telegram",
-          title: "Email sending and the Telegram bot",
+          id: "email-sending",
+          title: "Email sending",
           body: (
             <>
               <p>
                 Emails you send through Infinity Invoice go out in your name, from our sending domain, to the addresses you
                 provide. We may limit or pause sending if it causes delivery problems or complaints.
-              </p>
-              <p>
-                The Telegram bot acts on your instructions. Actions that record a payment ask you to confirm first, and all bot
-                actions are logged to your account. You are responsible for anything done through a Telegram account you link.
               </p>
             </>
           ),

@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { authClient } from "@/lib/auth/client"
 import { useSubscription } from "@/hooks/use-subscription"
-import { User } from "@supabase/supabase-js"
+import type { AuthUser } from "@/lib/auth/server"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   InvoiceIcon,
@@ -67,7 +67,7 @@ const accountNavItems = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings01Icon },
 ]
 
-export function AppSidebar({ user, profile }: { user: User; profile?: any }) {
+export function AppSidebar({ user, profile }: { user: AuthUser; profile?: any }) {
   const pathname = usePathname()
   const router = useRouter()
   const { isPro, isLifetime } = useSubscription()
@@ -83,9 +83,9 @@ export function AppSidebar({ user, profile }: { user: User; profile?: any }) {
   }
 
   const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    await authClient.signOut()
     router.push("/auth/login")
+    router.refresh()
   }
 
   return (

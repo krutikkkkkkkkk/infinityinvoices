@@ -1,6 +1,6 @@
 import "server-only"
 
-import type { SupabaseClient } from "@supabase/supabase-js"
+import { and, creditNotes, db, documents, eq, paymentRecords } from "@infinity/db"
 import { roundMoney } from "@/lib/invoice-balance"
 import { startOfToday, toISODate } from "@/lib/date-range"
 
@@ -8,24 +8,27 @@ import { startOfToday, toISODate } from "@/lib/date-range"
  * Recomputes an invoice's paid / credited totals from payment_records and credit_notes
  * and stores them on the document together with the resulting status.
  *
- * Works with either the user client (RLS) or the admin client, so every query is
- * scoped to `userId` explicitly. Callers must have authorised `userId` already.
+ * Every query is scoped to `userId` explicitly. Callers must have authorised `userId` already.
  */
-export async function syncInvoiceSettlement(supabase: SupabaseClient, userId: string, documentId: string) {
-  const [{ data: document, error: documentError }, { data: payments }, { data: credits }] = await Promise.all([
-    supabase.from("documents").select("id, grand_total, status, due_date").eq("id", documentId).eq("user_id", userId).eq("type", "invoice").single(),
-    supabase.from("payment_records").select("amount").eq("document_id", documentId).eq("user_id", userId),
-    supabase.from("credit_notes").select("amount").eq("document_id", documentId).eq("user_id", userId),
+export async function syncInvoiceSettlement(userId: string, documentId: string) {
+  const [[document], payments, credits] = await Promise.all([
+    db
+      .select({ id: documents.id, grand_total: documents.grand_total, status: documents.status, due_date: documents.due_date })
+      .from(documents)
+      .where(and(eq(documents.id, documentId), eq(documents.user_id, userId), eq(documents.type, "invoice")))
+      .limit(1),
+    db.select({ amount: paymentRecords.amount }).from(paymentRecords).where(and(eq(paymentRecords.document_id, documentId), eq(paymentRecords.user_id, userId))),
+    db.select({ amount: creditNotes.amount }).from(creditNotes).where(and(eq(creditNotes.document_id, documentId), eq(creditNotes.user_id, userId))),
   ])
-  if (documentError || !document) throw new Error("Invoice not found")
+  if (!document) throw new Error("Invoice not found")
 
-  const paid = roundMoney((payments || []).reduce((sum, row) => sum + Number(row.amount), 0))
-  const credited = roundMoney((credits || []).reduce((sum, row) => sum + Number(row.amount), 0))
+  const paid = roundMoney(payments.reduce((sum, row) => sum + Number(row.amount), 0))
+  const credited = roundMoney(credits.reduce((sum, row) => sum + Number(row.amount), 0))
   const total = roundMoney(document.grand_total)
   const settled = roundMoney(paid + credited)
   const remaining = Math.max(0, roundMoney(total - settled))
 
-  let status: string = document.status
+  let status: typeof document.status = document.status
   if (status !== "cancelled") {
     if (total > 0 && settled >= total) {
       status = "paid"
@@ -37,15 +40,10 @@ export async function syncInvoiceSettlement(supabase: SupabaseClient, userId: st
     // Drafts stay drafts until fully settled or sent
   }
 
-  const update = (values: Record<string, unknown>) =>
-    supabase.from("documents").update(values).eq("id", documentId).eq("user_id", userId)
-  let { error } = await update({ amount_paid: paid, credit_total: credited, status })
-  if (error && /credit_total/.test(error.message)) {
-    // scripts/018_settlements.sql not applied yet: keep payments working, credits stay panel-only
-    console.warn("documents.credit_total is missing; run scripts/018_settlements.sql")
-    ;({ error } = await update({ amount_paid: paid, status }))
-  }
-  if (error) throw new Error(error.message)
+  await db
+    .update(documents)
+    .set({ amount_paid: paid, credit_total: credited, status })
+    .where(and(eq(documents.id, documentId), eq(documents.user_id, userId)))
 
   return { paid, credited, settled, remaining, status }
 }

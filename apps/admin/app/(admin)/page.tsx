@@ -6,7 +6,7 @@ import {
   UserMultipleIcon,
 } from "@hugeicons/core-free-icons"
 import { requireAdmin } from "@/lib/admin"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { authUsers, count, db, desc, documents, eq, gte, profiles } from "@infinity/db"
 import { formatDate } from "@/lib/format"
 import { PageHeader } from "@/components/admin/page-header"
 import { StatCard, StatGrid } from "@/components/admin/stat-card"
@@ -17,41 +17,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export default async function AdminDashboard() {
   await requireAdmin()
 
-  const supabase = createAdminClient()
   const startOfMonth = new Date()
   startOfMonth.setUTCDate(1)
   startOfMonth.setUTCHours(0, 0, 0, 0)
 
-  const results = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase.from("documents").select("id", { count: "exact", head: true }),
-    supabase.from("documents").select("id", { count: "exact", head: true }).eq("type", "invoice"),
-    supabase.from("documents").select("id", { count: "exact", head: true }).eq("type", "quotation"),
-    supabase
-      .from("profiles")
-      .select("id, email, company_name, created_at")
-      .order("created_at", { ascending: false })
+  // Users come from Neon Auth's user table: someone who signed up but never opened the
+  // dashboard has no profile row yet.
+  const countRows = (rows: { value: number }[]) => rows[0]?.value ?? 0
+  const [totalUsers, totalDocuments, totalInvoices, totalQuotations, recentUsers, newUsersThisMonth] = await Promise.all([
+    db.select({ value: count() }).from(authUsers).then(countRows),
+    db.select({ value: count() }).from(documents).then(countRows),
+    db.select({ value: count() }).from(documents).where(eq(documents.type, "invoice")).then(countRows),
+    db.select({ value: count() }).from(documents).where(eq(documents.type, "quotation")).then(countRows),
+    db
+      .select({
+        id: authUsers.id,
+        email: authUsers.email,
+        company_name: profiles.company_name,
+        created_at: authUsers.createdAt,
+      })
+      .from(authUsers)
+      .leftJoin(profiles, eq(profiles.id, authUsers.id))
+      .orderBy(desc(authUsers.createdAt))
       .limit(8),
-    supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", startOfMonth.toISOString()),
+    db
+      .select({ value: count() })
+      .from(authUsers)
+      .where(gte(authUsers.createdAt, startOfMonth.toISOString()))
+      .then(countRows),
   ])
-
-  const queryError = results.find((result) => result.error)?.error
-
-  if (queryError) {
-    throw new Error(`Unable to load admin dashboard data: ${queryError.message}`)
-  }
-
-  const [
-    { count: totalUsers },
-    { count: totalDocuments },
-    { count: totalInvoices },
-    { count: totalQuotations },
-    { data: recentUsers },
-    { count: newUsersThisMonth },
-  ] = results
 
   return (
     <>
@@ -61,12 +55,12 @@ export default async function AdminDashboard() {
         <StatCard
           icon={UserMultipleIcon}
           label="Users"
-          value={(totalUsers ?? 0).toLocaleString()}
-          hint={`+${(newUsersThisMonth ?? 0).toLocaleString()} this month`}
+          value={totalUsers.toLocaleString()}
+          hint={`+${newUsersThisMonth.toLocaleString()} this month`}
         />
-        <StatCard icon={File01Icon} label="Documents" value={(totalDocuments ?? 0).toLocaleString()} />
-        <StatCard icon={Invoice01Icon} label="Invoices" value={(totalInvoices ?? 0).toLocaleString()} />
-        <StatCard icon={FileValidationIcon} label="Quotations" value={(totalQuotations ?? 0).toLocaleString()} />
+        <StatCard icon={File01Icon} label="Documents" value={totalDocuments.toLocaleString()} />
+        <StatCard icon={Invoice01Icon} label="Invoices" value={totalInvoices.toLocaleString()} />
+        <StatCard icon={FileValidationIcon} label="Quotations" value={totalQuotations.toLocaleString()} />
       </StatGrid>
 
       <SectionCard
@@ -86,7 +80,7 @@ export default async function AdminDashboard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {recentUsers && recentUsers.length > 0 ? (
+            {recentUsers.length > 0 ? (
               recentUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.company_name || "—"}</TableCell>

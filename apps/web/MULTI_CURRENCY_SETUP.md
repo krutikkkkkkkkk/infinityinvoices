@@ -46,10 +46,7 @@ The app supports 15 currencies:
 
 ## How to Deploy
 
-1. **Run the migration** in your Supabase database:
-   ```sql
-   -- Copy and run the contents of scripts/add-default-currency.sql
-   ```
+1. **Database**: `profiles.default_currency` is part of the Drizzle schema (`packages/db/src/schema.ts`); run `pnpm --filter @infinity/db db:push` if your database predates it.
 
 2. **Deploy the code** to your production environment using the updated components and types.
 

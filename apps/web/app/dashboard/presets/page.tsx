@@ -1,6 +1,6 @@
 import Link from "next/link"
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { db, desc, eq, invoicePresets } from "@infinity/db"
+import { requireUserOrRedirect } from "@/lib/auth/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DeletePresetButton } from "@/components/dashboard/invoice-preset-controls"
@@ -16,10 +16,12 @@ function PresetLook({ style }: { style: unknown }) {
 }
 
 export default async function InvoicePresetsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-  const { data: presets } = await supabase.from("invoice_presets").select("id, name, data, updated_at").eq("user_id", user.id).order("updated_at", { ascending: false })
+  const user = await requireUserOrRedirect()
+  const presets = await db
+    .select({ id: invoicePresets.id, name: invoicePresets.name, data: invoicePresets.data, updated_at: invoicePresets.updated_at })
+    .from(invoicePresets)
+    .where(eq(invoicePresets.user_id, user.id))
+    .orderBy(desc(invoicePresets.updated_at))
 
   return <div className="flex flex-col gap-6">
     <div><h1 className="text-2xl font-bold tracking-tight">Invoice presets</h1><p className="text-muted-foreground">Start invoices with reusable clients, line items, taxes, terms, and payment details.</p></div>

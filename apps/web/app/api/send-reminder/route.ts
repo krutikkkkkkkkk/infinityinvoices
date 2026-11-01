@@ -1,9 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
+import { and, asc, clients, db, documents, eq, lineItems, profiles, subscriptions } from "@infinity/db"
+import { getCurrentUser } from "@/lib/auth/server"
 import { Resend } from "resend"
 import { NextRequest, NextResponse } from "next/server"
 import { checkAndIncrementUsage } from "@/lib/usage"
 import { hasPaidPlan } from "@/lib/plans"
-import { formatDate, formatMoney, isTemplateType, type TemplateType } from "@/lib/generate-document-html"
+import { formatDate, formatMoney, isTemplateType, type DocumentWithItems, type TemplateType } from "@/lib/generate-document-html"
 import { parseTemplateColors } from "@/lib/document-style"
 import { renderDocumentPdf } from "@/lib/pdf/render"
 import { getInvoiceBalance } from "@/lib/invoice-balance"
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * POST /api/send-reminder
@@ -33,20 +36,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Document ID required" }, { status: 400 })
     }
 
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Reminder emails are only available on paid plans (Pro / Lifetime)
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("plan, status")
-      .eq("user_id", user.id)
-      .single()
+    const [subscription] = await db
+      .select({ plan: subscriptions.plan, status: subscriptions.status })
+      .from(subscriptions)
+      .where(eq(subscriptions.user_id, user.id))
+      .limit(1)
 
     if (!hasPaidPlan(subscription)) {
       return NextResponse.json(
@@ -59,19 +59,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: document, error: docError } = await supabase
-      .from("documents")
-      .select("*, line_items(*), clients:client_id(id, name, email, auto_reminder)")
-      .eq("id", documentId)
-      .eq("user_id", user.id)
-      .eq("type", "invoice")
-      .single()
+    const document = UUID_REGEX.test(documentId)
+      ? await db.query.documents.findFirst({
+          where: and(eq(documents.id, documentId), eq(documents.user_id, user.id), eq(documents.type, "invoice")),
+          with: {
+            line_items: { orderBy: [asc(lineItems.sort_order)] },
+            client: { columns: { id: true, name: true, email: true, auto_reminder: true } },
+          },
+        })
+      : undefined
 
-    if (docError || !document) {
+    if (!document) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 })
     }
 
-    if (document.clients && !document.clients.auto_reminder) {
+    if (document.client && !document.client.auto_reminder) {
       return NextResponse.json({ error: "Auto reminders are disabled for this client" }, { status: 403 })
     }
 
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cannot send reminder for paid/cancelled invoice" }, { status: 400 })
     }
 
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", document.user_id).single()
+    const [profile] = await db.select().from(profiles).where(eq(profiles.id, document.user_id)).limit(1)
 
     const { paid: amountPaid, remaining } = getInvoiceBalance(document)
 
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const rendered = await renderDocumentPdf(document, profile, template, colors)
+    const rendered = await renderDocumentPdf(document as DocumentWithItems, profile, template, colors)
     const companyName = profile?.company_name?.trim() || "Your Company"
 
     const email = buildReminderEmail({
@@ -137,14 +139,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: emailError.message }, { status: 500 })
     }
 
-    await supabase
-      .from("documents")
-      .update({
+    await db
+      .update(documents)
+      .set({
         last_reminder_sent: new Date().toISOString(),
         reminder_count: (document.reminder_count || 0) + 1,
       })
-      .eq("id", documentId)
-      .eq("user_id", user.id)
+      .where(and(eq(documents.id, documentId), eq(documents.user_id, user.id)))
 
     return NextResponse.json({ success: true, attached: Boolean(rendered.pdf) })
   } catch (error) {

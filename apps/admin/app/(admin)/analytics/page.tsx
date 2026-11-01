@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin"
-import { createClient } from "@/lib/supabase/server"
+import { asc, authUsers, db, desc, documents as documentsTable, gte, usageTracking } from "@infinity/db"
 import { ChartAverageIcon, FileValidationIcon, Invoice01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons"
 import { lastMonths, monthKey } from "@/lib/format"
 import { PageHeader } from "@/components/admin/page-header"
@@ -9,35 +9,34 @@ import { SectionCard } from "@/components/admin/section-card"
 
 export default async function AdminAnalyticsPage() {
   await requireAdmin()
-  const supabase = await createClient()
-
   // Get monthly user signups for last 6 months
   const sixMonthsAgo = new Date()
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
 
-  const { data: users } = await supabase
-    .from("profiles")
-    .select("created_at")
-    .gte("created_at", sixMonthsAgo.toISOString())
-    .order("created_at", { ascending: true })
+  // Sign-ups come from Neon Auth's user table (a profile only exists once the dashboard is opened)
+  const users = await db
+    .select({ created_at: authUsers.createdAt })
+    .from(authUsers)
+    .where(gte(authUsers.createdAt, sixMonthsAgo.toISOString()))
+    .orderBy(asc(authUsers.createdAt))
 
-  const { data: documents } = await supabase
-    .from("documents")
-    .select("created_at, type, grand_total")
-    .gte("created_at", sixMonthsAgo.toISOString())
-    .order("created_at", { ascending: true })
+  const documents = await db
+    .select({ created_at: documentsTable.created_at, type: documentsTable.type, grand_total: documentsTable.grand_total })
+    .from(documentsTable)
+    .where(gte(documentsTable.created_at, sixMonthsAgo.toISOString()))
+    .orderBy(asc(documentsTable.created_at))
 
   // Group by month
   const monthlyUsers: Record<string, number> = {}
   const monthlyDocuments: Record<string, number> = {}
   const monthlyRevenue: Record<string, number> = {}
 
-  users?.forEach((user: any) => {
+  users.forEach((user) => {
     const month = monthKey(user.created_at)
     monthlyUsers[month] = (monthlyUsers[month] || 0) + 1
   })
 
-  documents?.forEach((doc: any) => {
+  documents.forEach((doc) => {
     const month = monthKey(doc.created_at)
     monthlyDocuments[month] = (monthlyDocuments[month] || 0) + 1
     monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (Number(doc.grand_total) || 0)
@@ -46,22 +45,18 @@ export default async function AdminAnalyticsPage() {
   const months = lastMonths(6)
 
   // Usage tracking stats
-  const { data: usageData } = await supabase
-    .from("usage_tracking")
-    .select("*")
-    .order("month_year", { ascending: false })
-    .limit(100)
+  const usageData = await db.select().from(usageTracking).orderBy(desc(usageTracking.month_year)).limit(100)
 
-  const totalInvoicesCreated = usageData?.reduce((sum: number, u: any) => sum + (u.invoices_created || 0), 0) || 0
-  const totalQuotationsCreated = usageData?.reduce((sum: number, u: any) => sum + (u.quotations_created || 0), 0) || 0
-  const avgPerUser = users?.length ? ((totalInvoicesCreated + totalQuotationsCreated) / users.length).toFixed(1) : "0"
+  const totalInvoicesCreated = usageData.reduce((sum, u) => sum + (u.invoices_created || 0), 0)
+  const totalQuotationsCreated = usageData.reduce((sum, u) => sum + (u.quotations_created || 0), 0)
+  const avgPerUser = users.length ? ((totalInvoicesCreated + totalQuotationsCreated) / users.length).toFixed(1) : "0"
 
   return (
     <>
       <PageHeader title="Analytics" description="Platform growth and usage over the last 6 months" />
 
       <StatGrid>
-        <StatCard icon={UserAdd01Icon} label="New users" value={(users?.length ?? 0).toLocaleString()} hint="Last 6 months" />
+        <StatCard icon={UserAdd01Icon} label="New users" value={(users.length ?? 0).toLocaleString()} hint="Last 6 months" />
         <StatCard icon={Invoice01Icon} label="Invoices created" value={totalInvoicesCreated.toLocaleString()} />
         <StatCard icon={FileValidationIcon} label="Quotations created" value={totalQuotationsCreated.toLocaleString()} />
         <StatCard icon={ChartAverageIcon} label="Avg docs / user" value={avgPerUser} />

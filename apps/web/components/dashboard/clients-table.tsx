@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { MoreHorizontalIcon, PencilEdit01Icon, Delete01Icon, ViewIcon, Add01Icon } from "@hugeicons/core-free-icons"
 import { Client } from "@/lib/types"
-import { createClient } from "@/lib/supabase/client"
+import { setClientAutoReminder } from "@/app/dashboard/clients/actions"
 import { EditClientDialog, DeleteClientDialog } from "@/components/dashboard/client-dialogs"
 import { ClientAvatar } from "@/components/dashboard/client-avatar"
 
@@ -40,9 +40,8 @@ export function ClientsTable({ clients }: ClientsTableProps) {
 
   const toggleReminder = (client: Client, checked: boolean) => {
     startTransition(async () => {
-      const supabase = createClient()
-      const { error } = await supabase.from("clients").update({ auto_reminder: checked }).eq("id", client.id)
-      if (error) toast.error("Couldn't update reminders", { description: error.message })
+      const { error } = await setClientAutoReminder(client.id, checked)
+      if (error) toast.error("Couldn't update reminders", { description: error })
       router.refresh()
     })
   }

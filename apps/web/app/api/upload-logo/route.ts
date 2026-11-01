@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/server'
 import { getPlanForUser } from '@/lib/plan-server'
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
@@ -8,8 +8,7 @@ const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/we
 export async function POST(request: NextRequest) {
   try {
     // Only signed-in users may upload, so the IMGBB key can't be used as a free image host
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

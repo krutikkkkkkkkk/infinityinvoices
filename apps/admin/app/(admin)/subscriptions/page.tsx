@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin"
-import { createClient } from "@/lib/supabase/server"
+import { authUsers, db, desc, eq, getTableColumns, profiles, subscriptions as subscriptionsTable } from "@infinity/db"
 import { CreditCardIcon, CrownIcon, InfinityIcon, MoneyReceive01Icon } from "@hugeicons/core-free-icons"
 import { formatDate, formatMoney } from "@/lib/format"
 import { PageHeader } from "@/components/admin/page-header"
@@ -12,19 +12,21 @@ const LIFETIME_SEATS = 200
 
 export default async function AdminSubscriptionsPage() {
   await requireAdmin()
-  const supabase = await createClient()
 
-  // Fetch all subscriptions with user info
-  const { data: subscriptions } = await supabase
-    .from("subscriptions")
-    .select(`
-      *,
-      profiles:user_id(email, full_name, company_name)
-    `)
-    .order("created_at", { ascending: false })
+  // Fetch all subscriptions with user info (email from Neon Auth, names from the profile)
+  const allSubscriptions = await db
+    .select({
+      ...getTableColumns(subscriptionsTable),
+      email: authUsers.email,
+      full_name: profiles.full_name,
+      company_name: profiles.company_name,
+    })
+    .from(subscriptionsTable)
+    .leftJoin(authUsers, eq(authUsers.id, subscriptionsTable.user_id))
+    .leftJoin(profiles, eq(profiles.id, subscriptionsTable.user_id))
+    .orderBy(desc(subscriptionsTable.created_at))
 
   // Calculate stats
-  const allSubscriptions = subscriptions || []
   const proSubscriptions = allSubscriptions.filter((s) => s.plan === "pro")
   const lifetimeSubscriptions = allSubscriptions.filter((s) => s.plan === "lifetime")
   const activeSubscriptions = allSubscriptions.filter((s) => s.status === "active")
@@ -66,14 +68,12 @@ export default async function AdminSubscriptionsPage() {
           </TableHeader>
           <TableBody>
             {allSubscriptions.length > 0 ? (
-              allSubscriptions.map((sub: any) => {
-                const profile = sub.profiles
-
+              allSubscriptions.map((sub) => {
                 return (
                   <TableRow key={sub.id}>
                     <TableCell>
-                      <p className="font-medium">{profile?.full_name || profile?.company_name || "No name"}</p>
-                      <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                      <p className="font-medium">{sub.full_name || sub.company_name || "No name"}</p>
+                      <p className="text-xs text-muted-foreground">{sub.email}</p>
                     </TableCell>
                     <TableCell>
                       <PlanBadge plan={sub.plan} />

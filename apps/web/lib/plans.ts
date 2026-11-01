@@ -43,7 +43,7 @@ export const PLANS: Plan[] = [
       invoicesPerMonth: 5,
       quotationsPerMonth: 5,
       emailsPerMonth: 0, // email sending is Pro-only (enforced in the send routes)
-      clients: 10, // also enforced by RLS — keep in sync with scripts/017_free_plan_limits.sql
+      clients: 10, // enforced on the server by addClient (app/dashboard/clients/actions.ts)
     },
     templates: ["classic", "minimal", "tax", "dark"],
     customBranding: false,

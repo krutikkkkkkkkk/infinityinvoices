@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon, Logout03Icon, Shield01Icon, UnfoldMoreIcon } from "@hugeicons/core-free-icons"
-import { createClient } from "@/lib/supabase/client"
+import { authClient } from "@/lib/auth/client"
 import { NAV_ITEMS, isNavActive } from "@/lib/nav"
 import {
   Sidebar,
@@ -32,7 +32,7 @@ export function AppSidebar({ email, role, appUrl }: { email: string; role: strin
   const router = useRouter()
 
   const handleSignOut = async () => {
-    await createClient().auth.signOut()
+    await authClient.signOut()
     router.replace("/login")
     router.refresh()
   }

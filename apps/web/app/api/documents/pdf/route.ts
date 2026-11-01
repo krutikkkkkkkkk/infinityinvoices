@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { and, asc, db, documents, eq, lineItems, profiles } from "@infinity/db"
+import { getCurrentUser } from "@/lib/auth/server"
 import { isAdmin } from "@/lib/admin"
 import { isTemplateType, type TemplateType } from "@/lib/generate-document-html"
 import { parseTemplateColors } from "@/lib/document-style"
 import { renderDocumentPdf } from "@/lib/pdf/render"
 import { getPlanForUser } from "@/lib/plan-server"
 import { allowedColors, allowedTemplate, applyBranding } from "@/lib/plans"
+import type { DocumentWithItems } from "@/lib/generate-document-html"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -39,39 +41,49 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
-    if (userError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Admins can render any user's document
     const admin = await isAdmin()
-    let query = supabase.from("documents").select("*, line_items(*)").eq("id", documentId)
-    if (!admin) query = query.eq("user_id", user.id)
-    const { data: document, error: docError } = await query.single()
+    const document = await db.query.documents.findFirst({
+      where: admin ? eq(documents.id, documentId) : and(eq(documents.id, documentId), eq(documents.user_id, user.id)),
+      with: { line_items: { orderBy: [asc(lineItems.sort_order)] } },
+    })
 
-    if (docError || !document) {
+    if (!document) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select(
-        "company_name, company_address, gst_id, email, phone, logo_url, upi_id, paypal_email, bank_name, bank_account_name, bank_account_number, bank_routing_number, bank_swift_code"
-      )
-      .eq("id", document.user_id)
-      .single()
+    const [profile] = await db
+      .select({
+        company_name: profiles.company_name,
+        company_address: profiles.company_address,
+        gst_id: profiles.gst_id,
+        email: profiles.email,
+        phone: profiles.phone,
+        logo_url: profiles.logo_url,
+        upi_id: profiles.upi_id,
+        paypal_email: profiles.paypal_email,
+        bank_name: profiles.bank_name,
+        bank_account_name: profiles.bank_account_name,
+        bank_account_number: profiles.bank_account_number,
+        bank_routing_number: profiles.bank_routing_number,
+        bank_swift_code: profiles.bank_swift_code,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, document.user_id))
+      .limit(1)
 
     // Free plans can't use every template, show a logo or pick colours: render what the owner's plan allows
     const plan = await getPlanForUser(document.user_id)
     const template = allowedTemplate(plan, wantedTemplate)
     const rendered = await renderDocumentPdf(
-      document,
-      applyBranding(plan, profile),
+      document as DocumentWithItems,
+      applyBranding(plan, profile ?? null),
       template,
       allowedColors(plan, wantedColors)
     )

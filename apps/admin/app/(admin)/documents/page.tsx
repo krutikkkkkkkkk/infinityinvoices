@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { count, db, desc, documents as documentsTable, eq, inArray, profiles as profilesTable } from "@infinity/db"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { File01Icon, FileValidationIcon, Invoice01Icon, MoneyBag02Icon } from "@hugeicons/core-free-icons"
 import { formatDate } from "@/lib/format"
@@ -37,43 +37,36 @@ function formatAmount(value: number | string | null, currency: string) {
 
 export default async function AdminDocumentsPage() {
   await requireAdmin()
-  const supabase = createAdminClient()
 
-  const [documentsResult, totalResult, invoiceResult, quotationResult] = await Promise.all([
-    supabase
-      .from("documents")
-      .select("id, user_id, type, number, client_name, grand_total, currency, status, created_at")
-      .order("created_at", { ascending: false })
+  const countRows = (rows: { value: number }[]) => rows[0]?.value ?? 0
+  const [documents, totalCount, invoiceCount, quotationCount]: [AdminDocument[], number, number, number] = await Promise.all([
+    db
+      .select({
+        id: documentsTable.id,
+        user_id: documentsTable.user_id,
+        type: documentsTable.type,
+        number: documentsTable.number,
+        client_name: documentsTable.client_name,
+        grand_total: documentsTable.grand_total,
+        currency: documentsTable.currency,
+        status: documentsTable.status,
+        created_at: documentsTable.created_at,
+      })
+      .from(documentsTable)
+      .orderBy(desc(documentsTable.created_at))
       .limit(100),
-    supabase.from("documents").select("id", { count: "exact", head: true }),
-    supabase.from("documents").select("id", { count: "exact", head: true }).eq("type", "invoice"),
-    supabase.from("documents").select("id", { count: "exact", head: true }).eq("type", "quotation"),
+    db.select({ value: count() }).from(documentsTable).then(countRows),
+    db.select({ value: count() }).from(documentsTable).where(eq(documentsTable.type, "invoice")).then(countRows),
+    db.select({ value: count() }).from(documentsTable).where(eq(documentsTable.type, "quotation")).then(countRows),
   ])
 
-  const queryError = [documentsResult, totalResult, invoiceResult, quotationResult].find(
-    (result) => result.error,
-  )?.error
-
-  if (queryError) {
-    throw new Error(`Unable to load admin documents: ${queryError.message}`)
-  }
-
-  const documents = (documentsResult.data ?? []) as AdminDocument[]
   const userIds = [...new Set(documents.map((document) => document.user_id))]
-  let profiles: ProfileSummary[] = []
-
-  if (userIds.length > 0) {
-    const profilesResult = await supabase
-      .from("profiles")
-      .select("id, email, company_name")
-      .in("id", userIds)
-
-    if (profilesResult.error) {
-      throw new Error(`Unable to load document owners: ${profilesResult.error.message}`)
-    }
-
-    profiles = (profilesResult.data ?? []) as ProfileSummary[]
-  }
+  const profiles: ProfileSummary[] = userIds.length
+    ? await db
+        .select({ id: profilesTable.id, email: profilesTable.email, company_name: profilesTable.company_name })
+        .from(profilesTable)
+        .where(inArray(profilesTable.id, userIds))
+    : []
 
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]))
   const totalsByCurrency = documents.reduce<Record<string, number>>((totals, document) => {
@@ -90,9 +83,9 @@ export default async function AdminDocumentsPage() {
       <PageHeader title="Documents" description="Invoices and quotations across all users" />
 
       <StatGrid>
-        <StatCard icon={File01Icon} label="Documents" value={(totalResult.count ?? 0).toLocaleString()} />
-        <StatCard icon={Invoice01Icon} label="Invoices" value={(invoiceResult.count ?? 0).toLocaleString()} />
-        <StatCard icon={FileValidationIcon} label="Quotations" value={(quotationResult.count ?? 0).toLocaleString()} />
+        <StatCard icon={File01Icon} label="Documents" value={totalCount.toLocaleString()} />
+        <StatCard icon={Invoice01Icon} label="Invoices" value={invoiceCount.toLocaleString()} />
+        <StatCard icon={FileValidationIcon} label="Quotations" value={quotationCount.toLocaleString()} />
         <StatCard icon={MoneyBag02Icon} label="Recent value" value={recentValue} hint={`Across the latest ${documents.length}`} />
       </StatGrid>
 

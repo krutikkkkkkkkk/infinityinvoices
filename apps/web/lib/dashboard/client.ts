@@ -1,7 +1,7 @@
 import "server-only"
 
 import { cache } from "react"
-import { createClient } from "@/lib/supabase/server"
+import { and, clients, db, documents, eq, isNull } from "@infinity/db"
 import type { Client } from "@/lib/types"
 import {
   buildAging,
@@ -49,7 +49,17 @@ export interface ClientDetail {
   lastInvoiceDate: string | null
 }
 
-const COLUMNS = "id, number, type, status, grand_total, currency, issue_date, due_date, include_tax"
+const COLUMNS = {
+  id: documents.id,
+  number: documents.number,
+  type: documents.type,
+  status: documents.status,
+  grand_total: documents.grand_total,
+  currency: documents.currency,
+  issue_date: documents.issue_date,
+  due_date: documents.due_date,
+  include_tax: documents.include_tax,
+}
 
 /** Cached per request, so generateMetadata and the page share one load. */
 export const getClientDetail = cache(async function getClientDetail(
@@ -57,32 +67,27 @@ export const getClientDetail = cache(async function getClientDetail(
   clientId: string,
   fallbackCurrency = "INR"
 ): Promise<ClientDetail | null> {
-  const supabase = await createClient()
-
-  const { data: client, error } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("id", clientId)
-    .eq("user_id", userId)
-    .maybeSingle()
-  if (error) throw new Error(`Failed to load client: ${error.message}`)
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, clientId), eq(clients.user_id, userId)))
+    .limit(1)
   if (!client) return null
 
   await syncOverdueStatuses(userId)
 
   // Documents linked by id, plus older ones that only carry the client's name.
   const [linked, byName] = await Promise.all([
-    supabase.from("documents").select(COLUMNS).eq("user_id", userId).eq("client_id", clientId),
-    supabase.from("documents").select(COLUMNS).eq("user_id", userId).is("client_id", null).eq("client_name", client.name),
+    db.select(COLUMNS).from(documents).where(and(eq(documents.user_id, userId), eq(documents.client_id, clientId))),
+    db
+      .select(COLUMNS)
+      .from(documents)
+      .where(and(eq(documents.user_id, userId), isNull(documents.client_id), eq(documents.client_name, client.name))),
   ])
-  if (linked.error) throw new Error(`Failed to load documents: ${linked.error.message}`)
-  if (byName.error) throw new Error(`Failed to load documents: ${byName.error.message}`)
 
-  const documents = [...(linked.data ?? []), ...(byName.data ?? [])].sort((a, b) =>
-    b.issue_date.localeCompare(a.issue_date)
-  ) as ClientDocument[]
+  const clientDocuments: ClientDocument[] = [...linked, ...byName].sort((a, b) => b.issue_date.localeCompare(a.issue_date))
 
-  const invoices = documents.filter((d) => d.type === "invoice")
+  const invoices = clientDocuments.filter((d) => d.type === "invoice")
   const currencyOf = (d: ClientDocument) => d.currency || "INR"
 
   // Primary currency = the one this client is billed in most.
@@ -120,11 +125,11 @@ export const getClientDetail = cache(async function getClientDetail(
 
   return {
     client: client as Client,
-    documents,
+    documents: clientDocuments,
     currencies,
     primaryCurrency,
     byCurrency,
-    openQuotes: documents.filter((d) => d.type === "quotation" && (d.status === "draft" || d.status === "sent")).length,
+    openQuotes: clientDocuments.filter((d) => d.type === "quotation" && (d.status === "draft" || d.status === "sent")).length,
     lastInvoiceDate: invoices[0]?.issue_date ?? null,
   }
 })

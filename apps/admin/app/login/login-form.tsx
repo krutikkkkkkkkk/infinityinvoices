@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { authClient } from "@/lib/auth/client"
+import { authErrorMessage } from "@/lib/auth/error-message"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,9 +23,11 @@ export function LoginForm({ initialError }: { initialError: string | null }) {
     setPending("email")
     setError(null)
 
-    const { error } = await createClient().auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(error.message)
+    try {
+      const { error } = await authClient.signIn.email({ email, password })
+      if (error) throw error
+    } catch (error) {
+      setError(authErrorMessage(error))
       setPending(null)
       return
     }
@@ -37,12 +40,16 @@ export function LoginForm({ initialError }: { initialError: string | null }) {
     setPending(provider)
     setError(null)
 
-    const { error } = await createClient().auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    if (error) {
-      setError(error.message)
+    try {
+      // A failed provider sign-in comes back to /login with Better Auth's ?error= code
+      const { error } = await authClient.signIn.social({
+        provider,
+        callbackURL: `${window.location.origin}/`,
+        errorCallbackURL: `${window.location.origin}/login`,
+      })
+      if (error) throw error
+    } catch (error) {
+      setError(authErrorMessage(error))
       setPending(null)
     }
   }

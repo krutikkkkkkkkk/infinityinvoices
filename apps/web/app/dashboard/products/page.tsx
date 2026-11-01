@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { deleteProduct, listProducts, saveProduct } from "@/app/dashboard/products/actions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,14 +60,8 @@ export default function ProductsPage() {
     hsn_code: "",
   })
 
-  const supabase = createClient()
-
   const fetchProducts = async () => {
-    const { data } = await supabase
-      .from("products")
-      .select("*")
-      .order("name", { ascending: true })
-    setProducts(data || [])
+    setProducts(await listProducts())
     setLoading(false)
   }
 
@@ -113,14 +107,7 @@ export default function ProductsPage() {
       hsn_code: formData.hsn_code || null,
     }
 
-    if (editingProduct) {
-      await supabase
-        .from("products")
-        .update(productData)
-        .eq("id", editingProduct.id)
-    } else {
-      await supabase.from("products").insert(productData)
-    }
+    await saveProduct(productData, editingProduct?.id)
 
     setSaving(false)
     setShowDialog(false)
@@ -130,7 +117,7 @@ export default function ProductsPage() {
 
   const handleDelete = async () => {
     if (!deletingProduct) return
-    await supabase.from("products").delete().eq("id", deletingProduct.id)
+    await deleteProduct(deletingProduct.id)
     setShowDeleteDialog(false)
     setDeletingProduct(null)
     fetchProducts()

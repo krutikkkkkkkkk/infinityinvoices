@@ -1,6 +1,6 @@
 import { Webhooks } from "@dodopayments/nextjs"
 import type { NextRequest } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { authUsers, db, eq, sql, subscriptions } from "@infinity/db"
 import { getPlanFromProductId } from "@/lib/dodo"
 
 type DodoCustomer = { customer_id: string; email: string }
@@ -35,23 +35,29 @@ function toAppStatus(status: DodoSubscription["status"]): string {
   return status === "cancelled" ? "canceled" : status
 }
 
-// Find the Supabase user for a purchase: checkout metadata first, then the customer's email
-async function resolveUserId(
-  supabaseAdmin: ReturnType<typeof createAdminClient>,
-  metadata: Record<string, unknown> | undefined,
-  email: string,
-): Promise<string | null> {
-  const metadataUserId = typeof metadata?.user_id === "string" ? metadata.user_id : null
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Find the Neon Auth user for a purchase: checkout metadata first, then the customer's email
+async function resolveUserId(metadata: Record<string, unknown> | undefined, email: string): Promise<string | null> {
+  const metadataUserId = typeof metadata?.user_id === "string" && UUID.test(metadata.user_id) ? metadata.user_id : null
   if (metadataUserId) return metadataUserId
 
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("id")
-    .ilike("email", email)
+  const [user] = await db
+    .select({ id: authUsers.id })
+    .from(authUsers)
+    .where(sql`lower(${authUsers.email}) = lower(${email})`)
     .limit(1)
-    .maybeSingle()
 
-  return profile?.id ?? null
+  return user?.id ?? null
+}
+
+async function getSubscription(userId: string) {
+  const [existing] = await db
+    .select({ plan: subscriptions.plan, status: subscriptions.status, dodo_subscription_id: subscriptions.dodo_subscription_id })
+    .from(subscriptions)
+    .where(eq(subscriptions.user_id, userId))
+    .limit(1)
+  return existing
 }
 
 async function syncSubscription(subscription: DodoSubscription) {
@@ -62,20 +68,14 @@ async function syncSubscription(subscription: DodoSubscription) {
     return
   }
 
-  const supabaseAdmin = createAdminClient()
-
-  const userId = await resolveUserId(supabaseAdmin, subscription.metadata, subscription.customer.email)
+  const userId = await resolveUserId(subscription.metadata, subscription.customer.email)
   if (!userId) {
     console.error("[Dodo] No user found for subscription:", subscription.subscription_id, subscription.customer.email)
     return
   }
 
   // Never let a subscription event downgrade an active lifetime plan
-  const { data: existing } = await supabaseAdmin
-    .from("subscriptions")
-    .select("plan, status, dodo_subscription_id")
-    .eq("user_id", userId)
-    .maybeSingle()
+  const existing = await getSubscription(userId)
 
   if (
     existing?.plan === "lifetime" &&
@@ -89,23 +89,23 @@ async function syncSubscription(subscription: DodoSubscription) {
   const status = toAppStatus(subscription.status)
   const plan = subscription.status === "expired" ? "free" : product.plan
 
-  const { error } = await supabaseAdmin.from("subscriptions").upsert(
-    {
-      user_id: userId,
-      dodo_customer_id: subscription.customer.customer_id,
-      dodo_subscription_id: subscription.subscription_id,
-      plan,
-      status,
-      current_period_start: toIso(subscription.previous_billing_date),
-      current_period_end: toIso(subscription.next_billing_date),
-      cancel_at_period_end: subscription.cancel_at_next_billing_date,
-      billing_interval: product.billingInterval,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  )
+  const values = {
+    dodo_customer_id: subscription.customer.customer_id,
+    dodo_subscription_id: subscription.subscription_id,
+    plan,
+    status,
+    current_period_start: toIso(subscription.previous_billing_date),
+    current_period_end: toIso(subscription.next_billing_date),
+    cancel_at_period_end: subscription.cancel_at_next_billing_date,
+    billing_interval: product.billingInterval,
+  }
 
-  if (error) {
+  try {
+    await db
+      .insert(subscriptions)
+      .values({ user_id: userId, ...values })
+      .onConflictDoUpdate({ target: subscriptions.user_id, set: values })
+  } catch (error) {
     console.error("[Dodo] Error upserting subscription:", error)
     return
   }
@@ -121,45 +121,38 @@ async function handleOneTimePayment(payment: DodoPayment) {
   const isLifetime = !!lifetimeProductId && !!payment.product_cart?.some((item) => item.product_id === lifetimeProductId)
   if (!isLifetime) return
 
-  const supabaseAdmin = createAdminClient()
-
-  const userId = await resolveUserId(supabaseAdmin, payment.metadata, payment.customer.email)
+  const userId = await resolveUserId(payment.metadata, payment.customer.email)
   if (!userId) {
     console.error("[Dodo] No user found for payment:", payment.payment_id, payment.customer.email)
     return
   }
 
-  const { data: existing } = await supabaseAdmin
-    .from("subscriptions")
-    .select("plan")
-    .eq("user_id", userId)
-    .maybeSingle()
+  const existing = await getSubscription(userId)
 
   if (existing?.plan === "lifetime") {
     console.log("[Dodo] User already has lifetime plan:", userId)
     return
   }
 
-  const { error } = await supabaseAdmin.from("subscriptions").upsert(
-    {
-      user_id: userId,
-      dodo_customer_id: payment.customer.customer_id,
-      dodo_subscription_id: payment.payment_id, // Use payment ID for one-time purchases
-      plan: "lifetime",
-      status: "active",
-      current_period_start: new Date().toISOString(),
-      current_period_end: null, // Lifetime has no end
-      cancel_at_period_end: false,
-      billing_interval: null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  )
+  const values = {
+    dodo_customer_id: payment.customer.customer_id,
+    dodo_subscription_id: payment.payment_id, // Use payment ID for one-time purchases
+    plan: "lifetime",
+    status: "active",
+    current_period_start: new Date().toISOString(),
+    current_period_end: null, // Lifetime has no end
+    cancel_at_period_end: false,
+    billing_interval: null,
+  }
 
-  if (error) {
-    console.error("[Dodo] Error creating lifetime subscription:", error)
-  } else {
+  try {
+    await db
+      .insert(subscriptions)
+      .values({ user_id: userId, ...values })
+      .onConflictDoUpdate({ target: subscriptions.user_id, set: values })
     console.log("[Dodo] Lifetime subscription created for user:", userId)
+  } catch (error) {
+    console.error("[Dodo] Error creating lifetime subscription:", error)
   }
 }
 

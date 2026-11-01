@@ -2,7 +2,8 @@ import "server-only"
 
 import { cache } from "react"
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { db, eq, superAdmins } from "@infinity/db"
+import { getCurrentUser } from "@/lib/auth/server"
 
 export interface AdminUser {
   id: string
@@ -17,18 +18,11 @@ export interface AdminUser {
  * Cached per request so the layout, pages and actions share one lookup.
  */
 export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
+  const user = await getCurrentUser()
   if (!user) return null
 
-  const { data: adminRecord } = await supabase
-    .from("super_admins")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle()
-
-  return adminRecord as AdminUser | null
+  const [adminRecord] = await db.select().from(superAdmins).where(eq(superAdmins.user_id, user.id)).limit(1)
+  return adminRecord ?? null
 })
 
 /**
