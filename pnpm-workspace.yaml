@@ -2,8 +2,9 @@ packages:
   - "apps/*"
   - "packages/*"
 
-# Dependency install scripts we don't need (sharp ships prebuilt binaries).
+# Dependency install scripts we don't need (sharp and esbuild ship prebuilt binaries).
 allowBuilds:
   core-js: false
+  esbuild: false
   msw: false
   sharp: false
