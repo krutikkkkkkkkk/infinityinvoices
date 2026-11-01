@@ -4,7 +4,8 @@ import { TableHead } from "@/components/ui/table"
 import { TableRow } from "@/components/ui/table"
 import { TableHeader } from "@/components/ui/table"
 import { Table } from "@/components/ui/table"
-import { createClient } from "@/lib/supabase/server"
+import { asc, clients as clientsTable, db, eq } from "@infinity/db"
+import { requireUserOrRedirect } from "@/lib/auth/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { UserGroupIcon } from "@hugeicons/core-free-icons"
@@ -13,12 +14,13 @@ import { AddClientDialog } from "@/components/dashboard/add-client-dialog"
 import { ClientsTable } from "@/components/dashboard/clients-table"
 
 export default async function ClientsPage() {
-  const supabase = await createClient()
+  const user = await requireUserOrRedirect()
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("*")
-    .order("name")
+  const clients = await db
+    .select()
+    .from(clientsTable)
+    .where(eq(clientsTable.user_id, user.id))
+    .orderBy(asc(clientsTable.name))
 
   return (
     <div className="space-y-6">

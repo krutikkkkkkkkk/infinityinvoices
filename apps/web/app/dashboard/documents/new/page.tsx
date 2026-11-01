@@ -1,9 +1,9 @@
-import { createClient } from "@/lib/supabase/server"
+import { and, asc, clients, db, documents, eq, invoicePresets, profiles } from "@infinity/db"
+import { requireUserOrRedirect } from "@/lib/auth/server"
 import { getPlanForUser } from "@/lib/plan-server"
 import { applyBranding } from "@/lib/plans"
 import { DocumentForm } from "@/components/dashboard/document-form"
-import { redirect } from "next/navigation"
-import type { DocumentType } from "@/lib/types"
+import type { Client, DocumentType, Profile } from "@/lib/types"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -24,35 +24,19 @@ export default async function NewDocumentPage({
   const params = await searchParams
   const type = (params.type === "quotation" ? "quotation" : "invoice") as DocumentType
 
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
+  const user = await requireUserOrRedirect()
 
   // Get count for generating next number
-  const { count } = await supabase
-    .from("documents")
-    .select("*", { count: "exact", head: true })
-    .eq("type", type)
-    .eq("user_id", user.id)
+  const count = await db.$count(documents, and(eq(documents.type, type), eq(documents.user_id, user.id)))
 
   const prefix = type === "invoice" ? "INV" : "QUO"
-  const nextNumber = `${prefix}-${String((count || 0) + 1).padStart(4, "0")}`
+  const nextNumber = `${prefix}-${String(count + 1).padStart(4, "0")}`
 
   // Get clients for selection
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("name")
+  const userClients = await db.select().from(clients).where(eq(clients.user_id, user.id)).orderBy(asc(clients.name))
 
   // ?client=<id> (from a client page) pre-selects that client
-  const presetClient = params.client ? clients?.find((c) => c.id === params.client) : undefined
+  const presetClient = params.client ? userClients.find((c) => c.id === params.client) : undefined
   const clientPreset = presetClient
     ? {
         client_id: presetClient.id,
@@ -64,10 +48,14 @@ export default async function NewDocumentPage({
     : undefined
 
   // ?preset=<id> (from the presets page) pre-fills the form and applies the preset's saved look
-  const { data: selectedPreset } =
+  const [selectedPreset] =
     params.preset && UUID_REGEX.test(params.preset)
-      ? await supabase.from("invoice_presets").select("data").eq("id", params.preset).eq("user_id", user.id).maybeSingle()
-      : { data: null }
+      ? await db
+          .select({ data: invoicePresets.data })
+          .from(invoicePresets)
+          .where(and(eq(invoicePresets.id, params.preset), eq(invoicePresets.user_id, user.id)))
+          .limit(1)
+      : []
   const presetData = (selectedPreset?.data as (Partial<DocumentFormData> & { style?: unknown }) | null) || null
   const presetStyle = parseDocumentStyle(presetData?.style)
   // A client chosen explicitly wins over the client stored in the preset
@@ -75,11 +63,7 @@ export default async function NewDocumentPage({
     presetData || clientPreset ? { ...presetData, ...clientPreset } : undefined
 
   // Get profile for auto-filling payment methods
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single()
+  const [profile] = await db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1)
 
   // Check usage limits
   const usageType = type === "invoice" ? "invoice" : "quotation"
@@ -128,7 +112,7 @@ export default async function NewDocumentPage({
       ) : (
         <>
           <ApplyDocumentStyle style={presetStyle} />
-          <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={applyBranding(await getPlanForUser(user.id), profile)} preset={formPreset} />
+          <DocumentForm type={type} clients={userClients as Client[]} nextNumber={nextNumber} profile={applyBranding(await getPlanForUser(user.id), (profile ?? null) as Profile | null)} preset={formPreset} />
         </>
       )}
     </div>

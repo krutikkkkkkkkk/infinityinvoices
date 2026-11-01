@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Loading01Icon } from "@hugeicons/core-free-icons"
-import { createClient } from "@/lib/supabase/client"
+import { updateProfile } from "@/app/dashboard/settings/actions"
+import { authClient } from "@/lib/auth/client"
 import { getPasswordResetRedirectUrl } from "@/lib/site-url"
 import { useRouter } from "next/navigation"
 import type { Currency, Profile } from "@/lib/types"
@@ -20,9 +21,11 @@ import { LogoUpload } from "./logo-upload"
 
 interface SettingsFormProps {
   profile: Profile | null
+  /** The signed-in account's email, where password reset links are sent. */
+  accountEmail: string
 }
 
-export function SettingsForm({ profile }: SettingsFormProps) {
+export function SettingsForm({ profile, accountEmail }: SettingsFormProps) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -49,39 +52,10 @@ export function SettingsForm({ profile }: SettingsFormProps) {
     e.preventDefault()
     setMessage(null)
     startTransition(async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        setMessage({ type: "error", text: "Not authenticated" })
-        return
-      }
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          company_name: formData.company_name || null,
-          company_address: formData.company_address || null,
-          gst_id: formData.gst_id || null,
-          email: formData.email || null,
-          phone: formData.phone || null,
-          logo_url: formData.logo_url || null,
-          upi_id: formData.upi_id || null,
-          paypal_email: formData.paypal_email || null,
-          bank_name: formData.bank_name || null,
-          bank_account_name: formData.bank_account_name || null,
-          bank_account_number: formData.bank_account_number || null,
-          bank_routing_number: formData.bank_routing_number || null,
-          bank_swift_code: formData.bank_swift_code || null,
-          financial_year_start: parseInt(formData.financial_year_start),
-          default_currency: formData.default_currency,
-        })
-        .eq("id", user.id)
+      const { error } = await updateProfile(formData)
 
       if (error) {
-        setMessage({ type: "error", text: error.message })
+        setMessage({ type: "error", text: error })
       } else {
         setMessage({ type: "success", text: "Settings saved successfully!" })
         router.refresh()
@@ -372,22 +346,20 @@ export function SettingsForm({ profile }: SettingsFormProps) {
             onClick={() => {
               setResetMessage(null)
               startTransition(async () => {
-                const supabase = createClient()
-                const { data: { user } } = await supabase.auth.getUser()
-                
-                if (!user?.email) {
+                if (!accountEmail) {
                   setResetMessage({ type: "error", text: "No email found for this account" })
                   return
                 }
 
-                const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                  redirectTo: getPasswordResetRedirectUrl(),
-                })
-
-                if (error) {
-                  setResetMessage({ type: "error", text: error.message })
-                } else {
+                try {
+                  const { error } = await authClient.requestPasswordReset({
+                    email: accountEmail,
+                    redirectTo: getPasswordResetRedirectUrl(),
+                  })
+                  if (error) throw new Error(error.message || "Couldn't send the reset link")
                   setResetMessage({ type: "success", text: "Password reset link sent to your email!" })
+                } catch (err) {
+                  setResetMessage({ type: "error", text: err instanceof Error ? err.message : "Couldn't send the reset link" })
                 }
               })
             }}

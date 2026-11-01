@@ -62,7 +62,7 @@ export default function PrivacyPage() {
             <>
               <p>We do not sell your data. We share it only with providers that help us run the service, under their own privacy terms:</p>
               <ul>
-                <li><strong>Supabase</strong> hosts our database and handles authentication.</li>
+                <li><strong>Neon</strong> hosts our database and handles authentication.</li>
                 <li><strong>Vercel</strong> hosts the application and provides anonymous analytics.</li>
                 <li><strong>Dodo Payments</strong> processes subscription payments as merchant of record and holds your payment details.</li>
                 <li><strong>Resend</strong> delivers the invoices, reminders and account emails you send.</li>

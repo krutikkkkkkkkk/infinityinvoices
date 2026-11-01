@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Loading01Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
-import { createClient } from "@/lib/supabase/client"
+import { authClient } from "@/lib/auth/client"
+import { authErrorMessage } from "@/lib/auth/error-message"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { AuthLayout } from "@/components/auth/auth-layout"
@@ -20,43 +21,25 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  // "checking" until we know whether the reset link gave us a session
+  // "checking" until we've read the reset token from the link
   const [linkState, setLinkState] = useState<"checking" | "valid" | "invalid">("checking")
+  const [token, setToken] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    let cancelled = false
-    const supabase = createClient()
-
-    const verifyLink = async () => {
-      // Normally /auth/callback has already exchanged the code and set the
-      // session cookie. If the email landed here directly with ?code=, do the
-      // exchange in the browser instead.
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get("code")
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error) {
-          window.history.replaceState({}, "", window.location.pathname)
-        }
-      }
-
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!cancelled) setLinkState(session ? "valid" : "invalid")
-    }
-
-    verifyLink()
-    return () => {
-      cancelled = true
-    }
+    // The emailed link carries ?token=; an expired or used one arrives as ?error=INVALID_TOKEN
+    const params = new URLSearchParams(window.location.search)
+    const linkToken = params.get("token")
+    setToken(linkToken)
+    setLinkState(linkToken && !params.get("error") ? "valid" : "invalid")
   }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters")
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters")
       return
     }
 
@@ -66,19 +49,16 @@ export default function ResetPasswordPage() {
     }
 
     startTransition(async () => {
-      const supabase = createClient()
-      
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      })
-
-      if (error) {
-        setError(error.message)
-      } else {
+      try {
+        const { error } = await authClient.resetPassword({ newPassword: password, token: token! })
+        if (error) throw error
         setSuccess(true)
+        // Resetting doesn't sign the user in
         setTimeout(() => {
-          router.push("/dashboard")
+          router.push("/auth/login")
         }, 2000)
+      } catch (error: unknown) {
+        setError(authErrorMessage(error))
       }
     })
   }
@@ -132,7 +112,7 @@ export default function ResetPasswordPage() {
               <HugeiconsIcon icon={CheckmarkCircle02Icon} size={48} color="#16a34a" className="mx-auto" />
               <h2 className="text-xl font-semibold">Password Updated!</h2>
               <p className="text-muted-foreground">
-                Your password has been successfully changed. Redirecting to dashboard...
+                Your password has been successfully changed. Redirecting to login...
               </p>
             </div>
           </CardContent>
@@ -161,7 +141,7 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter new password"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
             <div className="space-y-2">

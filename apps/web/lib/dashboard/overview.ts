@@ -1,7 +1,7 @@
 import "server-only"
 
 import { cache } from "react"
-import { createClient } from "@/lib/supabase/server"
+import { and, asc, db, desc, documents, eq, gte, inArray, isNotNull, lt, lte, profiles } from "@infinity/db"
 import type { Profile } from "@/lib/types"
 import { getInvoiceBalance } from "@/lib/invoice-balance"
 import { startOfToday, toISODate, type DashboardPeriod } from "@/lib/date-range"
@@ -56,7 +56,6 @@ export interface OverviewData {
 }
 
 const DAY = 24 * 60 * 60 * 1000
-const PAGE_SIZE = 1000
 
 // Parse a YYYY-MM-DD column as a local calendar date (avoids UTC off-by-one).
 function parseDate(value: string) {
@@ -65,19 +64,11 @@ function parseDate(value: string) {
 }
 
 /** Per-request user lookup, shared by every dashboard server component. */
-export const getCurrentUser = cache(async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  return user
-})
+export { getCurrentUser } from "@/lib/auth/server"
 
 export const getProfile = cache(async (userId: string) => {
-  const supabase = await createClient()
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
-  if (error && error.code !== "PGRST116") throw new Error(`Failed to load profile: ${error.message}`)
-  return data as Profile | null
+  const [data] = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1)
+  return (data ?? null) as Profile | null
 })
 
 /**
@@ -85,14 +76,17 @@ export const getProfile = cache(async (userId: string) => {
  * before any reads so the dashboard never shows stale overdue counts.
  */
 export const syncOverdueStatuses = cache(async (userId: string) => {
-  const supabase = await createClient()
-  await supabase
-    .from("documents")
-    .update({ status: "overdue" })
-    .eq("user_id", userId)
-    .lt("due_date", toISODate(startOfToday()))
-    .in("status", ["sent", "draft"])
-    .not("due_date", "is", null)
+  await db
+    .update(documents)
+    .set({ status: "overdue" })
+    .where(
+      and(
+        eq(documents.user_id, userId),
+        isNotNull(documents.due_date),
+        lt(documents.due_date, toISODate(startOfToday())),
+        inArray(documents.status, ["sent", "draft"]),
+      ),
+    )
 })
 
 function addDays(date: Date, days: number) {
@@ -288,7 +282,6 @@ export async function getOverviewData(
 ): Promise<OverviewData> {
   await syncOverdueStatuses(userId)
 
-  const supabase = await createClient()
   const today = startOfToday()
   const primaryCurrency = profile?.default_currency || "INR"
   const nominalStart = period.from ? parseDate(period.from) : null
@@ -298,41 +291,37 @@ export async function getOverviewData(
   const previous = nominalStart && nominalEnd ? previousWindow(nominalStart, endToDate, nominalEnd) : null
   const fetchStart = previous?.start ?? nominalStart
 
-  const loadInvoices = async () => {
-    const rows: InvoiceRow[] = []
-    // PostgREST caps each response, so page through long periods like "all time"
-    for (let offset = 0; ; offset += PAGE_SIZE) {
-      let query = supabase
-        .from("documents")
-        .select("grand_total, status, issue_date, currency")
-        .eq("user_id", userId)
-        .eq("type", "invoice")
-        .in("status", ["sent", "paid", "overdue"])
-      if (fetchStart) query = query.gte("issue_date", toISODate(fetchStart))
-      if (nominalEnd) query = query.lte("issue_date", toISODate(nominalEnd))
-      const { data, error } = await query
-        .order("issue_date", { ascending: true })
-        .order("id", { ascending: true })
-        .range(offset, offset + PAGE_SIZE - 1)
-      if (error) throw new Error(`Failed to load invoices: ${error.message}`)
-      rows.push(...((data ?? []) as InvoiceRow[]))
-      if (!data || data.length < PAGE_SIZE) return rows
-    }
-  }
-
-  const [invoices, receivablesRes] = await Promise.all([
-    loadInvoices(),
-    supabase
-      .from("documents")
-      .select("grand_total, amount_paid, credit_total, due_date, currency, include_tax")
-      .eq("user_id", userId)
-      .eq("type", "invoice")
-      .in("status", ["sent", "overdue"]),
+  const [invoices, receivables]: [InvoiceRow[], ReceivableRow[]] = await Promise.all([
+    db
+      .select({
+        grand_total: documents.grand_total,
+        status: documents.status,
+        issue_date: documents.issue_date,
+        currency: documents.currency,
+      })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.user_id, userId),
+          eq(documents.type, "invoice"),
+          inArray(documents.status, ["sent", "paid", "overdue"]),
+          fetchStart ? gte(documents.issue_date, toISODate(fetchStart)) : undefined,
+          nominalEnd ? lte(documents.issue_date, toISODate(nominalEnd)) : undefined,
+        ),
+      )
+      .orderBy(asc(documents.issue_date), asc(documents.id)),
+    db
+      .select({
+        grand_total: documents.grand_total,
+        amount_paid: documents.amount_paid,
+        credit_total: documents.credit_total,
+        due_date: documents.due_date,
+        currency: documents.currency,
+        include_tax: documents.include_tax,
+      })
+      .from(documents)
+      .where(and(eq(documents.user_id, userId), eq(documents.type, "invoice"), inArray(documents.status, ["sent", "overdue"]))),
   ])
-
-  if (receivablesRes.error) throw new Error(`Failed to load receivables: ${receivablesRes.error.message}`)
-
-  const receivables = (receivablesRes.data ?? []) as ReceivableRow[]
 
   // Rows are sorted by issue date, so the ends of the list bound an open-ended period.
   // The chart runs to today, extending further only for invoices actually dated in the future.
@@ -375,13 +364,20 @@ export async function getOverviewData(
 
 export async function getRecentDocuments(userId: string) {
   await syncOverdueStatuses(userId)
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("documents")
-    .select("id, number, type, status, client_name, grand_total, currency, due_date, issue_date")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
+  return db
+    .select({
+      id: documents.id,
+      number: documents.number,
+      type: documents.type,
+      status: documents.status,
+      client_name: documents.client_name,
+      grand_total: documents.grand_total,
+      currency: documents.currency,
+      due_date: documents.due_date,
+      issue_date: documents.issue_date,
+    })
+    .from(documents)
+    .where(eq(documents.user_id, userId))
+    .orderBy(desc(documents.created_at))
     .limit(6)
-  if (error) throw new Error(`Failed to load recent documents: ${error.message}`)
-  return data ?? []
 }

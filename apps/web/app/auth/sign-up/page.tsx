@@ -1,6 +1,7 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/auth/client'
+import { authErrorMessage } from '@/lib/auth/error-message'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -58,46 +59,41 @@ export default function Page() {
   const router = useRouter()
 
   const handleGitHubSignUp = async () => {
-    const supabase = createClient()
     setIsGitHubLoading(true)
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await authClient.signIn.social({
         provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        callbackURL: `${window.location.origin}/dashboard`,
+        errorCallbackURL: `${window.location.origin}/auth/sign-up`,
       })
       if (error) throw error
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(authErrorMessage(error))
       setIsGitHubLoading(false)
     }
   }
 
   const handleGoogleSignUp = async () => {
-    const supabase = createClient()
     setIsGoogleLoading(true)
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await authClient.signIn.social({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        callbackURL: `${window.location.origin}/dashboard`,
+        errorCallbackURL: `${window.location.origin}/auth/sign-up`,
       })
       if (error) throw error
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(authErrorMessage(error))
       setIsGoogleLoading(false)
     }
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
@@ -108,19 +104,13 @@ export default function Page() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/protected`,
-        },
-      })
+      // Neon Auth requires a display name; the form only asks for email, so start from its local part
+      const { error } = await authClient.signUp.email({ email, password, name: email.split('@')[0] })
       if (error) throw error
-      router.push('/auth/sign-up-success')
+      router.push('/dashboard')
+      router.refresh()
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(authErrorMessage(error))
     } finally {
       setIsLoading(false)
     }

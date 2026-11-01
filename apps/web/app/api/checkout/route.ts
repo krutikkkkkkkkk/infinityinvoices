@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { db, eq, subscriptions } from "@infinity/db"
+import { getCurrentUser } from "@/lib/auth/server"
 import { getLifetimePlanAvailability } from "@/app/actions/lifetime"
 import { getDodo, getProductIdForPlan, type CheckoutPlan } from "@/lib/dodo"
 
@@ -19,8 +20,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(pricingUrl("error=checkout_failed"))
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
   if (!user?.email) {
     return NextResponse.redirect(new URL("/auth/login", request.url))
   }
@@ -34,11 +34,11 @@ export async function GET(request: NextRequest) {
   }
 
   // Reuse the Dodo customer if this user has bought before
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("dodo_customer_id")
-    .eq("user_id", user.id)
-    .maybeSingle()
+  const [subscription] = await db
+    .select({ dodo_customer_id: subscriptions.dodo_customer_id })
+    .from(subscriptions)
+    .where(eq(subscriptions.user_id, user.id))
+    .limit(1)
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       product_cart: [{ product_id: productId, quantity: 1 }],
       customer: subscription?.dodo_customer_id
         ? { customer_id: subscription.dodo_customer_id }
-        : { email: user.email, name: user.user_metadata?.full_name || user.email },
+        : { email: user.email, name: user.name || user.email },
       // Read back by the webhook to link the purchase to this user
       metadata: { user_id: user.id, plan },
       return_url: `${siteUrl}/dashboard/plan?success=true`,

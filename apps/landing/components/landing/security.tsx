@@ -7,7 +7,7 @@ const ITEMS = [
   { icon: CreditCard, title: "No card numbers stored", description: "Subscriptions are handled by Dodo Payments. Card details never touch our servers." },
   { icon: Lock, title: "Encrypted everywhere", description: "Data is encrypted in transit and at rest by our hosting providers." },
   { icon: Link2, title: "Share links you control", description: "Each document gets its own random link. Delete the document and the link stops working." },
-  { icon: KeyRound, title: "Sign in your way", description: "Use Google, GitHub, or email and password. Sessions are handled by Supabase Auth." },
+  { icon: KeyRound, title: "Sign in your way", description: "Use Google, GitHub, or email and password. Sessions are handled by Neon Auth." },
   { icon: Download, title: "Export any time", description: "Every invoice and quotation can be downloaded as a PDF whenever you need it." },
 ]
 

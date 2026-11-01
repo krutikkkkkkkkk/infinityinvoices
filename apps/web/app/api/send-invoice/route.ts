@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { Resend } from "resend"
-import { createClient } from "@/lib/supabase/server"
+import { and, asc, db, documents, eq, lineItems, profiles, subscriptions } from "@infinity/db"
+import { getCurrentUser } from "@/lib/auth/server"
 import { checkAndIncrementUsage } from "@/lib/usage"
 import { hasPaidPlan } from "@/lib/plans"
-import { formatDate, formatMoney, isTemplateType, type TemplateType } from "@/lib/generate-document-html"
+import { formatDate, formatMoney, isTemplateType, type DocumentWithItems, type TemplateType } from "@/lib/generate-document-html"
 import { parseTemplateColors } from "@/lib/document-style"
 import { renderDocumentPdf } from "@/lib/pdf/render"
 import { getInvoiceBalance } from "@/lib/invoice-balance"
@@ -16,6 +17,7 @@ export const maxDuration = 60
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const EMAIL_REGEX = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_MESSAGE_LENGTH = 2000
 
 /**
@@ -28,21 +30,18 @@ const MAX_MESSAGE_LENGTH = 2000
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Email sending is only available on paid plans (Pro / Lifetime)
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("plan, status")
-      .eq("user_id", user.id)
-      .single()
+    const [subscription] = await db
+      .select({ plan: subscriptions.plan, status: subscriptions.status })
+      .from(subscriptions)
+      .where(eq(subscriptions.user_id, user.id))
+      .limit(1)
 
     if (!hasPaidPlan(subscription)) {
       return NextResponse.json(
@@ -70,18 +69,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid recipient email" }, { status: 400 })
     }
 
-    const { data: document, error: docError } = await supabase
-      .from("documents")
-      .select("*, line_items(*)")
-      .eq("id", documentId)
-      .eq("user_id", user.id)
-      .single()
+    const document = UUID_REGEX.test(documentId)
+      ? await db.query.documents.findFirst({
+          where: and(eq(documents.id, documentId), eq(documents.user_id, user.id)),
+          with: { line_items: { orderBy: [asc(lineItems.sort_order)] } },
+        })
+      : undefined
 
-    if (docError || !document) {
+    if (!document) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 })
     }
 
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+    const [profile] = await db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1)
 
     // Count the email against the monthly limit before doing the expensive render
     const usage = await checkAndIncrementUsage("email")
@@ -95,7 +94,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const rendered = await renderDocumentPdf(document, profile, template, colors)
+    const rendered = await renderDocumentPdf(document as DocumentWithItems, profile, template, colors)
 
     const isQuote = document.type === "quotation"
     // Invoices are billed for what is still owed after payments and credit notes
@@ -135,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (document.status === "draft") {
-      await supabase.from("documents").update({ status: "sent" }).eq("id", documentId).eq("user_id", user.id)
+      await db.update(documents).set({ status: "sent" }).where(and(eq(documents.id, documentId), eq(documents.user_id, user.id)))
     }
 
     return NextResponse.json({

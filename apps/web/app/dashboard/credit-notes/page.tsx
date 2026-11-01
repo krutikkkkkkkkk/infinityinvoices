@@ -1,6 +1,6 @@
 import Link from "next/link"
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { creditNotes, db, desc, documents, eq } from "@infinity/db"
+import { requireUserOrRedirect } from "@/lib/auth/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -23,17 +23,23 @@ function money(amount: number, currency: string) {
 }
 
 export default async function CreditNotesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
+  const user = await requireUserOrRedirect()
 
-  const { data } = await supabase
-    .from("credit_notes")
-    .select("id, number, amount, reason, issued_at, document_id, documents:document_id(number, client_name, currency)")
-    .eq("user_id", user.id)
-    .order("issued_at", { ascending: false })
+  const notes: CreditNoteRow[] = await db
+    .select({
+      id: creditNotes.id,
+      number: creditNotes.number,
+      amount: creditNotes.amount,
+      reason: creditNotes.reason,
+      issued_at: creditNotes.issued_at,
+      document_id: creditNotes.document_id,
+      documents: { number: documents.number, client_name: documents.client_name, currency: documents.currency },
+    })
+    .from(creditNotes)
+    .leftJoin(documents, eq(documents.id, creditNotes.document_id))
+    .where(eq(creditNotes.user_id, user.id))
+    .orderBy(desc(creditNotes.issued_at))
     .limit(200)
-  const notes = (data || []) as unknown as CreditNoteRow[]
 
   return (
     <div className="flex flex-col gap-6">

@@ -46,9 +46,8 @@ import {
   STATUS_OPTIONS,
   PAYMENT_METHODS,
 } from "@/lib/types"
-import { createClient } from "@/lib/supabase/client"
 
-import { createDocument, updateDocument } from "@/app/dashboard/documents/actions"
+import { createDocument, listActiveProducts, updateDocument } from "@/app/dashboard/documents/actions"
 
 interface DocumentFormProps {
   type: DocumentType
@@ -73,19 +72,11 @@ export function DocumentForm({ type, document, clients = [], nextNumber, profile
   const [products, setProducts] = useState<Product[]>([])
   const [showUsageLimitDialog, setShowUsageLimitDialog] = useState(false)
   const [usageLimitMessage, setUsageLimitMessage] = useState("")
-  const supabase = createClient()
-
   // Fetch products on mount
   useEffect(() => {
-    const fetchProducts = async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("is_active", true)
-        .order("name")
-      setProducts(data || [])
-    }
-    fetchProducts()
+    listActiveProducts()
+      .then(setProducts)
+      .catch(() => setProducts([]))
   }, [])
   
   // Determine default payment methods from profile

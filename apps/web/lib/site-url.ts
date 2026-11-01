@@ -1,8 +1,8 @@
 /**
  * Canonical public origin of the web app (https://app.infinityinvoices.com in
  * production). Auth emails must link back here, not to whatever hostname the
- * user happens to be browsing on, so that one Supabase redirect allow-list
- * entry covers every deployment alias.
+ * user happens to be browsing on, so that one Neon Auth trusted-domain entry
+ * covers every deployment alias.
  */
 export function getSiteUrl(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
@@ -15,7 +15,7 @@ export function getSiteUrl(): string {
   return "http://localhost:3000"
 }
 
-/** Where password reset emails should send the user. */
+/** Where password reset emails send the user; Neon Auth appends `?token=...`. */
 export function getPasswordResetRedirectUrl(): string {
-  return `${getSiteUrl()}/auth/callback?next=/auth/reset-password`
+  return `${getSiteUrl()}/auth/reset-password`
 }

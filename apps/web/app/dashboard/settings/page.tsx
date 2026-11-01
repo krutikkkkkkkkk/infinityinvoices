@@ -1,21 +1,13 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { requireUserOrRedirect } from "@/lib/auth/server"
+import { getProfile } from "@/lib/dashboard/overview"
 import { SettingsForm } from "@/components/dashboard/settings-form"
 import type { Profile } from "@/lib/types"
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
+  const user = await requireUserOrRedirect()
 
   // Fetch profile
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+  const profile = await getProfile(user.id)
 
   return (
     <div className="space-y-6">
@@ -27,7 +19,7 @@ export default async function SettingsPage() {
       </div>
 
 
-      <SettingsForm profile={profile as Profile | null} />
+      <SettingsForm profile={profile as Profile | null} accountEmail={user.email} />
     </div>
   )
 }

@@ -2,7 +2,7 @@ import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Search01Icon } from "@hugeicons/core-free-icons"
 import { requireAdmin } from "@/lib/admin"
-import { createClient } from "@/lib/supabase/server"
+import { authUsers, count, db, desc, documents, eq, ilike, inArray, or, profiles, subscriptions } from "@infinity/db"
 import { formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/admin/page-header"
@@ -26,44 +26,42 @@ export default async function AdminUsersPage({
 }) {
   await requireAdmin()
   const params = await searchParams
-  const supabase = await createClient()
 
-  // Fetch all users with their subscription info
-  let query = supabase
-    .from("profiles")
-    .select(`
-      id,
-      email,
-      company_name,
-      created_at
-    `)
-    .order("created_at", { ascending: false })
-
-  // Commas and parentheses would break out of the PostgREST `or` filter.
-  const search = params.search?.replace(/[,()]/g, " ").trim()
-  if (search) {
-    query = query.or(`email.ilike.%${search}%,company_name.ilike.%${search}%`)
-  }
-
-  const { data: users } = await query
+  // Every Neon Auth user, with the company from their profile (missing until they open the dashboard)
+  const search = params.search?.trim()
+  // Escape LIKE wildcards so a search for "50%" matches literally
+  const pattern = search ? `%${search.replace(/[\\%_]/g, "\\$&")}%` : null
+  const users = await db
+    .select({
+      id: authUsers.id,
+      email: authUsers.email,
+      company_name: profiles.company_name,
+      created_at: authUsers.createdAt,
+    })
+    .from(authUsers)
+    .leftJoin(profiles, eq(profiles.id, authUsers.id))
+    .where(pattern ? or(ilike(authUsers.email, pattern), ilike(profiles.company_name, pattern)) : undefined)
+    .orderBy(desc(authUsers.createdAt))
 
   // Fetch subscriptions separately for all users
-  const userIds = users?.map((u: any) => u.id) || []
-  const { data: subscriptions } = await supabase
-    .from("subscriptions")
-    .select("user_id, plan, status")
-    .in("user_id", userIds)
+  const userIds = users.map((u) => u.id)
+  const userSubscriptions = userIds.length
+    ? await db
+        .select({ user_id: subscriptions.user_id, plan: subscriptions.plan, status: subscriptions.status })
+        .from(subscriptions)
+        .where(inArray(subscriptions.user_id, userIds))
+    : []
 
   // Map subscriptions to users
-  const subscriptionMap: Record<string, any> = {}
-  subscriptions?.forEach((sub: any) => {
+  const subscriptionMap: Record<string, (typeof userSubscriptions)[number]> = {}
+  userSubscriptions.forEach((sub) => {
     subscriptionMap[sub.user_id] = sub
   })
 
   // Filter by plan if specified
-  let filteredUsers = users || []
+  let filteredUsers = users
   if (params.plan) {
-    filteredUsers = filteredUsers.filter((user: any) => {
+    filteredUsers = filteredUsers.filter((user) => {
       const subscription = subscriptionMap[user.id]
       if (params.plan === "pro") return subscription?.plan === "pro" || subscription?.plan === "lifetime"
       if (params.plan === "lifetime") return subscription?.plan === "lifetime"
@@ -73,15 +71,18 @@ export default async function AdminUsersPage({
   }
 
   // Get document counts per user
-  const filteredUserIds = filteredUsers.map((u: any) => u.id)
-  const { data: documentCounts } = await supabase
-    .from("documents")
-    .select("user_id")
-    .in("user_id", filteredUserIds)
+  const filteredUserIds = filteredUsers.map((u) => u.id)
+  const documentCounts = filteredUserIds.length
+    ? await db
+        .select({ user_id: documents.user_id, value: count() })
+        .from(documents)
+        .where(inArray(documents.user_id, filteredUserIds))
+        .groupBy(documents.user_id)
+    : []
 
   const docCountMap: Record<string, number> = {}
-  documentCounts?.forEach((doc: any) => {
-    docCountMap[doc.user_id] = (docCountMap[doc.user_id] || 0) + 1
+  documentCounts.forEach((row) => {
+    docCountMap[row.user_id] = row.value
   })
 
   const filterHref = (plan?: string) => {
@@ -146,7 +147,7 @@ export default async function AdminUsersPage({
           </TableHeader>
           <TableBody>
             {filteredUsers.length > 0 ? (
-              filteredUsers.map((user: any) => {
+              filteredUsers.map((user) => {
                 const plan = subscriptionMap[user.id]?.plan
 
                 return (

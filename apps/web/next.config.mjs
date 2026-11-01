@@ -10,7 +10,7 @@ const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@infinity/ui'],
+  transpilePackages: ['@infinity/ui', '@infinity/db'],
   images: {
     unoptimized: true,
   },

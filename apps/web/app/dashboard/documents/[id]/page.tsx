@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
+import { and, asc, clients, creditNotes, db, desc, documents, eq, invoicePresets, lineItems, paymentRecords, profiles, recurringSchedules } from "@infinity/db"
+import { requireUserOrRedirect } from "@/lib/auth/server"
 import { getPlanForUser } from "@/lib/plan-server"
 import { applyBranding } from "@/lib/plans"
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import { DocumentDetailView } from "@/components/dashboard/document-detail-view"
 import { DocumentForm } from "@/components/dashboard/document-form"
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
-import type { Document, LineItem, Profile, DocumentType } from "@/lib/types"
+import type { Client, Document, LineItem, Profile, DocumentType } from "@/lib/types"
 import { isAdmin } from "@/lib/admin"
 import { InvoiceSettlementPanel } from "@/components/dashboard/invoice-settlement-panel"
 import { InvoiceAutomationPanel } from "@/components/dashboard/invoice-automation-panel"
@@ -42,43 +43,29 @@ export default async function DocumentDetailPage({
 }) {
   const { id } = await params
   const queryParams = await searchParams
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
+  const user = await requireUserOrRedirect()
   const userId = user.id
-  
+
   // Handle "new" - render the new document form
   if (id === "new") {
     const type = (queryParams.type === "quotation" ? "quotation" : "invoice") as DocumentType
 
     // Get count for generating next number
-    const { count } = await supabase
-      .from("documents")
-      .select("*", { count: "exact", head: true })
-      .eq("type", type)
-      .eq("user_id", userId)
+    const count = await db.$count(documents, and(eq(documents.type, type), eq(documents.user_id, userId)))
 
     const prefix = type === "invoice" ? "INV" : "QUO"
-    const nextNumber = `${prefix}-${String((count || 0) + 1).padStart(4, "0")}`
+    const nextNumber = `${prefix}-${String(count + 1).padStart(4, "0")}`
 
     // Get clients for selection
-    const { data: clients } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("name")
+    const userClients = await db.select().from(clients).where(eq(clients.user_id, user.id)).orderBy(asc(clients.name))
 
     // Get profile and optional reusable preset
-    const [{ data: profile }, { data: selectedPreset }, plan] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).single(),
-      queryParams.preset
-        ? supabase.from("invoice_presets").select("data").eq("id", queryParams.preset).eq("user_id", user.id).maybeSingle()
-        : Promise.resolve({ data: null }),
+    const preset = queryParams.preset && UUID_REGEX.test(queryParams.preset) ? queryParams.preset : null
+    const [[profile], [selectedPreset], plan] = await Promise.all([
+      db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1),
+      preset
+        ? db.select({ data: invoicePresets.data }).from(invoicePresets).where(and(eq(invoicePresets.id, preset), eq(invoicePresets.user_id, user.id))).limit(1)
+        : Promise.resolve([]),
       getPlanForUser(user.id),
     ])
 
@@ -99,7 +86,7 @@ export default async function DocumentDetailPage({
             </p>
           </div>
         </div>
-        <DocumentForm type={type} clients={clients || []} nextNumber={nextNumber} profile={applyBranding(plan, profile)} preset={(selectedPreset?.data as Partial<import("@/lib/types").DocumentFormData>) || undefined} />
+        <DocumentForm type={type} clients={userClients as Client[]} nextNumber={nextNumber} profile={applyBranding(plan, (profile ?? null) as Profile | null)} preset={(selectedPreset?.data as Partial<import("@/lib/types").DocumentFormData>) || undefined} />
       </div>
     )
   }
@@ -112,20 +99,13 @@ export default async function DocumentDetailPage({
   // Check if user is admin
   const adminStatus = await isAdmin()
 
-  // Fetch document with line items
-  let query = supabase
-    .from("documents")
-    .select("*, line_items(*)")
-    .eq("id", id)
+  // Fetch document with line items (admins can open any user's document)
+  const document = await db.query.documents.findFirst({
+    where: adminStatus ? eq(documents.id, id) : and(eq(documents.id, id), eq(documents.user_id, user.id)),
+    with: { line_items: { orderBy: [asc(lineItems.sort_order)] } },
+  })
 
-  // If not admin, filter by user_id
-  if (!adminStatus) {
-    query = query.eq("user_id", user.id)
-  }
-
-  const { data: document, error } = await query.single()
-
-  if (error || !document) {
+  if (!document) {
     notFound()
   }
 
@@ -133,17 +113,30 @@ export default async function DocumentDetailPage({
   const plan = await getPlanForUser(document.user_id)
 
   // Fetch profile and invoice settlement history
-  const [{ data: profile }, { data: paymentRecords }, { data: creditNotes }, { data: recurringSchedule }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
-    document.type === "invoice"
-      ? supabase.from("payment_records").select("id, amount, paid_at, method, reference, notes").eq("document_id", id).eq("user_id", document.user_id).order("paid_at", { ascending: false })
-      : Promise.resolve({ data: [] }),
-    document.type === "invoice"
-      ? supabase.from("credit_notes").select("id, number, amount, reason, issued_at").eq("document_id", id).eq("user_id", document.user_id).order("issued_at", { ascending: false })
-      : Promise.resolve({ data: [] }),
-    document.type === "invoice"
-      ? supabase.from("recurring_schedules").select("frequency, next_run_at, active").eq("source_document_id", id).eq("user_id", document.user_id).eq("active", true).maybeSingle()
-      : Promise.resolve({ data: null }),
+  const isInvoice = document.type === "invoice"
+  const [[profile], payments, credits, [recurringSchedule]] = await Promise.all([
+    db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1),
+    isInvoice
+      ? db
+          .select({ id: paymentRecords.id, amount: paymentRecords.amount, paid_at: paymentRecords.paid_at, method: paymentRecords.method, reference: paymentRecords.reference, notes: paymentRecords.notes })
+          .from(paymentRecords)
+          .where(and(eq(paymentRecords.document_id, id), eq(paymentRecords.user_id, document.user_id)))
+          .orderBy(desc(paymentRecords.paid_at))
+      : Promise.resolve([]),
+    isInvoice
+      ? db
+          .select({ id: creditNotes.id, number: creditNotes.number, amount: creditNotes.amount, reason: creditNotes.reason, issued_at: creditNotes.issued_at })
+          .from(creditNotes)
+          .where(and(eq(creditNotes.document_id, id), eq(creditNotes.user_id, document.user_id)))
+          .orderBy(desc(creditNotes.issued_at))
+      : Promise.resolve([]),
+    isInvoice
+      ? db
+          .select({ frequency: recurringSchedules.frequency, next_run_at: recurringSchedules.next_run_at, active: recurringSchedules.active })
+          .from(recurringSchedules)
+          .where(and(eq(recurringSchedules.source_document_id, id), eq(recurringSchedules.user_id, document.user_id), eq(recurringSchedules.active, true)))
+          .limit(1)
+      : Promise.resolve([]),
   ])
 
   return (
@@ -166,7 +159,7 @@ export default async function DocumentDetailPage({
       {/* Preview, Actions and Payments */}
       <DocumentDetailView
         document={document as Document & { line_items: LineItem[] }}
-        profile={applyBranding(plan, profile as Profile | null)}
+        profile={applyBranding(plan, (profile ?? null) as Profile | null)}
         showActions={true}
       />
       {document.type === "invoice" && (
@@ -174,10 +167,10 @@ export default async function DocumentDetailPage({
           <InvoiceSettlementPanel
             documentId={document.id}
             grandTotal={Number(document.grand_total)}
-            currency={document.currency}
+            currency={document.currency as Document["currency"]}
             status={document.status}
-            payments={paymentRecords || []}
-            credits={creditNotes || []}
+            payments={payments}
+            credits={credits}
           />
           <InvoiceAutomationPanel
             documentId={document.id}

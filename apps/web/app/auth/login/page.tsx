@@ -2,7 +2,8 @@
 
 import React from "react"
 
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/auth/client'
+import { authErrorMessage } from '@/lib/auth/error-message'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -65,64 +66,60 @@ export default function Page() {
     setMounted(true)
     const lastUsed = localStorage.getItem('lastLoginMethod')
     if (lastUsed) setLastUsedMethod(lastUsed)
-    // /auth/callback redirects here with ?error= when a code exchange fails
+    // A failed Google/GitHub sign-in comes back here with ?error=
     const message = new URLSearchParams(window.location.search).get('error')
     if (message) setError(message)
   }, [])
 
   const handleGitHubLogin = async () => {
-    const supabase = createClient()
     setIsGitHubLoading(true)
     setError(null)
     localStorage.setItem('lastLoginMethod', 'github')
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await authClient.signIn.social({
         provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        callbackURL: `${window.location.origin}/dashboard`,
+        errorCallbackURL: `${window.location.origin}/auth/login`,
       })
       if (error) throw error
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(authErrorMessage(error))
       setIsGitHubLoading(false)
     }
   }
 
   const handleGoogleLogin = async () => {
-    const supabase = createClient()
     setIsGoogleLoading(true)
     setError(null)
     localStorage.setItem('lastLoginMethod', 'google')
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await authClient.signIn.social({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        callbackURL: `${window.location.origin}/dashboard`,
+        errorCallbackURL: `${window.location.origin}/auth/login`,
       })
       if (error) throw error
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(authErrorMessage(error))
       setIsGoogleLoading(false)
     }
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     try {
       localStorage.setItem('lastLoginMethod', 'email')
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await authClient.signIn.email({ email, password })
       if (error) throw error
       router.push('/dashboard')
+      router.refresh()
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(authErrorMessage(error))
     } finally {
       setIsLoading(false)
     }

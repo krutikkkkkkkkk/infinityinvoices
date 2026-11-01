@@ -19,7 +19,8 @@ export default async function LoginPage({
           <img src="/brand-logo.svg" alt="" className="size-8 rounded-lg" />
           <span className="text-lg font-semibold">Infinity Invoice Admin</span>
         </div>
-        <LoginForm initialError={error ? ERROR_MESSAGES[error] ?? null : null} />
+        {/* Unknown codes come from a failed Google/GitHub sign-in */}
+        <LoginForm initialError={error ? ERROR_MESSAGES[error] ?? ERROR_MESSAGES.auth : null} />
       </div>
     </div>
   )

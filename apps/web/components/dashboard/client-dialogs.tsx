@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { createClient } from "@/lib/supabase/client"
+import { deleteClient, updateClient } from "@/app/dashboard/clients/actions"
 import type { Client } from "@/lib/types"
 
 function toForm(client: Client | null) {
@@ -71,24 +71,10 @@ export function EditClientDialog({
     if (!client) return
 
     startTransition(async () => {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from("clients")
-        .update({
-          name: formData.name,
-          company_name: formData.company_name || null,
-          contact_person: formData.contact_person || null,
-          email: formData.email || null,
-          phone: formData.phone || null,
-          address: formData.address || null,
-          gst_id: formData.gst_id || null,
-          pan_number: formData.pan_number || null,
-          auto_reminder: formData.auto_reminder,
-        })
-        .eq("id", client.id)
+      const { error } = await updateClient(client.id, formData)
 
       if (error) {
-        toast.error("Couldn't save client", { description: error.message })
+        toast.error("Couldn't save client", { description: error })
         return
       }
       toast.success(`${formData.name} updated`)
@@ -192,10 +178,9 @@ export function DeleteClientDialog({
     e.preventDefault()
     if (!client) return
     startTransition(async () => {
-      const supabase = createClient()
-      const { error } = await supabase.from("clients").delete().eq("id", client.id)
+      const { error } = await deleteClient(client.id)
       if (error) {
-        toast.error("Couldn't delete client", { description: error.message })
+        toast.error("Couldn't delete client", { description: error })
         return
       }
       toast.success(`${client.name} deleted`)

@@ -1,6 +1,6 @@
 "use client"
 
-import { createClient } from "@/lib/supabase/client"
+import { authClient } from "@/lib/auth/client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User } from "@supabase/supabase-js"
+import type { AuthUser } from "@/lib/auth/server"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { InvoiceIcon, Logout03Icon, Settings01Icon, UserIcon, Menu01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
@@ -29,16 +29,16 @@ const navItems = [
   { href: "/dashboard/products", label: "Products" },
 ]
 
-export function DashboardHeader({ user }: { user: User }) {
+export function DashboardHeader({ user }: { user: AuthUser }) {
   const router = useRouter()
   const pathname = usePathname()
   const { subscription, isPro } = useSubscription()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    await authClient.signOut()
     router.push("/auth/login")
+    router.refresh()
   }
 
   const isActive = (href: string) => {

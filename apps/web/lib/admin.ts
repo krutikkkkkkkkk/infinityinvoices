@@ -1,19 +1,19 @@
-import { createClient } from "@/lib/supabase/server"
+import { db, eq, superAdmins } from "@infinity/db"
+import { getCurrentUser } from "@/lib/auth/server"
 
 /**
  * Check if the current user is an admin
  */
 export async function isAdmin(): Promise<boolean> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
+  const user = await getCurrentUser()
+
   if (!user) return false
-  
-  const { data: adminRecord } = await supabase
-    .from("super_admins")
-    .select("id")
-    .eq("user_id", user.id)
-    .single()
-  
+
+  const [adminRecord] = await db
+    .select({ id: superAdmins.id })
+    .from(superAdmins)
+    .where(eq(superAdmins.user_id, user.id))
+    .limit(1)
+
   return !!adminRecord
 }
