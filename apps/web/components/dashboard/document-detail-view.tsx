@@ -6,11 +6,11 @@ import { DocumentPrintPreview } from "./document-print-preview"
 import { TemplateSelector, type TemplateType } from "./template-selector"
 import { DocumentStyleControls } from "./document-style-controls"
 import { DocumentActions } from "./document-actions"
-import type { Document, LineItem, LogoSize, Profile } from "@/lib/types"
-import { updateLogoSize } from "@/app/dashboard/settings/actions"
+import type { Document, LineItem, LogoBackground, LogoSize, Profile } from "@/lib/types"
+import { updateLogoBackground, updateLogoSize } from "@/app/dashboard/settings/actions"
 import { useSubscription } from "@/hooks/use-subscription"
 import { applyBranding, canUseTemplate } from "@/lib/plans"
-import { isLogoSize, type TemplateColors } from "@/lib/generate-document-html"
+import { isLogoBackground, isLogoSize, type TemplateColors } from "@/lib/generate-document-html"
 import {
   DEFAULT_DOCUMENT_STYLE,
   readStoredDocumentStyle,
@@ -26,9 +26,12 @@ interface DocumentDetailViewProps {
 
 export function DocumentDetailView({ document, profile, showActions = false }: DocumentDetailViewProps) {
   const [style, setStyleState] = useState<DocumentStyle>(DEFAULT_DOCUMENT_STYLE)
-  // Logo size is a profile setting (it applies to every document and the PDF/email/share
-  // renderers read it from the profile); kept locally too so the preview updates instantly.
+  // Logo size and background are profile settings (they apply to every document and the PDF/email/share
+  // renderers read them from the profile); kept locally too so the preview updates instantly.
   const [logoSize, setLogoSizeState] = useState<LogoSize>(isLogoSize(profile?.logo_size) ? profile.logo_size : "medium")
+  const [logoBackground, setLogoBackgroundState] = useState<LogoBackground>(
+    isLogoBackground(profile?.logo_background) ? profile.logo_background : "original"
+  )
   const { plan, isLoading: isPlanLoading } = useSubscription()
 
   // A remembered Pro template on a Free plan falls back to Classic, matching what the PDF route renders
@@ -68,6 +71,16 @@ export function DocumentDetailView({ document, profile, showActions = false }: D
     }
   }
 
+  const setLogoBackground = async (next: LogoBackground) => {
+    const previous = logoBackground
+    setLogoBackgroundState(next)
+    const result = await updateLogoBackground(next).catch(() => ({ error: "Couldn't save the logo background" }))
+    if (result.error) {
+      setLogoBackgroundState(previous)
+      toast.error(result.error)
+    }
+  }
+
   // A preset brings its template and the colours it saved; colours for other templates are kept.
   const applyPresetStyle = (preset: DocumentStyle) =>
     updateStyle({ template: preset.template, colors: { ...style.colors, ...preset.colors } })
@@ -76,9 +89,9 @@ export function DocumentDetailView({ document, profile, showActions = false }: D
   // plan's branding rules applied, so it always matches the downloaded file.
   // Memoised so the preview and the template thumbnails don't reload their iframes on every render.
   const previewProfile = useMemo(() => {
-    const withSize = profile ? { ...profile, logo_size: logoSize } : profile
-    return isPlanLoading ? withSize : applyBranding(plan, withSize)
-  }, [isPlanLoading, plan, profile, logoSize])
+    const withLogo = profile ? { ...profile, logo_size: logoSize, logo_background: logoBackground } : profile
+    return isPlanLoading ? withLogo : applyBranding(plan, withLogo)
+  }, [isPlanLoading, plan, profile, logoSize, logoBackground])
 
   return (
     <div className="space-y-4">
@@ -112,6 +125,8 @@ export function DocumentDetailView({ document, profile, showActions = false }: D
             onApplyPreset={applyPresetStyle}
             logoSize={logoSize}
             onLogoSizeChange={setLogoSize}
+            logoBackground={logoBackground}
+            onLogoBackgroundChange={setLogoBackground}
             hasLogo={Boolean(profile?.logo_url)}
             locked={!isPlanLoading && !plan.customBranding}
           />

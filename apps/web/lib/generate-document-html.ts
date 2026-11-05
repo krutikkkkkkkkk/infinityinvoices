@@ -1,4 +1,4 @@
-import { CURRENCIES, type Document, type LineItem, type LogoSize, type PaymentMethodType } from "./types"
+import { CURRENCIES, type Document, type LineItem, type LogoBackground, type LogoSize, type PaymentMethodType } from "./types"
 import { escapeHtml, safeHttpUrl } from "./escape-html"
 
 /**
@@ -130,6 +130,45 @@ export function isLogoSize(value: unknown): value is LogoSize {
   return typeof value === "string" && value in LOGO_SCALE
 }
 
+export const LOGO_BACKGROUNDS: { value: LogoBackground; label: string }[] = [
+  { value: "original", label: "Original" },
+  { value: "white", label: "White" },
+  { value: "black", label: "Black" },
+  { value: "invert", label: "Invert" },
+]
+
+/**
+ * Inline style for a bare logo image. White and black put the logo on a padded tile; content-box
+ * keeps the padding outside each template's logo box so the logo itself isn't shrunk. Invert
+ * flips light and dark, and the hue rotation turns the colours back so the brand hue survives.
+ */
+const LOGO_BACKGROUND_STYLE: Record<LogoBackground, string> = {
+  original: "",
+  white: "background: #ffffff; padding: 6px; border-radius: 6px; box-sizing: content-box;",
+  black: "background: #000000; padding: 6px; border-radius: 6px; box-sizing: content-box;",
+  invert: "filter: invert(1) hue-rotate(180deg);",
+}
+
+export function isLogoBackground(value: unknown): value is LogoBackground {
+  return typeof value === "string" && value in LOGO_BACKGROUND_STYLE
+}
+
+/**
+ * Background for templates that already hold the logo in their own white box (Dark, Executive):
+ * the box takes the chosen colour instead of nesting a second tile, and turns transparent for
+ * Invert so the light logo sits on the template's dark surface.
+ */
+function logoBoxColor(background: LogoBackground): string {
+  return background === "black" ? "#000000" : background === "invert" ? "transparent" : "#ffffff"
+}
+
+/** ` style="..."` for the logo image, or "". In a boxed template only Invert touches the image. */
+function logoStyle(ctx: { logoBackground: LogoBackground }, opts: { boxed?: boolean } = {}): string {
+  const background = opts.boxed && ctx.logoBackground !== "invert" ? "original" : ctx.logoBackground
+  const style = LOGO_BACKGROUND_STYLE[background]
+  return style ? ` style="${style}"` : ""
+}
+
 export interface TemplateProfile {
   company_name?: string | null
   company_address?: string | null
@@ -138,6 +177,7 @@ export interface TemplateProfile {
   phone?: string | null
   logo_url?: string | null
   logo_size?: string | null
+  logo_background?: string | null
   upi_id?: string | null
   paypal_email?: string | null
   bank_name?: string | null
@@ -254,6 +294,8 @@ interface Ctx {
   logo: string
   /** Scales a template's logo dimension (px) by the profile's logo size. */
   logoPx: (px: number) => string
+  /** What sits behind the logo: see logoStyle and logoBoxColor. */
+  logoBackground: LogoBackground
   client: Party
   totals: Totals
   payment: PaymentInfo
@@ -390,6 +432,7 @@ function buildContext(
     },
     logo: logoUrl ? esc(logoUrl) : "",
     logoPx: (px) => `${Math.round(px * LOGO_SCALE[isLogoSize(p.logo_size) ? p.logo_size : "medium"])}px`,
+    logoBackground: isLogoBackground(p.logo_background) ? p.logo_background : "original",
     client: {
       name: esc(doc.client_name || "Client"),
       address: esc(doc.client_address),
@@ -829,7 +872,7 @@ table.items td { padding: 10px 8px 10px 0; }
 
   const initial = /^[\p{L}\p{N}]/u.exec(ctx.company.name)?.[0].toUpperCase() ?? ""
   const mark = ctx.logo
-    ? `<img class="logo" src="${ctx.logo}" alt="Logo">`
+    ? `<img class="logo" src="${ctx.logo}" alt="Logo"${logoStyle(ctx)}>`
     : initial
       ? `<div class="monogram">${initial}</div>`
       : ""
@@ -941,7 +984,7 @@ table.items td.c-amount { color: #1a1a1a; font-weight: 600; }
   const body = `<div class="wrap">
   <header class="header">
     <div>
-      ${ctx.logo ? `<img class="logo" src="${ctx.logo}" alt="Logo">` : ""}
+      ${ctx.logo ? `<img class="logo" src="${ctx.logo}" alt="Logo"${logoStyle(ctx)}>` : ""}
       <div class="title">${ctx.label}</div>
       ${ctx.statusBadge ? `<div style="margin-top:10px">${ctx.statusBadge}</div>` : ""}
     </div>
@@ -1108,7 +1151,7 @@ table.taxes tfoot td { font-weight: 700; color: #111827; border-top: 1px solid #
   const body = `<div class="wrap">
   <header class="header">
     <div class="brand">
-      ${ctx.logo ? `<img class="logo" src="${ctx.logo}" alt="Logo">` : ""}
+      ${ctx.logo ? `<img class="logo" src="${ctx.logo}" alt="Logo"${logoStyle(ctx)}>` : ""}
       <div>
         <div class="company-name">${ctx.company.name}</div>
         ${ctx.company.address ? `<div class="company-line pre">${ctx.company.address}</div>` : ""}
@@ -1190,7 +1233,7 @@ body { color: ${text}; }
 .wrap { padding: 0 16mm; }
 .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 26px; padding-bottom: 22px; border-bottom: 1px solid ${border}; }
 .brand { display: flex; gap: 14px; align-items: flex-start; }
-.logo-box { width: ${ctx.logoPx(56)}; height: ${ctx.logoPx(56)}; background: #ffffff; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 6px; flex: 0 0 auto; }
+.logo-box { width: ${ctx.logoPx(56)}; height: ${ctx.logoPx(56)}; background: ${logoBoxColor(ctx.logoBackground)}; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 6px; flex: 0 0 auto; }
 .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .company-name { font-size: 16px; font-weight: 700; color: ${text}; }
 .party-line { font-size: 11px; color: ${muted}; }
@@ -1242,7 +1285,7 @@ table.items td.c-amount { color: ${text}; font-weight: 600; }
   const body = `<div class="wrap">
   <header class="header">
     <div class="brand">
-      ${ctx.logo ? `<div class="logo-box"><img src="${ctx.logo}" alt="Logo"></div>` : ""}
+      ${ctx.logo ? `<div class="logo-box"><img src="${ctx.logo}" alt="Logo"${logoStyle(ctx, { boxed: true })}></div>` : ""}
       <div>
         <div class="company-name">${ctx.company.name}</div>
         ${partyLines(ctx.company, { gstLabel: "GST" })}
@@ -1295,7 +1338,7 @@ function executiveTemplate(ctx: Ctx): string {
   const css = `
 body { color: #111827; background: #ffffff; }
 .sidebar { position: fixed; top: 0; left: 0; width: ${sidebarWidth}mm; height: 297mm; background: linear-gradient(180deg, ${c.primary} 0%, ${shade(c.primary, 0.3)} 100%); color: ${onPrimary}; padding: 14mm 6mm 12mm; display: flex; flex-direction: column; border-right: 2px solid ${c.accent}; }
-.sidebar .logo-strip { background: #ffffff; margin: -14mm -6mm 16px; padding: 10mm 6mm 7mm; border-bottom: 3px solid ${c.accent}; }
+.sidebar .logo-strip { background: ${logoBoxColor(ctx.logoBackground)}; margin: -14mm -6mm 16px; padding: 10mm 6mm 7mm; border-bottom: 3px solid ${c.accent}; }
 .sidebar .logo-strip img { display: block; max-height: ${ctx.logoPx(48)}; max-width: 100%; object-fit: contain; margin: 0 auto; }
 .sidebar .company-name { font-size: 12.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; line-height: 1.3; }
 .sidebar .party-line { font-size: 10px; color: ${onPrimarySoft}; line-height: 1.55; }
@@ -1377,7 +1420,7 @@ table.items td.c-amount { color: ${ink(c.primary)}; font-weight: 700; }
     : ""
 
   const sidebar = `<aside class="sidebar screen-span">
-  ${ctx.logo ? `<div class="logo-strip"><img src="${ctx.logo}" alt="Logo"></div>` : ""}
+  ${ctx.logo ? `<div class="logo-strip"><img src="${ctx.logo}" alt="Logo"${logoStyle(ctx, { boxed: true })}></div>` : ""}
   <div class="company-name">${ctx.company.name}</div>
   ${partyLines(ctx.company, { gstLabel: "GST" })}
   <div class="gold-rule"></div>
@@ -1506,7 +1549,7 @@ table.items td.c-amount { color: #111827; font-weight: 800; }
   const body = `<div class="band">
   <div class="band-inner">
     <div>
-      ${ctx.logo ? `<img class="logo" src="${ctx.logo}" alt="Logo">` : ""}
+      ${ctx.logo ? `<img class="logo" src="${ctx.logo}" alt="Logo"${logoStyle(ctx)}>` : ""}
       <div class="company-name">${ctx.company.name}</div>
       ${partyLines(ctx.company, { gstLabel: "GST" })}
     </div>

@@ -82,6 +82,9 @@ export const profiles = pgTable(
     phone: text("phone"),
     logo_url: text("logo_url"),
     logo_size: text("logo_size", { enum: ["small", "medium", "large", "xlarge"] }).notNull().default("medium"),
+    logo_background: text("logo_background", { enum: ["original", "white", "black", "invert"] })
+      .notNull()
+      .default("original"),
     upi_id: text("upi_id"),
     paypal_email: text("paypal_email"),
     bank_name: text("bank_name"),

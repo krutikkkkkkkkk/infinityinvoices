@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { db, eq, profiles } from "@infinity/db"
 import { requireUser } from "@/lib/auth/server"
 import { CURRENCIES } from "@/lib/types"
-import { isLogoSize } from "@/lib/generate-document-html"
+import { isLogoBackground, isLogoSize } from "@/lib/generate-document-html"
 
 export interface ProfileInput {
   company_name: string
@@ -68,6 +68,20 @@ export async function updateLogoSize(size: string): Promise<{ error?: string }> 
     .insert(profiles)
     .values({ id: user.id, logo_size: size })
     .onConflictDoUpdate({ target: profiles.id, set: { logo_size: size } })
+
+  revalidatePath("/dashboard", "layout")
+  return {}
+}
+
+/** Saves what sits behind the logo on the user's documents (preview, PDF, email and share link). */
+export async function updateLogoBackground(background: string): Promise<{ error?: string }> {
+  const user = await requireUser()
+  if (!isLogoBackground(background)) return { error: "Choose a valid logo background" }
+
+  await db
+    .insert(profiles)
+    .values({ id: user.id, logo_background: background })
+    .onConflictDoUpdate({ target: profiles.id, set: { logo_background: background } })
 
   revalidatePath("/dashboard", "layout")
   return {}

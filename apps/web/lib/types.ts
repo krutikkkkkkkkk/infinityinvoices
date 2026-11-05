@@ -3,6 +3,8 @@ export type DocumentStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
 export type DiscountType = 'percentage' | 'fixed'
 /** How large the company logo is drawn on documents, relative to each template's default. */
 export type LogoSize = 'small' | 'medium' | 'large' | 'xlarge'
+/** What sits behind the logo on documents, for logos that don't read on a template's colours. */
+export type LogoBackground = 'original' | 'white' | 'black' | 'invert'
 export type PaymentMethodType = 'bank' | 'upi' | 'paypal' | 'other'
 export type Currency = 'INR' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY' | 'CNY' | 'CHF' | 'SGD' | 'AED' | 'SAR' | 'MXN' | 'BRL' | 'ZAR'
 
@@ -15,6 +17,7 @@ export interface Profile {
   phone: string | null
   logo_url: string | null
   logo_size?: LogoSize
+  logo_background?: LogoBackground
   upi_id: string | null
   paypal_email: string | null
   bank_name: string | null

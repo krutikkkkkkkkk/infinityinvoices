@@ -122,7 +122,7 @@ export function LogoUpload({ currentLogoUrl, onUploadComplete }: LogoUploadProps
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-medium">Company Logo</h3>
-          <p className="text-xs text-muted-foreground">PNG, JPG, GIF (Max 5MB)</p>
+          <p className="text-xs text-muted-foreground">PNG, JPG, GIF or WebP (Max 5MB)</p>
         </div>
       </div>
 
@@ -185,6 +185,12 @@ export function LogoUpload({ currentLogoUrl, onUploadComplete }: LogoUploadProps
           </>
         )}
       </Button>
+
+      {/* Templates fit the logo in a ~160×56px box (up to 1.8× at XL), so 3× that stays sharp in PDFs */}
+      <p className="text-xs text-muted-foreground">
+        For best results, use a wide logo around 600×200px, or a square one at least 300×300px. A transparent PNG works
+        best on every template.
+      </p>
     </div>
   )
 }

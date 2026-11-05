@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
         phone: profiles.phone,
         logo_url: profiles.logo_url,
         logo_size: profiles.logo_size,
+        logo_background: profiles.logo_background,
         upi_id: profiles.upi_id,
         paypal_email: profiles.paypal_email,
         bank_name: profiles.bank_name,

@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { listInvoicePresets, type InvoicePresetSummary } from "@/app/dashboard/invoicing/actions"
 import type { DocumentStyle } from "@/lib/document-style"
-import type { LogoSize } from "@/lib/types"
+import type { LogoBackground, LogoSize } from "@/lib/types"
 import {
+  LOGO_BACKGROUNDS,
   LOGO_SIZES,
   TEMPLATE_DEFAULT_COLORS,
   normalizeHexColor,
@@ -127,6 +128,9 @@ interface DocumentStyleControlsProps {
   /** How large the profile logo is drawn; saved on the profile, not per template. */
   logoSize: LogoSize
   onLogoSizeChange: (size: LogoSize) => void
+  /** What sits behind the profile logo; saved on the profile like the size. */
+  logoBackground: LogoBackground
+  onLogoBackgroundChange: (background: LogoBackground) => void
   /** Whether the profile has a logo to resize. */
   hasLogo: boolean
   /** True on plans without custom branding: controls show but can't be used. */
@@ -146,6 +150,8 @@ export function DocumentStyleControls({
   onApplyPreset,
   logoSize,
   onLogoSizeChange,
+  logoBackground,
+  onLogoBackgroundChange,
   hasLogo,
   locked,
 }: DocumentStyleControlsProps) {
@@ -262,6 +268,42 @@ export function DocumentStyleControls({
                 Upload a logo
               </Link>{" "}
               in Settings to resize it here.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <Label id="style-logo-background">Logo background</Label>
+            <span className="text-xs text-muted-foreground">all documents</span>
+          </div>
+          <div
+            role="radiogroup"
+            aria-labelledby="style-logo-background"
+            className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1"
+          >
+            {LOGO_BACKGROUNDS.map((background) => (
+              <button
+                key={background.value}
+                type="button"
+                role="radio"
+                aria-checked={logoBackground === background.value}
+                disabled={locked || !hasLogo}
+                onClick={() => onLogoBackgroundChange(background.value)}
+                className={cn(
+                  "rounded-md py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  logoBackground === background.value
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {background.label}
+              </button>
+            ))}
+          </div>
+          {hasLogo && !locked && (
+            <p className="text-xs text-muted-foreground">
+              Use White or Black if your logo blends into the template, or Invert to flip a dark logo light.
             </p>
           )}
         </div>
