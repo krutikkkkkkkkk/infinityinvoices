@@ -261,7 +261,7 @@ importers:
         version: 1.1.6(@types/react-dom@19.2.3(@types/react@19.2.11))(@types/react@19.2.11)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@react-email/render':
         specifier: latest
-        version: 2.2.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 2.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@sparticuz/chromium':
         specifier: ^143.0.4
         version: 143.0.4(debug@4.4.3)
@@ -327,7 +327,7 @@ importers:
         version: 2.15.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       resend:
         specifier: 6.17.0
-        version: 6.17.0(@react-email/render@2.2.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+        version: 6.17.0(@react-email/render@2.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       server-only:
         specifier: 0.0.1
         version: 0.0.1
@@ -2854,8 +2854,8 @@ packages:
   '@radix-ui/rect@1.1.1':
     resolution: {integrity: sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==}
 
-  '@react-email/render@2.2.0':
-    resolution: {integrity: sha512-WCtHV8ww0OYajz+idpx1jQNlO3RrvcjTihlEWozgLQZlM/1QveLU5ZdVyLTmm6WWY0wohGV0cIx9CB0HpfLJcw==}
+  '@react-email/render@2.3.1':
+    resolution: {integrity: sha512-suLxph30AiKy40PPSLQvpZIoQAz5wZ9Vucj+3XlAS1GWWa//TAqysqaa7rorKWNw18I7UxqvjCOj/TFPJeF6nA==}
     engines: {node: '>=20.19.0'}
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
@@ -4001,8 +4001,8 @@ packages:
   headers-polyfill@4.0.3:
     resolution: {integrity: sha512-IScLbePpkvO846sIwOtOTDjutRMWdXdJmXdMvk6gCBHxFO8d+QKOQedyZSxFTTFYRSmlgSTDtXqqq4pcenBXLQ==}
 
-  hono@4.12.9:
-    resolution: {integrity: sha512-wy3T8Zm2bsEvxKZM5w21VdHDDcwVS1yUFFY6i8UobSsKfFceT7TOwhbhfKsDyx7tYQlmRM5FLpIuYvNFyjctiA==}
+  hono@4.13.18:
+    resolution: {integrity: sha512-H9q/E1XizaWstJxUW881dmLxEj+t/TrGGnyxINkm4+sK0qUwsMtFdo2BWI9Vs3cIS19MU6b6iCijoUoEf4f3DA==}
     engines: {node: '>=16.9.0'}
 
   html-to-text@10.0.1:
@@ -5803,9 +5803,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@hono/node-server@1.19.11(hono@4.12.9)':
+  '@hono/node-server@1.19.11(hono@4.13.18)':
     dependencies:
-      hono: 4.12.9
+      hono: 4.13.18
 
   '@hookform/resolvers@3.10.0(react-hook-form@7.71.1(react@19.2.0))':
     dependencies:
@@ -5963,7 +5963,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.28.0(zod@3.25.76)':
     dependencies:
-      '@hono/node-server': 1.19.11(hono@4.12.9)
+      '@hono/node-server': 1.19.11(hono@4.13.18)
       ajv: 8.18.0
       ajv-formats: 3.0.1
       content-type: 1.0.5
@@ -5973,7 +5973,7 @@ snapshots:
       eventsource-parser: 3.0.6
       express: 5.2.1
       express-rate-limit: 8.3.1(express@5.2.1)
-      hono: 4.12.9
+      hono: 4.13.18
       jose: 6.2.2
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -7529,7 +7529,7 @@ snapshots:
 
   '@radix-ui/rect@1.1.1': {}
 
-  '@react-email/render@2.2.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+  '@react-email/render@2.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       entities: 4.5.0
       html-to-text: 10.0.1
@@ -8550,7 +8550,7 @@ snapshots:
 
   headers-polyfill@4.0.3: {}
 
-  hono@4.12.9: {}
+  hono@4.13.18: {}
 
   html-to-text@10.0.1:
     dependencies:
@@ -9300,12 +9300,12 @@ snapshots:
 
   require-from-string@2.0.2: {}
 
-  resend@6.17.0(@react-email/render@2.2.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)):
+  resend@6.17.0(@react-email/render@2.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)):
     dependencies:
       postal-mime: 2.7.4
       standardwebhooks: 1.0.0
     optionalDependencies:
-      '@react-email/render': 2.2.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@react-email/render': 2.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
   resolve-from@4.0.0: {}
 
