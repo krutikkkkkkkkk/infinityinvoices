@@ -83,6 +83,9 @@ Each app reads its own env files: `apps/web/.env` / `.env.local`, `apps/admin/.e
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | URL of the invoicing app that the landing page links to |
+| `NEXT_PUBLIC_LANDING_URL` | Public URL of the landing site, used for canonical URLs, the sitemap and share images (defaults to `https://infinityinvoices.com`) |
+| `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Optional. Verification token from Google Search Console |
+| `NEXT_PUBLIC_BING_SITE_VERIFICATION` | Optional. Verification token from Bing Webmaster Tools |
 
 See also [`MULTI_CURRENCY_SETUP.md`](apps/web/MULTI_CURRENCY_SETUP.md).
 

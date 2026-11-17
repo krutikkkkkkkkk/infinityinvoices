@@ -2,12 +2,13 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { LegalPage } from "@/components/landing/legal-page"
 import { SUPPORT_EMAIL } from "@/lib/config"
+import { pageMetadata } from "@/lib/seo"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Terms & Conditions - Infinity Invoices",
   description: "The terms that apply when you use Infinity Invoices.",
-  alternates: { canonical: "/terms" },
-}
+  path: "/terms",
+})
 
 export default function TermsPage() {
   return (

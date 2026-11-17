@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { APP_URL, GITHUB_URL, SUPPORT_EMAIL } from "@/lib/config"
+import { TOOLS } from "@/lib/tools"
 
 const COLUMNS = [
   {
@@ -11,6 +12,10 @@ const COLUMNS = [
       { href: "/blog", label: "Blog" },
       { href: GITHUB_URL, label: "GitHub" },
     ],
+  },
+  {
+    title: "Free tools",
+    links: [{ href: "/", label: "Free invoice maker" }, ...TOOLS.map((tool) => ({ href: `/${tool.slug}`, label: tool.name }))],
   },
   {
     title: "Account",
@@ -33,14 +38,14 @@ export function SiteFooter() {
   return (
     <footer className="px-3 pt-4 pb-3 sm:px-4">
       <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-border/60 bg-card">
-        <div className="grid gap-10 px-5 pt-12 sm:px-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 px-5 pt-12 sm:grid-cols-2 sm:px-10 md:grid-cols-3 lg:grid-cols-[1.4fr_1fr_1.3fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold">
               <img src="/logo.svg" alt="" className="h-7 w-7" />
               Infinity Invoices
             </Link>
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-              Invoicing for people who send four invoices a month, not forty. Open source and MIT licensed.
+              A free invoice maker for people who send four invoices a month, not forty. Open source and MIT licensed.
             </p>
             <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-4 inline-block text-sm text-muted-foreground transition-colors hover:text-foreground">
               {SUPPORT_EMAIL}

@@ -3,33 +3,44 @@ import { GITHUB_URL, SITE_URL, SUPPORT_EMAIL } from "./config"
 
 export const SITE_NAME = "Infinity Invoices"
 
-// A page that sets its own openGraph block drops the image inherited from app/opengraph-image.tsx,
-// so every page names it explicitly.
-export const SHARE_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "Infinity Invoices, a free invoice maker" }
+/**
+ * The share card for a page. Cards are drawn by the opengraph-image.tsx next to each route (see lib/og.tsx)
+ * and served at <route>/opengraph-image. A page that sets its own openGraph block does not pick its card
+ * up automatically, so every page names it explicitly.
+ *
+ * Pass `path` only for a route that has its own opengraph-image.tsx; without it the site-wide card is used.
+ */
+export function shareImage(alt: string, path = "") {
+  return { url: `${path}/opengraph-image`, width: 1200, height: 630, alt }
+}
+
+export const SHARE_IMAGE = shareImage("Infinity Invoices, a free invoice maker for freelancers")
 
 /**
  * Title, description, canonical URL and social cards for a public page.
  * `path` is the page's own path ("/" or "/quotation-maker"): it becomes the canonical URL,
- * so every indexable page must pass its own.
+ * so every indexable page must pass its own. `image` defaults to the site-wide share card.
  */
 export function pageMetadata({
   title,
   description,
   path,
   keywords,
+  image = SHARE_IMAGE,
 }: {
   title: string
   description: string
   path: string
   keywords?: string[]
+  image?: ReturnType<typeof shareImage>
 }): Metadata {
   return {
     title,
     description,
     keywords,
     alternates: { canonical: path },
-    openGraph: { type: "website", url: path, siteName: SITE_NAME, locale: "en_US", title, description, images: [SHARE_IMAGE] },
-    twitter: { card: "summary_large_image", title, description, images: [SHARE_IMAGE.url] },
+    openGraph: { type: "website", url: path, siteName: SITE_NAME, locale: "en_US", title, description, images: [image] },
+    twitter: { card: "summary_large_image", title, description, images: [image.url] },
   }
 }
 

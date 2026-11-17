@@ -145,7 +145,8 @@ export const post: BlogPost = {
           </ol>
           <Note title="One click instead of retyping">
             <p>
-              Infinity Invoices does quotations as well as invoices. When a client accepts, convert the quotation to an
+              Infinity Invoices is a <Link href="/quotation-maker">free quotation maker</Link> as well as an invoice
+              maker. When a client accepts, convert the quotation to an
               invoice and the client, line items and taxes carry over. The free plan includes 5 quotations a month.{" "}
               <a href={`${APP_URL}/auth/sign-up`}>Create a quotation</a>.
             </p>

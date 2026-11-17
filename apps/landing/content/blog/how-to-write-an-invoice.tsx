@@ -194,8 +194,9 @@ PO number: NW-2291. Thank you for your business.`}
           </p>
           <Note title="Or let the software do the boring parts">
             <p>
-              Infinity Invoices fills in your details, numbers each invoice, does the tax maths and saves your clients for
-              next time. It is free for 5 invoices a month.{" "}
+              Infinity Invoices is a <Link href="/">free invoice maker</Link> that fills in your details, numbers each
+              invoice, does the tax maths and saves your clients for next time. It is free for 5 invoices a month, with four{" "}
+              <Link href="/invoice-templates">invoice templates</Link> to choose from.{" "}
               <a href={`${APP_URL}/auth/sign-up`}>Create your first invoice</a>.
             </p>
           </Note>

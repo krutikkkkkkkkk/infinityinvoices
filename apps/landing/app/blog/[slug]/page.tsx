@@ -8,8 +8,9 @@ import { FinalCta } from "@/components/landing/final-cta"
 import { SiteFooter } from "@/components/landing/site-footer"
 import { SiteHeader } from "@/components/landing/site-header"
 import { Pill, card, cardHover } from "@/components/landing/ui"
-import { POSTS, SHARE_IMAGE, formatPostDate, getPost } from "@/lib/blog"
+import { POSTS, formatPostDate, getPost } from "@/lib/blog"
 import { SITE_URL } from "@/lib/config"
+import { shareImage } from "@/lib/seo"
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -26,6 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return {}
 
   const url = `/blog/${post.slug}`
+  const image = shareImage(post.title, url)
   return {
     title: `${post.title} - Infinity Invoices`,
     description: post.description,
@@ -39,9 +41,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post.description,
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt ?? post.publishedAt,
-      images: [SHARE_IMAGE],
+      images: [image],
     },
-    twitter: { card: "summary_large_image", title: post.title, description: post.description },
+    twitter: { card: "summary_large_image", title: post.title, description: post.description, images: [image.url] },
   }
 }
 
@@ -65,7 +67,7 @@ export default async function BlogPostPage({ params }: Props) {
       datePublished: post.publishedAt,
       dateModified: post.updatedAt ?? post.publishedAt,
       mainEntityOfPage: url,
-      image: `${SITE_URL}/opengraph-image`,
+      image: `${url}/opengraph-image`,
       author: { "@type": "Organization", name: "Infinity Invoices", url: SITE_URL },
       publisher: { "@type": "Organization", name: "Infinity Invoices", url: SITE_URL, logo: `${SITE_URL}/logo.svg` },
     },

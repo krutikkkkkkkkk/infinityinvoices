@@ -12,6 +12,7 @@ import { APP_URL, SUPPORT_EMAIL } from "@/lib/config"
 export const metadata: Metadata = {
   title: "Page not found - Infinity Invoices",
   description: "This page doesn't exist. Head back to Infinity Invoices to create and send an invoice.",
+  robots: { index: false, follow: true },
 }
 
 const LINKS = [

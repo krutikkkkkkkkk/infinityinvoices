@@ -1,12 +1,13 @@
 import type { Metadata } from "next"
 import { LegalPage } from "@/components/landing/legal-page"
 import { SUPPORT_EMAIL } from "@/lib/config"
+import { pageMetadata } from "@/lib/seo"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Privacy Policy - Infinity Invoices",
   description: "What Infinity Invoices collects, why, who it is shared with, and the choices you have.",
-  alternates: { canonical: "/privacy" },
-}
+  path: "/privacy",
+})
 
 export default function PrivacyPage() {
   return (

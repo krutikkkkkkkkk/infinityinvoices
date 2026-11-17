@@ -1,7 +1,7 @@
 {
   "name": "Infinity Invoices",
   "short_name": "Invoice",
-  "description": "Create professional invoices and quotations with ease",
+  "description": "Free invoice maker and generator for freelancers. Create an invoice, download the PDF and get paid.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -7,20 +7,20 @@ import { Eyebrow, Section } from "@/components/landing/section"
 import { SiteFooter } from "@/components/landing/site-footer"
 import { SiteHeader } from "@/components/landing/site-header"
 import { Pill, cardHover, cardInset } from "@/components/landing/ui"
-import { POSTS, SHARE_IMAGE, formatPostDate } from "@/lib/blog"
+import { POSTS, formatPostDate } from "@/lib/blog"
 import { SITE_URL } from "@/lib/config"
+import { pageMetadata, shareImage } from "@/lib/seo"
 
 const TITLE = "Blog - Invoicing guides for freelancers | Infinity Invoices"
 const DESCRIPTION =
   "Practical guides on writing invoices, payment terms, chasing overdue invoices, quotations, GST and billing international clients. Written for freelancers."
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: "/blog" },
-  openGraph: { type: "website", url: "/blog", siteName: "Infinity Invoices", title: TITLE, description: DESCRIPTION, images: [SHARE_IMAGE] },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-}
+  path: "/blog",
+  image: shareImage("Invoicing guides for freelancers", "/blog"),
+})
 
 // Tells search engines this page is a list of articles and where each one lives.
 const STRUCTURED_DATA = {

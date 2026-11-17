@@ -41,10 +41,6 @@ export function getPost(slug: string): BlogPost | undefined {
   return POSTS.find((post) => post.slug === slug)
 }
 
-// A page that sets its own openGraph block drops the image inherited from app/opengraph-image.tsx,
-// so blog pages name it explicitly.
-export const SHARE_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "Infinity Invoices" }
-
 /** "17 November 2026" */
 export function formatPostDate(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
