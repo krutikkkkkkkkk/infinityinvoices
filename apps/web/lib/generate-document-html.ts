@@ -15,16 +15,35 @@ import { escapeHtml, safeHttpUrl } from "./escape-html"
  * All user-supplied strings are HTML-escaped before they reach the markup.
  */
 
-export type TemplateType = "classic" | "minimal" | "tax" | "dark" | "executive" | "bold"
+/** The GST templates that split the tax: within a state, between states, or within a union territory. */
+export type GstSplit = "cgst_sgst" | "igst" | "cgst_utgst"
+
+export type TemplateType = "classic" | "minimal" | "tax" | "dark" | "executive" | "bold" | GstSplit
 
 export const TEMPLATE_TYPES: readonly TemplateType[] = [
   "classic",
   "minimal",
   "tax",
+  "cgst_sgst",
+  "igst",
+  "cgst_utgst",
   "dark",
   "executive",
   "bold",
 ] as const
+
+/** The name each template goes by in the app. */
+export const TEMPLATE_LABELS: Record<TemplateType, string> = {
+  classic: "Classic",
+  minimal: "Minimal",
+  tax: "GST, one amount",
+  cgst_sgst: "CGST + SGST",
+  igst: "IGST",
+  cgst_utgst: "CGST + UTGST",
+  dark: "Dark Modern",
+  executive: "Executive",
+  bold: "Bold",
+}
 
 export function isTemplateType(value: unknown): value is TemplateType {
   return typeof value === "string" && (TEMPLATE_TYPES as readonly string[]).includes(value)
@@ -46,6 +65,9 @@ export const TEMPLATE_DEFAULT_COLORS: Record<TemplateType, TemplateColors> = {
   classic: { primary: "#1a1a1a", accent: "#635bff" },
   minimal: { primary: "#1a1a1a", accent: "#8a8a80" },
   tax: { primary: "#1f2937", accent: "#b91c1c" },
+  cgst_sgst: { primary: "#1f2937", accent: "#1d4ed8" },
+  igst: { primary: "#1f2937", accent: "#0f766e" },
+  cgst_utgst: { primary: "#1f2937", accent: "#7c3aed" },
   dark: { primary: "#1c1c1e", accent: "#fbbf24" },
   executive: { primary: "#1e3a5f", accent: "#d4af37" },
   bold: { primary: "#0d0d0d", accent: "#fbbf24" },
@@ -533,14 +555,26 @@ function itemsTable(ctx: Ctx, opts: ItemsOptions = {}): string {
   </table>`
 }
 
-function totalsRows(ctx: Ctx, opts: { taxLabel?: string } = {}): string {
+interface TotalsOptions {
+  taxLabel?: string
+  subtotalLabel?: string
+  /** Shown in place of the single tax line, e.g. CGST and SGST. The amounts must add up to the tax total. */
+  taxRows?: { label: string; amount: number }[]
+}
+
+function totalsRows(ctx: Ctx, opts: TotalsOptions = {}): string {
   const t = ctx.totals
   const rows: string[] = []
-  rows.push(`<div class="tr"><span>Subtotal</span><span class="num">${ctx.money(t.subtotal)}</span></div>`)
+  rows.push(
+    `<div class="tr"><span>${opts.subtotalLabel ?? "Subtotal"}</span><span class="num">${ctx.money(t.subtotal)}</span></div>`
+  )
   if (ctx.includeTax && t.tax > 0) {
-    rows.push(
-      `<div class="tr tr-tax"><span>${opts.taxLabel ?? "Tax"}</span><span class="num">${ctx.money(t.tax)}</span></div>`
-    )
+    const taxRows = opts.taxRows ?? [{ label: opts.taxLabel ?? "Tax", amount: t.tax }]
+    for (const row of taxRows) {
+      rows.push(
+        `<div class="tr tr-tax"><span>${row.label}</span><span class="num">${ctx.money(row.amount)}</span></div>`
+      )
+    }
   }
   if (t.discountAmount > 0) {
     rows.push(
@@ -796,6 +830,10 @@ export function generateDocumentHTML(
       return minimalTemplate(ctx)
     case "tax":
       return taxTemplate(ctx)
+    case "cgst_sgst":
+    case "igst":
+    case "cgst_utgst":
+      return gstTemplate(ctx, template)
     case "dark":
       return darkTemplate(ctx)
     case "executive":
@@ -1037,13 +1075,14 @@ function taxBreakdown(ctx: Ctx): { rate: number; taxable: number; tax: number }[
   return [...groups.values()].sort((a, b) => a.rate - b.rate)
 }
 
-function taxTemplate(ctx: Ctx): string {
+/** Stylesheet for the framed tax-invoice layout, shared by the Tax Invoice and the GST split templates. */
+function taxCss(ctx: Ctx): string {
   const c = ctx.colors
   const accentDark = shade(ink(c.accent), 0.2)
   const accentTint = tint(c.accent, 0.92)
   const accentBorder = tint(c.accent, 0.7)
   const primaryText = contrastText(c.primary)
-  const css = `
+  return `
 body { color: #1f2937; background: #ffffff; }
 .frame { position: fixed; top: 6mm; left: 6mm; right: 6mm; bottom: 6mm; border: 1.5px solid ${c.accent}; pointer-events: none; }
 @media screen { .frame.screen-span { bottom: 6mm !important; } }
@@ -1117,7 +1156,25 @@ table.taxes tfoot td { font-weight: 700; color: #111827; border-top: 1px solid #
 .sign-space { height: 44px; }
 .sign-line { border-top: 1px solid #6b7280; padding-top: 5px; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #4b5563; }
 `
+}
 
+/** Declaration and signature block that closes the tax-invoice layouts. */
+function taxFooter(ctx: Ctx): string {
+  return `<footer class="footer">
+    <div class="declaration">
+      <div><strong>Declaration:</strong> We declare that this ${ctx.isQuote ? "quotation" : "invoice"} shows the actual price of the goods/services described and that all particulars are true and correct.</div>
+      <div style="margin-top:4px">This is a computer-generated document.</div>
+    </div>
+    <div class="signatory">
+      <div class="sign-for">For ${ctx.company.name}</div>
+      <div class="sign-space"></div>
+      <div class="sign-line">Authorised Signatory</div>
+    </div>
+  </footer>`
+}
+
+function taxTemplate(ctx: Ctx): string {
+  const css = taxCss(ctx)
   const breakdown = taxBreakdown(ctx)
   const taxesTable =
     breakdown.length > 0
@@ -1193,17 +1250,314 @@ table.taxes tfoot td { font-weight: 700; color: #111827; border-top: 1px solid #
   ${paymentBlock(ctx, { title: "Payment Details" })}
   ${notesBlock(ctx)}
 
-  <footer class="footer">
-    <div class="declaration">
-      <div><strong>Declaration:</strong> We declare that this ${ctx.isQuote ? "quotation" : "invoice"} shows the actual price of the goods/services described and that all particulars are true and correct.</div>
-      <div style="margin-top:4px">This is a computer-generated document.</div>
+  ${taxFooter(ctx)}
+</div>`
+
+  return shell({
+    title: `${ctx.label} ${ctx.number}`,
+    css,
+    body,
+    fixed: `<div class="frame screen-span"></div>`,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// GST split invoices (CGST + SGST, IGST, CGST + UTGST)
+// ---------------------------------------------------------------------------
+
+// State codes are the first two digits of a GSTIN. 25 and 28 are pre-reorganisation codes still seen on old registrations.
+const GST_STATES: Record<string, string> = {
+  "01": "Jammu and Kashmir",
+  "02": "Himachal Pradesh",
+  "03": "Punjab",
+  "04": "Chandigarh",
+  "05": "Uttarakhand",
+  "06": "Haryana",
+  "07": "Delhi",
+  "08": "Rajasthan",
+  "09": "Uttar Pradesh",
+  "10": "Bihar",
+  "11": "Sikkim",
+  "12": "Arunachal Pradesh",
+  "13": "Nagaland",
+  "14": "Manipur",
+  "15": "Mizoram",
+  "16": "Tripura",
+  "17": "Meghalaya",
+  "18": "Assam",
+  "19": "West Bengal",
+  "20": "Jharkhand",
+  "21": "Odisha",
+  "22": "Chhattisgarh",
+  "23": "Madhya Pradesh",
+  "24": "Gujarat",
+  "25": "Daman and Diu",
+  "26": "Dadra and Nagar Haveli and Daman and Diu",
+  "27": "Maharashtra",
+  "28": "Andhra Pradesh",
+  "29": "Karnataka",
+  "30": "Goa",
+  "31": "Lakshadweep",
+  "32": "Kerala",
+  "33": "Tamil Nadu",
+  "34": "Puducherry",
+  "35": "Andaman and Nicobar Islands",
+  "36": "Telangana",
+  "37": "Andhra Pradesh",
+  "38": "Ladakh",
+  "97": "Other Territory",
+}
+
+/** Union territories without their own legislature charge UTGST where a state would charge SGST. */
+const GST_UNION_TERRITORIES = new Set(["04", "25", "26", "31", "35", "38", "97"])
+
+/** The two-digit state code a GSTIN starts with, or null when the value isn't shaped like a GSTIN. */
+export function gstStateCode(gstin: string | null | undefined): string | null {
+  const match = /^(\d{2})[A-Z0-9]{13}$/i.exec(String(gstin ?? "").trim())
+  return match && GST_STATES[match[1]] ? match[1] : null
+}
+
+/** "Maharashtra (27)" */
+function gstStateLabel(code: string): string {
+  return `${GST_STATES[code]} (${code})`
+}
+
+/**
+ * The split that matches two GSTINs: the same state means CGST with SGST (or UTGST in a union
+ * territory), different states mean IGST. Null when either GSTIN is missing, because the place of
+ * supply for an unregistered client can't be read off the document.
+ */
+export function suggestGstSplit(
+  sellerGstin: string | null | undefined,
+  clientGstin: string | null | undefined
+): GstSplit | null {
+  const seller = gstStateCode(sellerGstin)
+  const client = gstStateCode(clientGstin)
+  if (!seller || !client) return null
+  if (seller !== client) return "igst"
+  return GST_UNION_TERRITORIES.has(seller) ? "cgst_utgst" : "cgst_sgst"
+}
+
+const GST_SPLITS: Record<GstSplit, { supply: string; taxes: [string, string] | [string] }> = {
+  cgst_sgst: { supply: "Intra-state", taxes: ["CGST", "SGST"] },
+  igst: { supply: "Inter-state", taxes: ["IGST"] },
+  cgst_utgst: { supply: "Union territory", taxes: ["CGST", "UTGST"] },
+}
+
+const toPaise = (amount: number) => Math.round(amount * 100) / 100
+
+/** Splits an amount into the parts shown on the invoice, to the paisa, so the parts always add back up. */
+function splitTax(amount: number, parts: number): number[] {
+  const whole = toPaise(amount)
+  if (parts === 1) return [whole]
+  const half = toPaise(whole / 2)
+  return [half, toPaise(whole - half)]
+}
+
+// "HSN 8471", "SAC: 998314", "(HSN/SAC 998314)": a code typed into a line item's name or description.
+const HSN_PATTERN = /[([]?\b(?:HSN|SAC)(?:\s*\/\s*(?:HSN|SAC))?(?:\s*code)?\s*(?:no\.?)?\s*[:#.-]?\s*(\d{4,8})\b[)\]]?/i
+
+/** Pulls an HSN or SAC code out of free text, returning the code and the text without it. */
+function extractHsn(text: string): { code: string; rest: string } {
+  const match = HSN_PATTERN.exec(text)
+  if (!match) return { code: "", rest: text }
+  const rest = (text.slice(0, match.index) + text.slice(match.index + match[0].length))
+    .split("\n")
+    .map((line) => line.replace(/^[\s,;|·-]+|[\s,;|·-]+$/g, ""))
+    .filter(Boolean)
+    .join("\n")
+  return { code: match[1], rest }
+}
+
+function gstTemplate(ctx: Ctx, split: GstSplit): string {
+  const { supply, taxes } = GST_SPLITS[split]
+  const showTax = ctx.includeTax
+  const css = `${taxCss(ctx)}
+.wrap { padding: 0 12mm; }
+.title-bar { text-align: center; font-size: 13px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #111827; margin-bottom: 12px; }
+.title-bar small { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: 1px; color: #6b7280; margin-top: 2px; }
+.details { grid-template-columns: 1fr 1fr; }
+table.items { font-size: 10.5px; }
+table.items th { padding: 7px 6px; font-size: 9.5px; }
+table.items td { padding: 8px 6px; }
+table.items td.c-hsn { color: #4b5563; font-variant-numeric: tabular-nums; }
+.tax-rate { font-size: 9px; color: #6b7280; }
+.summary { grid-template-columns: 1fr 74mm; gap: 18px; }
+`
+
+  // One row per line item: the taxable value, then the tax split the way this template shows it.
+  const rows = ctx.items
+    .map((item, i) => {
+      const qty = num(item.quantity) ?? 0
+      const rate = num(item.rate) ?? 0
+      const taxPct = showTax ? (num(item.tax_percent) ?? 0) : 0
+      const taxable = qty * rate
+      const tax = (taxable * taxPct) / 100
+      const total = num(item.line_total) ?? taxable + tax
+      const fromName = extractHsn(item.name || "")
+      const fromDescription = extractHsn(item.description || "")
+      const name = esc(fromName.rest || fromDescription.rest)
+      const description = fromName.rest && fromDescription.rest ? esc(fromDescription.rest) : ""
+      const taxCells = splitTax(tax, taxes.length)
+        .map(
+          (amount) =>
+            `<td class="num">${ctx.money(amount)}<div class="tax-rate">@ ${formatQty(taxPct / taxes.length)}%</div></td>`
+        )
+        .join("")
+      return `<tr>
+        <td class="c-index">${i + 1}</td>
+        <td class="c-item"><div class="item-name">${name}</div>${
+          description ? `<div class="item-desc pre">${description}</div>` : ""
+        }</td>
+        <td class="c-hsn">${esc(fromName.code || fromDescription.code)}</td>
+        <td class="num">${formatQty(qty)}</td>
+        <td class="num">${ctx.money(rate)}</td>
+        ${showTax ? `<td class="num">${ctx.money(taxable)}</td>${taxCells}` : ""}
+        <td class="num c-amount">${ctx.money(total)}</td>
+      </tr>`
+    })
+    .join("")
+
+  const columnCount = 6 + (showTax ? 1 + taxes.length : 0)
+  const taxWidth = taxes.length === 1 ? "24mm" : "21mm"
+  const itemsTable = `<table class="items">
+    <colgroup>
+      <col style="width:7mm">
+      <col>
+      <col style="width:16mm">
+      <col style="width:11mm">
+      <col style="width:${showTax ? "22mm" : "30mm"}">
+      ${showTax ? `<col style="width:24mm">${taxes.map(() => `<col style="width:${taxWidth}">`).join("")}` : ""}
+      <col style="width:${showTax ? "25mm" : "34mm"}">
+    </colgroup>
+    <thead><tr>
+      <th class="c-index">#</th>
+      <th class="c-item">Description</th>
+      <th>HSN/SAC</th>
+      <th class="num">Qty</th>
+      <th class="num">Rate</th>
+      ${showTax ? `<th class="num">Taxable value</th>${taxes.map((tax) => `<th class="num">${tax}</th>`).join("")}` : ""}
+      <th class="num">Total</th>
+    </tr></thead>
+    <tbody>${rows || `<tr><td class="c-empty" colspan="${columnCount}">No line items</td></tr>`}</tbody>
+  </table>`
+
+  // Tax per rate, split the same way as the line items. The column totals are the sums of the rows
+  // above them, so the table always adds up on the page.
+  const breakdown = taxBreakdown(ctx).map((g) => ({ ...g, parts: splitTax(g.tax, taxes.length) }))
+  const columnTotals = taxes.map((_, i) => toPaise(breakdown.reduce((sum, g) => sum + g.parts[i], 0)))
+  const summaryRow = (label: string, taxable: number, parts: number[], rate?: number) =>
+    `<tr><td>${label}</td><td class="num">${ctx.money(taxable)}</td>${parts
+      .map(
+        (amount) =>
+          `<td class="num">${ctx.money(amount)}${
+            rate === undefined ? "" : ` <span class="tax-rate">@ ${formatQty(rate / taxes.length)}%</span>`
+          }</td>`
+      )
+      .join("")}${
+      taxes.length > 1 ? `<td class="num">${ctx.money(parts.reduce((sum, amount) => sum + amount, 0))}</td>` : ""
+    }</tr>`
+  const taxesTable =
+    breakdown.length > 0
+      ? `<table class="taxes">
+      <thead><tr><th>GST rate</th><th class="num">Taxable value</th>${taxes
+        .map((tax) => `<th class="num">${tax}</th>`)
+        .join("")}${taxes.length > 1 ? `<th class="num">Total tax</th>` : ""}</tr></thead>
+      <tbody>${breakdown.map((g) => summaryRow(`${formatQty(g.rate)}%`, g.taxable, g.parts, g.rate)).join("")}</tbody>
+      ${
+        breakdown.length > 1
+          ? `<tfoot>${summaryRow(
+              "Total",
+              breakdown.reduce((sum, g) => sum + g.taxable, 0),
+              columnTotals
+            )}</tfoot>`
+          : ""
+      }
+    </table>`
+      : ""
+
+  // The totals box shows the same split as the table when the two agree on the tax total (they can
+  // differ by a paisa when the saved total was rounded differently); otherwise it splits the saved total.
+  const columnSum = columnTotals.reduce((sum, amount) => sum + amount, 0)
+  const taxAmounts =
+    breakdown.length > 0 && Math.abs(columnSum - ctx.totals.tax) < 0.005
+      ? columnTotals
+      : splitTax(ctx.totals.tax, taxes.length)
+
+  // The place of supply is the client's state when they are registered. For a supply within one state
+  // or territory it is the supplier's own, so that covers clients without a GSTIN too.
+  const sellerState = gstStateCode(ctx.company.gst)
+  const clientState = gstStateCode(ctx.client.gst)
+  const placeOfSupply = clientState ?? (split === "igst" ? null : sellerState)
+  const stateLine = (code: string | null) => (code ? `<div class="party-line">State: ${gstStateLabel(code)}</div>` : "")
+
+  const dueText = secondaryDateText(ctx, "numeric")
+  const detail = (label: string, value: string, className = "") =>
+    `<div><div class="detail-k">${label}</div><div class="detail-v${className}">${value}</div></div>`
+  const details = [
+    detail(`${ctx.label} No.`, ctx.number),
+    detail("Date", ctx.issueDate("numeric")),
+    dueText ? detail(ctx.secondaryDate.label, dueText, " due") : "",
+    placeOfSupply ? detail("Place of supply", gstStateLabel(placeOfSupply)) : "",
+    detail("Supply", supply),
+    ctx.currency !== "INR" || !placeOfSupply ? detail("Currency", esc(ctx.currency)) : "",
+  ].join("")
+
+  const contactLines = [ctx.company.email, ctx.company.phone].filter(Boolean)
+
+  const body = `<div class="wrap">
+  <div class="title-bar">${ctx.isQuote ? "Quotation" : "Tax Invoice"}<small>${supply} supply · ${taxes.join(" + ")}</small></div>
+
+  <header class="header">
+    <div class="brand">
+      ${ctx.logo ? `<img class="logo" src="${ctx.logo}" alt="Logo"${logoStyle(ctx)}>` : ""}
+      <div>
+        <div class="company-name">${ctx.company.name}</div>
+        ${ctx.company.address ? `<div class="company-line pre">${ctx.company.address}</div>` : ""}
+        ${sellerState ? `<div class="company-line">State: ${gstStateLabel(sellerState)}</div>` : ""}
+      </div>
     </div>
-    <div class="signatory">
-      <div class="sign-for">For ${ctx.company.name}</div>
-      <div class="sign-space"></div>
-      <div class="sign-line">Authorised Signatory</div>
+    <div class="contact">
+      ${ctx.company.gst ? `<div class="gst-chip"><span>GSTIN</span>${ctx.company.gst}</div>` : ""}
+      ${contactLines.map((line) => `<div>${line}</div>`).join("")}
     </div>
-  </footer>
+  </header>
+
+  <section class="grid avoid-break">
+    <div class="box">
+      <div class="box-head">Bill To</div>
+      <div class="box-body">
+        <div class="client-name">${ctx.client.name}</div>
+        ${partyLines(ctx.client)}
+        ${stateLine(clientState)}
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-head dark"><span>${ctx.label} details</span>${ctx.statusBadge}</div>
+      <div class="box-body details">${details}</div>
+    </div>
+  </section>
+
+  ${itemsTable}
+
+  <section class="summary avoid-break">
+    <div>
+      <div class="words">
+        <div class="section-title">Amount in words</div>
+        <div class="words-text">${amountInWords(ctx.totals.total, ctx.currency)}</div>
+      </div>
+      ${taxesTable}
+    </div>
+    <div class="totals">${totalsRows(ctx, {
+      subtotalLabel: "Taxable value",
+      taxRows: taxes.map((label, i) => ({ label, amount: taxAmounts[i] })),
+    })}</div>
+  </section>
+
+  ${paymentBlock(ctx, { title: "Payment Details" })}
+  ${notesBlock(ctx)}
+
+  ${taxFooter(ctx)}
 </div>`
 
   return shell({

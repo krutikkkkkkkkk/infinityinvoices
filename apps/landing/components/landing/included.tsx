@@ -14,8 +14,8 @@ const INCLUDED = [
   },
   {
     icon: LayoutTemplate,
-    title: "Four invoice templates",
-    description: "Classic, Minimal, Tax Invoice and Dark Modern are free. Two more come with Pro.",
+    title: "Seven free invoice templates",
+    description: "Three standard designs and four GST layouts are free. Two more designs come with Pro.",
   },
   {
     icon: Percent,

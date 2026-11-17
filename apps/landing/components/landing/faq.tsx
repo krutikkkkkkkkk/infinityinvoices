@@ -30,7 +30,7 @@ export const HOME_FAQS: FaqItem[] = [
   },
   {
     q: "Does it handle my country's taxes?",
-    a: "Set a tax rate on any line item, so GST, VAT and sales tax all work. Indian GST invoices also get their own template with your GSTIN and the tax breakdown.",
+    a: "Set a tax rate on any line item, so GST, VAT and sales tax all work. Indian GST invoices get their own templates, with your GSTIN, an HSN/SAC column and the tax split into CGST and SGST, or IGST.",
   },
   {
     q: "What happens to my invoices if you shut down?",

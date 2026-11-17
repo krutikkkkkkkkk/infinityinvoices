@@ -1,15 +1,15 @@
 import Link from "next/link"
-import { Coins, Hash, IndianRupee, Percent, QrCode, Table2, WholeWord } from "lucide-react"
+import { Hash, IndianRupee, MapPin, QrCode, ScanBarcode, Split, WholeWord } from "lucide-react"
 import { Note } from "@/components/blog/blocks"
 import type { ToolPage } from "@/lib/tools"
 
 export const tool: ToolPage = {
   slug: "gst-invoice-generator",
   name: "Free GST invoice generator",
-  summary: "GSTIN, GST % per line and a UPI QR code, for India.",
+  summary: "CGST, SGST and IGST invoices with a UPI QR code.",
   title: "Free GST Invoice Generator for India | Infinity Invoices",
   description:
-    "Make a GST invoice online for free: GSTIN, GST % on every line, tax breakdown by rate, amount in words and a UPI QR code. Download the PDF. No credit card.",
+    "Make a GST invoice online for free, with CGST and SGST or IGST on every line, HSN/SAC codes, place of supply and a UPI QR code. Download the PDF.",
   keywords: [
     "GST invoice generator",
     "free GST invoice generator",
@@ -17,33 +17,40 @@ export const tool: ToolPage = {
     "GST invoice maker",
     "tax invoice generator India",
     "GST invoice format",
+    "CGST SGST invoice format",
+    "IGST invoice format",
     "invoice with UPI QR code",
   ],
   updatedAt: "2026-11-17",
   icon: IndianRupee,
   eyebrow: "For freelancers in India",
   h1: "Free GST invoice generator",
-  lead: "Make a GST tax invoice in a minute. Add your GSTIN and your client’s, set the GST rate on each line, and download a PDF with the tax worked out and a UPI QR code to pay from.",
+  lead: "Make a GST tax invoice in a minute. Add your GSTIN and your client’s, set the GST rate on each line, and download a PDF with the tax split into CGST and SGST, or shown as IGST, and a UPI QR code to pay from.",
   cta: "Create a GST invoice free",
-  facts: ["5 invoices a month free", "UPI QR code", "No card to start"],
+  facts: ["CGST, SGST and IGST", "5 invoices a month free", "No card to start"],
   features: {
-    heading: "What the GST invoice template includes",
-    description: "The Tax Invoice template is on the Free plan, along with PDF download.",
+    heading: "What the GST invoice templates include",
+    description: "There is a template for each kind of supply, and all of them are on the Free plan.",
     items: [
       {
+        icon: Split,
+        title: "CGST and SGST, or IGST",
+        description: "Pick CGST + SGST for a client in your state, IGST for another state, or CGST + UTGST in a union territory. The tax is split on every line.",
+      },
+      {
+        icon: ScanBarcode,
+        title: "HSN/SAC column",
+        description: "Write the code in a line’s description, such as SAC 998314, and it moves into its own column. Saved products fill it in for you.",
+      },
+      {
+        icon: MapPin,
+        title: "Place of supply",
+        description: "Worked out from the state code at the start of the GSTIN and printed with the state name, along with each party’s state.",
+      },
+      {
         icon: Hash,
-        title: "GSTIN for you and your client",
-        description: "Your GSTIN prints in the header and your client’s sits under their billing address.",
-      },
-      {
-        icon: Percent,
-        title: "GST % on every line",
-        description: "Set the rate per line item, so one invoice can carry services taxed at different rates.",
-      },
-      {
-        icon: Table2,
-        title: "Tax breakdown by rate",
-        description: "A summary table shows the taxable value and the tax charged at each GST rate on the invoice.",
+        title: "GSTIN and tax summary",
+        description: "Both GSTINs, plus a table of the taxable value and tax at each GST rate, so one invoice can mix rates.",
       },
       {
         icon: WholeWord,
@@ -54,11 +61,6 @@ export const tool: ToolPage = {
         icon: QrCode,
         title: "UPI QR code",
         description: "Add your UPI ID and each invoice carries a QR code for the balance due. Clients scan it with any UPI app.",
-      },
-      {
-        icon: Coins,
-        title: "Rupees and 14 other currencies",
-        description: "Bill in INR at home, and in dollars, euros or pounds for clients abroad.",
       },
     ],
   },
@@ -74,8 +76,8 @@ export const tool: ToolPage = {
         description: "Enter the client’s name, address and GSTIN, then each service with its quantity, rate and GST %.",
       },
       {
-        title: "Choose the Tax Invoice template",
-        description: "It lays the invoice out for GST, with the tax breakdown and the amount in words.",
+        title: "Choose the GST template that fits",
+        description: "CGST + SGST, IGST or CGST + UTGST. When both GSTINs are filled in, the right one is marked for you.",
       },
       {
         title: "Download the PDF",
@@ -90,23 +92,22 @@ export const tool: ToolPage = {
         <p>A GST invoice is a tax document, so it is worth being exact about what this generator covers.</p>
         <h3>Handled for you</h3>
         <ul>
-          <li>Your name, address and GSTIN, and your client’s.</li>
+          <li>Your name, address, state and GSTIN, and your client’s.</li>
           <li>Invoice numbers that run in sequence, plus the issue and due dates.</li>
-          <li>The GST rate on each line, and the taxable value and tax for each rate.</li>
-          <li>The total in figures and in words.</li>
+          <li>The taxable value of each line, with the tax split into CGST and SGST, CGST and UTGST, or shown as IGST.</li>
+          <li>An HSN/SAC column, filled from the code you write in the line description.</li>
+          <li>The place of supply, a tax summary by rate, and the total in figures and in words.</li>
           <li>Your bank details or UPI ID, with a QR code.</li>
         </ul>
         <h3>Left to you</h3>
         <ul>
           <li>
-            <strong>SAC or HSN codes.</strong> There is no separate column, so write the code in the line description.
+            <strong>Choosing the template.</strong> You pick the one that matches where your client is. When both GSTINs
+            are on the invoice the matching template is marked, but for a client without a GSTIN the choice is yours.
           </li>
           <li>
-            <strong>CGST, SGST and IGST.</strong> The invoice shows GST as one amount per rate. It does not split it into
-            central, state and integrated tax, so state the split in the notes if your client needs it.
-          </li>
-          <li>
-            <strong>Place of supply and reverse charge.</strong> Add them in the notes when they apply.
+            <strong>Reverse charge and exports.</strong> There is no field for either. If tax is payable under reverse
+            charge, or the invoice is an export under a Letter of Undertaking, say so in the notes.
           </li>
           <li>
             <strong>E-invoicing and returns.</strong> It does not generate an IRN or file returns for you.
@@ -125,7 +126,7 @@ export const tool: ToolPage = {
   faqs: [
     {
       q: "Is this GST invoice generator free?",
-      a: "Yes. The Free plan includes the Tax Invoice template, 5 invoices a month, PDF download and UPI QR codes, with no credit card.",
+      a: "Yes. The Free plan includes all four GST templates, 5 invoices a month, PDF download and UPI QR codes, with no credit card.",
     },
     {
       q: "Can I use it if I am not registered for GST?",
@@ -133,7 +134,11 @@ export const tool: ToolPage = {
     },
     {
       q: "Does it split GST into CGST, SGST and IGST?",
-      a: "No. The invoice shows the GST rate on each line and the total tax for each rate as a single amount. If your client needs the CGST and SGST or IGST split shown, add it in the invoice notes.",
+      a: "Yes. Choose the CGST + SGST template for a client in your own state and the tax on every line is split in two. Choose IGST for a client in another state, or CGST + UTGST within a union territory. There is also a template that shows GST as one amount.",
+    },
+    {
+      q: "Where do I enter the HSN or SAC code?",
+      a: "In the line item’s description, written as SAC 998314 or HSN 8471. The GST templates move it into the HSN/SAC column. If you save a product with its code, the code is added whenever you pick that product.",
     },
     {
       q: "Does it create e-invoices or file GST returns?",

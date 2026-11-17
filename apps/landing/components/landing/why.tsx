@@ -75,7 +75,7 @@ const REASONS: Reason[] = [
     icon: Brush,
     title: "Looks like you, not like software.",
     description:
-      "Every invoice is designed to be the nicest-looking document your client receives that month. Pick one of six templates, then add your logo and set your own colors.",
+      "Every invoice is designed to be the nicest-looking document your client receives that month. Pick one of nine templates, then add your logo and set your own colors.",
     image: "/images/bento-swatches.jpg",
     focus: "object-[50%_25%]",
     span: "md:row-span-2 md:min-h-0 lg:col-start-3 lg:row-start-1",

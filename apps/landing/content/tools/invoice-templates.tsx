@@ -1,14 +1,14 @@
 import Link from "next/link"
-import { Briefcase, Feather, LayoutTemplate, Moon, Receipt, Square, Zap } from "lucide-react"
+import { Briefcase, Feather, IndianRupee, LayoutTemplate, MapPin, Moon, Receipt, Split, Square, Zap } from "lucide-react"
 import type { ToolPage } from "@/lib/tools"
 
 export const tool: ToolPage = {
   slug: "invoice-templates",
   name: "Free invoice templates",
-  summary: "Six designs to fill in online. Four are free.",
+  summary: "Nine designs to fill in online. Seven are free.",
   title: "Free Invoice Templates with PDF Download | Infinity Invoices",
   description:
-    "Six clean invoice templates you fill in online and download as a PDF. Four are free: Classic, Minimal, Tax Invoice and Dark Modern. No Word or Excel needed.",
+    "Nine clean invoice templates you fill in online and download as a PDF. Seven are free, including GST layouts with CGST, SGST and IGST. No Word or Excel needed.",
   keywords: [
     "free invoice template",
     "invoice templates",
@@ -17,6 +17,7 @@ export const tool: ToolPage = {
     "professional invoice template",
     "freelance invoice template",
     "blank invoice template",
+    "GST invoice template",
   ],
   updatedAt: "2026-11-17",
   icon: LayoutTemplate,
@@ -24,10 +25,10 @@ export const tool: ToolPage = {
   h1: "Free invoice templates you fill in online",
   lead: "Pick a design, type in your client and line items, and download a finished PDF. The totals add themselves up, the numbering stays in order, and nothing needs realigning.",
   cta: "Use a free template",
-  facts: ["4 templates free", "PDF download", "No card to start"],
+  facts: ["7 templates free", "PDF download", "No card to start"],
   features: {
-    heading: "Six invoice templates, four of them free",
-    description: "Every template works for invoices and quotations, and comes out as an A4 PDF.",
+    heading: "Nine invoice templates, seven of them free",
+    description: "Five standard designs and four GST layouts for India. Every one works for invoices and quotations, and comes out as an A4 PDF.",
     items: [
       {
         icon: Square,
@@ -42,16 +43,34 @@ export const tool: ToolPage = {
         description: "Cream paper and careful typography, for when the work should do the talking.",
       },
       {
-        icon: Receipt,
-        title: "Tax Invoice",
-        tag: "Free",
-        description: "A GST layout with GSTIN, a GST % column, a tax breakdown by rate and the amount in words.",
-      },
-      {
         icon: Moon,
         title: "Dark Modern",
         tag: "Free",
         description: "Charcoal and high contrast. Stands out in a folder full of white PDFs.",
+      },
+      {
+        icon: Split,
+        title: "GST: CGST + SGST",
+        tag: "Free",
+        description: "For a client in your own state. The tax on every line is split into CGST and SGST.",
+      },
+      {
+        icon: IndianRupee,
+        title: "GST: IGST",
+        tag: "Free",
+        description: "For a client in another state. The tax is shown as IGST, with the place of supply.",
+      },
+      {
+        icon: MapPin,
+        title: "GST: CGST + UTGST",
+        tag: "Free",
+        description: "For a supply within a union territory such as Chandigarh or Ladakh.",
+      },
+      {
+        icon: Receipt,
+        title: "GST, one amount",
+        tag: "Free",
+        description: "GSTIN, a GST % column and the tax as a single total, for when the split is not needed.",
       },
       {
         icon: Briefcase,
@@ -111,7 +130,7 @@ export const tool: ToolPage = {
           <li>How to pay: bank details, PayPal or a UPI ID.</li>
         </ul>
         <p>
-          Each of the six templates has a place for all of these. For what to write in them, read{" "}
+          Each of the nine templates has a place for all of these. For what to write in them, read{" "}
           <Link href="/blog/how-to-write-an-invoice">how to write an invoice</Link>.
         </p>
       </>
@@ -120,7 +139,7 @@ export const tool: ToolPage = {
   faqs: [
     {
       q: "Are the invoice templates really free?",
-      a: "Four of the six are free: Classic, Minimal, Tax Invoice and Dark Modern. The Free plan covers 5 invoices and 5 quotations a month with PDF download. Executive and Bold are part of Pro, which is $5 a month or $29 once.",
+      a: "Seven of the nine are free: Classic, Minimal, Dark Modern and the four GST layouts. The Free plan covers 5 invoices and 5 quotations a month with PDF download. Executive and Bold are part of Pro, which is $5 a month or $29 once.",
     },
     {
       q: "Can I download the templates as Word or Excel files?",
@@ -136,7 +155,7 @@ export const tool: ToolPage = {
     },
     {
       q: "Is there a GST invoice template?",
-      a: "Yes. The Tax Invoice template is laid out for Indian GST invoices, with a GSTIN for you and your client, a GST % column, a breakdown of tax by rate and the amount in words.",
+      a: "Yes, four of them, all free. Choose CGST + SGST for a client in your state, IGST for a client in another state, or CGST + UTGST within a union territory. Each has an HSN/SAC column, the place of supply, a tax summary by rate and the amount in words.",
     },
   ],
   guides: ["how-to-write-an-invoice", "invoice-payment-terms"],

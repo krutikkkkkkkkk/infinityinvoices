@@ -15,6 +15,7 @@ import {
   LOGO_BACKGROUNDS,
   LOGO_SIZES,
   TEMPLATE_DEFAULT_COLORS,
+  TEMPLATE_LABELS,
   normalizeHexColor,
   resolveTemplateColors,
   type TemplateColors,
@@ -327,7 +328,7 @@ export function DocumentStyleControls({
                           <span className="size-3 rounded-full border border-black/10" style={{ backgroundColor: swatch.accent }} />
                         </span>
                         {preset.name}
-                        <span className="text-muted-foreground capitalize">· {style.template}</span>
+                        <span className="text-muted-foreground">· {TEMPLATE_LABELS[style.template]}</span>
                       </span>
                     </SelectItem>
                   )

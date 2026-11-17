@@ -208,8 +208,9 @@ Pay by UPI: asharao@upi, or scan the QR code`}
           </p>
           <Note title="How Infinity Invoices handles GST invoices">
             <p>
-              The tax invoice template prints your GSTIN and your client’s, a tax rate on every line item and the GST
-              total. Add your UPI ID and each invoice carries a scannable QR code for the balance due. It does not generate
+              The GST templates print your GSTIN and your client’s, the place of supply, an HSN/SAC column and the tax
+              on every line split into CGST and SGST, or shown as IGST. Add your UPI ID and each invoice carries a
+              scannable QR code for the balance due. It does not generate
               e-invoices or file returns. See what the <Link href="/gst-invoice-generator">free GST invoice generator</Link>{" "}
               covers, or <a href={`${APP_URL}/auth/sign-up`}>create a GST invoice free</a>.
             </p>

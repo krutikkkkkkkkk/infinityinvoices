@@ -216,9 +216,12 @@ const addLineItem = () => {
   }
 
   const addProductAsLineItem = (product: Product) => {
+    // Line items have no HSN/SAC field of their own, so the product's code rides along in the
+    // description. The GST templates lift it out into their HSN/SAC column.
+    const hsn = product.hsn_code?.trim()
     const newItem: NewLineItem = {
       name: product.name,
-      description: product.description || "",
+      description: [product.description, hsn ? `HSN/SAC ${hsn}` : ""].filter(Boolean).join("\n"),
       quantity: 1,
       rate: Number(product.rate),
       tax_percent: Number(product.tax_rate),

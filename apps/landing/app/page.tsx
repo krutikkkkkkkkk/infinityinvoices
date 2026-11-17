@@ -60,7 +60,7 @@ const STRUCTURED_DATA = graph(
     featureList: [
       "Create and download PDF invoices",
       "Quotations that convert to invoices",
-      "Six invoice templates",
+      "Nine invoice templates, including GST layouts with CGST, SGST and IGST",
       "Tax rate per line item for GST, VAT and sales tax",
       "15 currencies",
       "UPI QR codes, bank details and PayPal on the invoice",

@@ -39,7 +39,7 @@ export const PLANS: Plan[] = [
       "5 quotations per month",
       "Up to 10 clients",
       "1 invoice preset",
-      "4 of 6 templates",
+      "7 of 9 templates, including GST",
       "PDF downloads",
       "UPI QR codes",
       "Multi-currency support",
@@ -59,7 +59,7 @@ export const PLANS: Plan[] = [
       clients: 10, // enforced on the server by addClient (app/dashboard/clients/actions.ts)
       presets: 1, // enforced on the server by saveInvoicePreset (app/dashboard/invoicing/actions.ts)
     },
-    templates: ["classic", "minimal", "tax", "dark"],
+    templates: ["classic", "minimal", "dark", "tax", "cgst_sgst", "igst", "cgst_utgst"],
     customBranding: false,
     shareLinks: false,
     recurringInvoices: false,
@@ -75,7 +75,7 @@ export const PLANS: Plan[] = [
       "Unlimited invoices per month",
       "Unlimited quotations",
       "Unlimited clients",
-      "All 6 templates",
+      "All 9 templates",
       "Custom branding (your logo & colours)",
       "Share invoices via link",
       "Unlimited email sending",

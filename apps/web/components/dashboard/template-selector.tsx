@@ -9,7 +9,9 @@ import { useSubscription } from "@/hooks/use-subscription"
 import { canUseTemplate } from "@/lib/plans"
 import { cn } from "@/lib/utils"
 import {
+  TEMPLATE_LABELS,
   generateDocumentHTML,
+  suggestGstSplit,
   type DocumentWithItems,
   type TemplateColors,
   type TemplateProfile,
@@ -20,19 +22,34 @@ import type { DocumentType } from "@/lib/types"
 
 export type { TemplateType }
 
+export type TemplateCategory = "standard" | "gst"
+
 export interface TemplateMeta {
   id: TemplateType
   label: string
   description: string
+  category: TemplateCategory
 }
 
+export const TEMPLATE_CATEGORIES: readonly { id: TemplateCategory; label: string; hint: string }[] = [
+  { id: "standard", label: "Standard", hint: "Designs for any country and tax." },
+  {
+    id: "gst",
+    label: "GST (India)",
+    hint: "Tax invoices with an HSN/SAC column. Pick the one that matches where your client is.",
+  },
+]
+
 export const INVOICE_TEMPLATES: readonly TemplateMeta[] = [
-  { id: "classic", label: "Classic", description: "Clean, modern, accent bar" },
-  { id: "minimal", label: "Minimal", description: "Cream paper, typographic" },
-  { id: "tax", label: "Tax Invoice", description: "GST layout, amount in words" },
-  { id: "dark", label: "Dark Modern", description: "Charcoal, high contrast" },
-  { id: "executive", label: "Executive", description: "Navy sidebar, gold accents" },
-  { id: "bold", label: "Bold", description: "Black header, amber accent" },
+  { id: "classic", label: TEMPLATE_LABELS.classic, description: "Clean, modern, accent bar", category: "standard" },
+  { id: "minimal", label: TEMPLATE_LABELS.minimal, description: "Cream paper, typographic", category: "standard" },
+  { id: "dark", label: TEMPLATE_LABELS.dark, description: "Charcoal, high contrast", category: "standard" },
+  { id: "executive", label: TEMPLATE_LABELS.executive, description: "Navy sidebar, gold accents", category: "standard" },
+  { id: "bold", label: TEMPLATE_LABELS.bold, description: "Black header, amber accent", category: "standard" },
+  { id: "cgst_sgst", label: TEMPLATE_LABELS.cgst_sgst, description: "Client in your state", category: "gst" },
+  { id: "igst", label: TEMPLATE_LABELS.igst, description: "Client in another state", category: "gst" },
+  { id: "cgst_utgst", label: TEMPLATE_LABELS.cgst_utgst, description: "Within a union territory", category: "gst" },
+  { id: "tax", label: TEMPLATE_LABELS.tax, description: "Total GST, not split", category: "gst" },
 ]
 
 // Quotations can use the same template designs.
@@ -135,14 +152,23 @@ export function TemplateSelector({
   profile,
   colors,
 }: TemplateSelectorProps) {
-  const templates = getTemplatesForDocumentType(documentType)
+  const allTemplates = getTemplatesForDocumentType(documentType)
   const { plan, isLoading: isPlanLoading } = useSubscription()
   const groupRef = useRef<HTMLDivElement>(null)
 
   // Until the plan has loaded, treat every template as allowed so Pro users don't see a flash of locks.
   const isLocked = (id: TemplateType) => !isPlanLoading && !canUseTemplate(plan, id)
-  const lockedCount = templates.filter((tpl) => isLocked(tpl.id)).length
-  const current = templates.find((tpl) => tpl.id === value) ?? templates[0]
+  const lockedCount = allTemplates.filter((tpl) => isLocked(tpl.id)).length
+  const current = allTemplates.find((tpl) => tpl.id === value) ?? allTemplates[0]
+
+  // The tab follows the selected template, so applying a preset or reopening a document shows its category.
+  const [category, setCategory] = useState<TemplateCategory>(current.category)
+  useEffect(() => setCategory(current.category), [current.category])
+  const templates = allTemplates.filter((tpl) => tpl.category === category)
+  const activeCategory = TEMPLATE_CATEGORIES.find((entry) => entry.id === category) ?? TEMPLATE_CATEGORIES[0]
+
+  // Both GSTINs start with a state code, which is enough to tell which GST split applies.
+  const suggested = suggestGstSplit(profile?.gst_id, document.client_gst_id)
 
   // Roving tabindex: arrow keys move the selection between unlocked templates.
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -151,8 +177,9 @@ export function TemplateSelector({
     event.preventDefault()
     const selectable = templates.filter((tpl) => !isLocked(tpl.id))
     if (selectable.length === 0) return
+    // -1 when the selected template is on the other tab: the first arrow press then lands on this tab's first.
     const index = selectable.findIndex((tpl) => tpl.id === current.id)
-    const next = selectable[(index + direction + selectable.length) % selectable.length]
+    const next = selectable[(Math.max(index, direction === 1 ? -1 : 0) + direction + selectable.length) % selectable.length]
     onChange(next.id)
     groupRef.current?.querySelector<HTMLButtonElement>(`[data-template="${next.id}"]`)?.focus()
   }
@@ -167,6 +194,31 @@ export function TemplateSelector({
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
+        <div role="tablist" aria-label="Template category" className="mb-2 flex gap-1 rounded-lg bg-muted p-1">
+          {TEMPLATE_CATEGORIES.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              role="tab"
+              aria-selected={category === entry.id}
+              onClick={() => setCategory(entry.id)}
+              className={cn(
+                "flex-1 rounded-md px-3 py-1.5 text-xs font-medium outline-none transition-colors",
+                "focus-visible:ring-2 focus-visible:ring-ring",
+                category === entry.id
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {entry.label}
+              <span className="ml-1.5 tabular-nums opacity-60">
+                {allTemplates.filter((tpl) => tpl.category === entry.id).length}
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">{activeCategory.hint}</p>
+
         <div
           ref={groupRef}
           role="radiogroup"
@@ -174,9 +226,11 @@ export function TemplateSelector({
           onKeyDown={handleKeyDown}
           className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3"
         >
-          {templates.map((tpl) => {
+          {templates.map((tpl, tileIndex) => {
             const isSelected = current.id === tpl.id
             const locked = isLocked(tpl.id)
+            const isSuggested = suggested === tpl.id
+            const isTabStop = isSelected || (current.category !== category && tileIndex === 0)
 
             const tile = (
               <button
@@ -185,8 +239,8 @@ export function TemplateSelector({
                 role="radio"
                 aria-checked={isSelected}
                 aria-disabled={locked || undefined}
-                aria-label={`${tpl.label}${locked ? " (Pro template)" : ""}`}
-                tabIndex={isSelected ? 0 : -1}
+                aria-label={`${tpl.label}${locked ? " (Pro template)" : ""}${isSuggested ? " (matches the GSTINs on this document)" : ""}`}
+                tabIndex={isTabStop ? 0 : -1}
                 data-template={tpl.id}
                 onClick={() => {
                   if (!locked) onChange(tpl.id)
@@ -231,6 +285,11 @@ export function TemplateSelector({
                   <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
                     {tpl.description}
                   </p>
+                  {isSuggested && (
+                    <p className="mt-1 inline-flex rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-primary">
+                      Matches GSTINs
+                    </p>
+                  )}
                 </div>
               </button>
             )
