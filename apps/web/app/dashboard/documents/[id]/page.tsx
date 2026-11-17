@@ -8,7 +8,7 @@ import { DocumentForm } from "@/components/dashboard/document-form"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft01Icon } from "@hugeicons/core-free-icons"
+import { ArrowLeft01Icon, ArrowRight01Icon, UserIcon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import type { Client, Document, LineItem, Profile, DocumentType } from "@/lib/types"
 import { isAdmin } from "@/lib/admin"
@@ -114,7 +114,10 @@ export default async function DocumentDetailPage({
 
   // Fetch profile and invoice settlement history
   const isInvoice = document.type === "invoice"
-  const [[profile], payments, credits, refunds, [recurringSchedule]] = await Promise.all([
+  // client_id is a bare FK: only link to a client the signed-in user owns (the client page is scoped to them)
+  const linkedClientId = document.client_id && document.user_id === user.id ? document.client_id : null
+
+  const [[profile], payments, credits, refunds, [recurringSchedule], [linkedClient]] = await Promise.all([
     db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1),
     isInvoice
       ? db
@@ -144,6 +147,13 @@ export default async function DocumentDetailPage({
           .where(and(eq(recurringSchedules.source_document_id, id), eq(recurringSchedules.user_id, document.user_id), eq(recurringSchedules.active, true)))
           .limit(1)
       : Promise.resolve([]),
+    linkedClientId
+      ? db
+          .select({ id: clients.id, name: clients.name })
+          .from(clients)
+          .where(and(eq(clients.id, linkedClientId), eq(clients.user_id, user.id)))
+          .limit(1)
+      : Promise.resolve([]),
   ])
 
   return (
@@ -161,6 +171,15 @@ export default async function DocumentDetailPage({
           {getStatusBadge(document.status)}
           {document.type === "invoice" && <SaveAsPresetButton document={document as Document & { line_items: LineItem[] }} />}
         </div>
+        {linkedClient && (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/dashboard/clients/${linkedClient.id}`} title={`Open ${linkedClient.name}`}>
+              <HugeiconsIcon icon={UserIcon} size={16} />
+              <span className="max-w-40 truncate">{linkedClient.name}</span>
+              <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Preview, Actions and Payments */}
