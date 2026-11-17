@@ -133,19 +133,19 @@ export function Hero() {
       {/* On desktop the text column starts roughly in line with the header logo. */}
       <div className="relative flex w-full flex-col justify-center px-5 py-14 sm:px-10 sm:py-20 lg:ml-auto lg:max-w-152 lg:pr-8 lg:pl-6">
         <span className="animate-in fade-in-0 slide-in-from-bottom-2 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] text-white/80 uppercase ring-1 ring-white/20 duration-700">
-          Invoicing made easy
+          Free online invoice generator
         </span>
         <h1 className="animate-in fade-in-0 slide-in-from-bottom-3 mt-6 font-heading text-[2.6rem] leading-[1.04] font-semibold tracking-[-0.03em] text-balance duration-700 sm:text-6xl lg:text-[3.25rem] xl:text-[3.5rem]">
-          Send the <Selected>invoice</Selected>.
+          Free <Selected>invoice</Selected> maker.
           <span className="block text-white/60">Skip the accounting software.</span>
         </h1>
         <p className="animate-in fade-in-0 slide-in-from-bottom-3 mt-6 max-w-md text-pretty text-white/70 delay-100 duration-700 fill-mode-both sm:text-[17px]">
-          Infinity Invoices does one thing well: clean invoices you can send in 30 seconds and get paid from. Free for
-          5 a month.
+          Infinity Invoices is a free invoice generator that does one thing well: clean, professional invoices you can
+          make in 30 seconds, download as a PDF and get paid from. Free for 5 invoices a month.
         </p>
         <div className="animate-in fade-in-0 slide-in-from-bottom-3 mt-9 flex flex-col gap-3 delay-200 duration-700 fill-mode-both sm:flex-row">
           <a href={`${APP_URL}/auth/sign-up`} className={cn(button.brand, buttonSize.lg)}>
-            Create your first invoice
+            Create a free invoice
           </a>
           <a href="#how-it-works" className={cn(button.base, buttonSize.lg, "text-white ring-1 ring-white/40 hover:bg-white/10")}>
             See how it works

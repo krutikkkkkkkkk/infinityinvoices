@@ -4,7 +4,22 @@ import { InView } from "./motion"
 import { Section, SectionHeading } from "./section"
 import { cardInset } from "./ui"
 
-const FAQS = [
+export type FaqItem = { q: string; a: string }
+
+// Also published as FAQ structured data on the home page, so keep answers plain text.
+export const HOME_FAQS: FaqItem[] = [
+  {
+    q: "Is Infinity Invoices really a free invoice maker?",
+    a: "Yes. The Free plan lets you create 5 invoices and 5 quotations every month and download each one as a PDF, with no watermark and no credit card. You only pay if you want unlimited invoices, your own logo and colors, or to email invoices straight from the app.",
+  },
+  {
+    q: "Do I need an account to generate an invoice?",
+    a: "Yes, a free one. Sign up with your email, Google or GitHub in under a minute. The account is what saves your clients, numbers your invoices in order and keeps track of who has paid.",
+  },
+  {
+    q: "Can I download my invoice as a PDF for free?",
+    a: "Yes. PDF download is included on every plan, including Free. The PDF is a clean A4 document with your business details on it, not ours.",
+  },
   {
     q: "Is it really one payment?",
     a: `Yes. Lifetime is ${LIFETIME_PRICE} once and you have Pro for as long as the product exists. If we ever added something that cost us real money per user, it would be an optional add-on, never a surprise bill.`,
@@ -35,14 +50,14 @@ const FAQS = [
   },
 ]
 
-export function Faq() {
+export function Faq({ faqs = HOME_FAQS, title = "Questions, answered" }: { faqs?: readonly FaqItem[]; title?: string }) {
   return (
     <Section id="faq">
       <div className="mx-auto max-w-3xl">
-        <SectionHeading eyebrow="FAQ" title="Questions, answered" />
+        <SectionHeading eyebrow="FAQ" title={title} />
 
         <InView reveal className={`${cardInset} mt-12 divide-y divide-border/60`}>
-          {FAQS.map(({ q, a }) => (
+          {faqs.map(({ q, a }) => (
             <details key={q} className="group px-5 sm:px-6">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium [&::-webkit-details-marker]:hidden">
                 {q}
