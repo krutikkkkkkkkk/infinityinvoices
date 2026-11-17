@@ -1,6 +1,6 @@
 # Support
 
-Thanks for using Infinity Invoice.
+Thanks for using Infinity Invoices.
 
 ## Community Support
 
@@ -9,4 +9,4 @@ Thanks for using Infinity Invoice.
 
 ## Direct Contact
 
-- Email: support@infinityinvoice.app
+- Email: support@infinityinvoices.com

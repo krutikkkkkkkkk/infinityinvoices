@@ -6,6 +6,7 @@ import { SUPPORT_EMAIL } from "@/lib/config"
 export const metadata: Metadata = {
   title: "Terms & Conditions - Infinity Invoices",
   description: "The terms that apply when you use Infinity Invoices.",
+  alternates: { canonical: "/terms" },
 }
 
 export default function TermsPage() {

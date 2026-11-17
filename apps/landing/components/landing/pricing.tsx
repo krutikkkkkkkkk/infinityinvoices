@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Check } from "lucide-react"
 import { cn } from "@infinity/ui/lib/utils"
-import { APP_URL } from "@/lib/config"
+import { APP_URL, SUPPORT_EMAIL } from "@/lib/config"
 import { LANDING_PLANS } from "@/lib/plans"
 import { InView } from "./motion"
 import { Section, SectionHeading } from "./section"
@@ -54,7 +54,11 @@ export function Pricing() {
       </div>
 
       <p className="mx-auto mt-8 max-w-xl text-center text-xs text-pretty text-muted-foreground">
-        Prices in USD. Lifetime is a one-time purchase with no renewal. If something&rsquo;s wrong, email us within 14 days
+        Prices in USD. Lifetime is a one-time purchase with no renewal. If something&rsquo;s wrong,{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2 hover:text-foreground">
+          email us
+        </a>{" "}
+        within 14 days
         of a charge and we&rsquo;ll work it out, including a refund. See the{" "}
         <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
           Terms

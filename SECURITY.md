@@ -10,7 +10,7 @@ Please do **not** open public GitHub issues for security vulnerabilities.
 
 Instead, report vulnerabilities privately by emailing:
 
-- support@infinitylinkage.com
+- support@infinityinvoices.com
 
 Please include:
 

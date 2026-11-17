@@ -5,6 +5,7 @@ import { SUPPORT_EMAIL } from "@/lib/config"
 export const metadata: Metadata = {
   title: "Privacy Policy - Infinity Invoices",
   description: "What Infinity Invoices collects, why, who it is shared with, and the choices you have.",
+  alternates: { canonical: "/privacy" },
 }
 
 export default function PrivacyPage() {

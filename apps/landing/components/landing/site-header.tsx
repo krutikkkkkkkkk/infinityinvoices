@@ -11,6 +11,7 @@ const NAV = [
   { href: "/#pricing", label: "Pricing" },
   { href: "/#open-source", label: "Open source" },
   { href: "/#faq", label: "FAQ" },
+  { href: "/blog", label: "Blog" },
 ]
 
 export async function SiteHeader() {

@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Github, ExternalLink, BookOpen } from "lucide-react"
+import { Github, ExternalLink, BookOpen, Mail } from "lucide-react"
 import Link from "next/link"
+import { SUPPORT_EMAIL } from "@/lib/support"
 
 const GITHUB_REPO = "https://github.com/krutikkkkkkkkk/infinityinvoices"
 const GITHUB_ISSUES = `${GITHUB_REPO}/issues`
@@ -21,7 +22,7 @@ export default function BugReportPage() {
       </div>
 
       {/* Main Cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Report Bug Card */}
         <Card>
           <CardHeader>
@@ -65,6 +66,31 @@ export default function BugReportPage() {
               <a href={GITHUB_DISCUSSIONS} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                 View Discussions
                 <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Email Support Card */}
+        <Card className="sm:col-span-2 lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Support
+            </CardTitle>
+            <CardDescription>
+              Billing, refunds, your account or anything private
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              For things that shouldn&apos;t go on a public GitHub page, write to{" "}
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-foreground underline underline-offset-2">{SUPPORT_EMAIL}</a>.
+            </p>
+            <Button asChild variant="outline" className="w-full">
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Send an email
               </a>
             </Button>
           </CardContent>
