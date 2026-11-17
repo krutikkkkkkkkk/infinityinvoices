@@ -24,6 +24,8 @@ export interface Plan {
   shareLinks: boolean
   /** Recurring schedules that create draft invoices automatically. */
   recurringInvoices: boolean
+  /** Emailing refund notes to the client. Issuing refund notes is free on every plan. */
+  refundEmails: boolean
 }
 
 export const PLANS: Plan[] = [
@@ -41,12 +43,14 @@ export const PLANS: Plan[] = [
       "PDF downloads",
       "UPI QR codes",
       "Multi-currency support",
+      "Refund notes",
     ],
     excludedFeatures: [
       "Custom branding (your logo & colours)",
       "Share invoices via link",
       "Email sending & payment reminders",
       "Recurring invoices",
+      "Refund emails",
     ],
     limits: {
       invoicesPerMonth: 5,
@@ -59,6 +63,7 @@ export const PLANS: Plan[] = [
     customBranding: false,
     shareLinks: false,
     recurringInvoices: false,
+    refundEmails: false,
   },
   {
     id: "pro",
@@ -75,6 +80,7 @@ export const PLANS: Plan[] = [
       "Share invoices via link",
       "Unlimited email sending",
       "Recurring invoices",
+      "Refund emails",
       "Unlimited invoice presets",
     ],
     limits: {
@@ -88,6 +94,7 @@ export const PLANS: Plan[] = [
     customBranding: true,
     shareLinks: true,
     recurringInvoices: true,
+    refundEmails: true,
   },
 ]
 

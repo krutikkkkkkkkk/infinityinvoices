@@ -2,9 +2,12 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { recordPayment, deletePayment, issueCreditNote, deleteCreditNote } from "@/app/dashboard/invoicing/actions"
+import { recordPayment, deletePayment, issueCreditNote, deleteCreditNote, issueRefundNote, deleteRefundNote } from "@/app/dashboard/invoicing/actions"
 import { CURRENCIES, type Currency } from "@/lib/types"
-import { getInvoiceBalance } from "@/lib/invoice-balance"
+import { getInvoiceBalance, roundMoney } from "@/lib/invoice-balance"
+import { downloadPdf } from "@/lib/pdf-download"
+import { REFUND_METHOD_LABELS, refundMethodLabel } from "@/lib/refund-methods"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +21,35 @@ import { toast } from "sonner"
 
 export interface PaymentRecord { id: string; amount: number; paid_at: string; method: string | null; reference: string | null; notes?: string | null }
 export interface CreditNote { id: string; number: string; amount: number; reason: string; issued_at: string }
+export interface RefundNote { id: string; number: string; amount: number; reason: string; method: string | null; reference: string | null; refunded_at: string; emailed_at: string | null }
+
+const EMAIL_PATTERN = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/
+const REFUND_EMAIL_PRO_MESSAGE = "PRO_REQUIRED:Refund emails are a Pro feature. Upgrade to Pro to email refund notes to your clients."
+
+/** Shows a server error, with an Upgrade action for Pro-only features. */
+function showError(error: string, onUpgrade: () => void): void {
+  if (!error.startsWith("PRO_REQUIRED:")) {
+    toast.error(error)
+    return
+  }
+  toast.error(error.replace("PRO_REQUIRED:", ""), { action: { label: "Upgrade", onClick: onUpgrade } })
+}
+
+/** Emails a refund note through the API; resolves to an error message, or null on success. */
+async function sendRefundEmail(refundNoteId: string, recipientEmail: string, message: string): Promise<string | null> {
+  try {
+    const response = await fetch("/api/send-refund-note", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refundNoteId, recipientEmail, message }),
+    })
+    if (response.ok) return null
+    const data = await response.json().catch(() => null)
+    return data?.error || "Couldn't send the refund email"
+  } catch {
+    return "Couldn't send the refund email. Check your connection and try again."
+  }
+}
 
 const METHOD_LABELS: Record<string, string> = { bank: "Bank transfer", upi: "UPI", cash: "Cash", card: "Card", cheque: "Cheque", other: "Other" }
 
@@ -25,13 +57,17 @@ function formatDay(value: string) {
   return new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
 }
 
-export function InvoiceSettlementPanel({ documentId, grandTotal, currency, status, payments, credits }: {
+export function InvoiceSettlementPanel({ documentId, grandTotal, currency, status, payments, credits, refunds, clientEmail, canEmailRefund }: {
   documentId: string
   grandTotal: number
   currency: Currency
   status: string
   payments: PaymentRecord[]
   credits: CreditNote[]
+  refunds: RefundNote[]
+  clientEmail: string | null
+  /** The owner's plan includes emailing refund notes (Pro). Issuing them is free. */
+  canEmailRefund: boolean
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -41,6 +77,13 @@ export function InvoiceSettlementPanel({ documentId, grandTotal, currency, statu
   const emptyPayment = { amount: "", paidAt: today, method: "bank", reference: "", notes: "" }
   const [payment, setPayment] = useState(emptyPayment)
   const [credit, setCredit] = useState({ amount: "", reason: "" })
+  const [refundOpen, setRefundOpen] = useState(false)
+  const emptyRefund = { amount: "", refundedAt: today, method: "original", reference: "", reason: "", sendEmail: canEmailRefund && Boolean(clientEmail), recipient: clientEmail || "" }
+  const [refund, setRefund] = useState(emptyRefund)
+  const [emailTarget, setEmailTarget] = useState<RefundNote | null>(null)
+  const [emailForm, setEmailForm] = useState({ recipient: clientEmail || "", message: "" })
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const goToPlan = () => router.push("/dashboard/plan")
 
   const symbol = CURRENCIES.find((item) => item.value === currency)?.symbol || currency
   const money = (value: number) => `${symbol}${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -50,6 +93,8 @@ export function InvoiceSettlementPanel({ documentId, grandTotal, currency, statu
     amount_paid: payments.reduce((sum, item) => sum + Number(item.amount), 0),
     credit_total: credits.reduce((sum, item) => sum + Number(item.amount), 0),
   })
+  const refunded = roundMoney(refunds.reduce((sum, item) => sum + Number(item.amount), 0))
+  const refundable = Math.max(0, roundMoney(balance.paid - refunded))
   const progress = balance.total > 0 ? Math.min(100, (balance.settled / balance.total) * 100) : 0
   const canSettle = status !== "cancelled" && balance.remaining > 0
   const paymentAmount = Number(payment.amount)
@@ -57,16 +102,62 @@ export function InvoiceSettlementPanel({ documentId, grandTotal, currency, statu
   const paymentValid = paymentAmount > 0 && paymentAmount <= balance.remaining + 0.005 && Boolean(payment.paidAt)
   const creditValid = creditAmount > 0 && creditAmount <= balance.remaining + 0.005 && credit.reason.trim().length > 0
 
-  function run(action: () => Promise<unknown>, onDone?: () => void) {
+  const refundAmount = Number(refund.amount)
+  const refundValid = refundAmount > 0 && refundAmount <= refundable + 0.005 && Boolean(refund.refundedAt) && refund.reason.trim().length > 0
+    && (!refund.sendEmail || EMAIL_PATTERN.test(refund.recipient.trim()))
+
+  /** Runs a server action; actions report failures by throwing or by returning `{ error }`. */
+  function run<T>(action: () => Promise<T>, onDone?: (result: T) => void | Promise<void>) {
     startTransition(async () => {
       try {
-        await action()
-        onDone?.()
+        const result = await action()
+        const error = result && typeof result === "object" && "error" in result ? (result as { error?: string }).error : undefined
+        if (error) return showError(error, goToPlan)
+        await onDone?.(result)
         router.refresh()
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Something went wrong")
       }
     })
+  }
+
+  function openRefundDialog() {
+    setRefund(emptyRefund)
+    setRefundOpen(true)
+  }
+
+  function submitRefund() {
+    const recipient = refund.recipient.trim()
+    run(
+      () => issueRefundNote({ documentId, amount: refundAmount, reason: refund.reason, refundedAt: refund.refundedAt, method: refund.method, reference: refund.reference }),
+      async (created) => {
+        setRefundOpen(false)
+        if (!refund.sendEmail || !created.id) return void toast.success(`Refund note ${created.number} issued`)
+        const error = await sendRefundEmail(created.id, recipient, "")
+        if (error) showError(`Refund note ${created.number} issued, but the email wasn't sent: ${error.replace("PRO_REQUIRED:", "")}`, goToPlan)
+        else toast.success(`Refund note ${created.number} issued and emailed to ${recipient}`)
+      },
+    )
+  }
+
+  function submitRefundEmail() {
+    const target = emailTarget
+    const recipient = emailForm.recipient.trim()
+    if (!target) return
+    startTransition(async () => {
+      const error = await sendRefundEmail(target.id, recipient, emailForm.message)
+      if (error) return showError(error, goToPlan)
+      toast.success(`Refund note ${target.number} emailed to ${recipient}`)
+      setEmailTarget(null)
+      router.refresh()
+    })
+  }
+
+  async function downloadRefund(item: RefundNote) {
+    setDownloadingId(item.id)
+    const result = await downloadPdf(`/api/refund-notes/pdf?id=${encodeURIComponent(item.id)}`, `Refund-Note-${item.number}.pdf`)
+    setDownloadingId(null)
+    if (result.status === "error") toast.error(result.message)
   }
 
   const settlementBadge = status === "cancelled"
@@ -84,7 +175,88 @@ export function InvoiceSettlementPanel({ documentId, grandTotal, currency, statu
           <CardTitle className="text-base">Balance & settlements</CardTitle>
           {settlementBadge}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" disabled={refundable <= 0} onClick={openRefundDialog}>
+            Issue refund
+          </Button>
+          <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Issue refund note</DialogTitle>
+                <DialogDescription>Record money returned to the client. Up to {money(refundable)} of the payments on this invoice can be refunded; the open balance doesn&apos;t change.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-2 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="refund-amount">Amount</Label>
+                  <Input id="refund-amount" type="number" inputMode="decimal" min="0.01" max={refundable} step="0.01" value={refund.amount} placeholder={refundable.toFixed(2)} onChange={(event) => setRefund({ ...refund, amount: event.target.value })} />
+                  <button type="button" className="self-start text-xs text-muted-foreground underline-offset-2 hover:underline" onClick={() => setRefund({ ...refund, amount: refundable.toFixed(2) })}>Refund the full {money(refundable)}</button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="refund-date">Refund date</Label>
+                  <Input id="refund-date" type="date" max={today} value={refund.refundedAt} onChange={(event) => setRefund({ ...refund, refundedAt: event.target.value })} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Method</Label>
+                  <Select value={refund.method} onValueChange={(method) => setRefund({ ...refund, method })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(REFUND_METHOD_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="refund-ref">Reference</Label>
+                  <Input id="refund-ref" value={refund.reference} maxLength={200} placeholder="Transaction ID, cheque no." onChange={(event) => setRefund({ ...refund, reference: event.target.value })} />
+                </div>
+                <div className="flex flex-col gap-2 sm:col-span-2">
+                  <Label htmlFor="refund-reason">Reason</Label>
+                  <Textarea id="refund-reason" rows={2} maxLength={500} value={refund.reason} placeholder="Why is this refund being made?" onChange={(event) => setRefund({ ...refund, reason: event.target.value })} />
+                </div>
+                <div className="flex flex-col gap-3 rounded-lg border p-3 sm:col-span-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="refund-send" disabled={!canEmailRefund} checked={refund.sendEmail} onCheckedChange={(checked) => setRefund({ ...refund, sendEmail: checked === true })} />
+                    <Label htmlFor="refund-send" className="font-normal">Email the refund note (PDF) to the client</Label>
+                    {!canEmailRefund && <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">Pro</Badge>}
+                  </div>
+                  {!canEmailRefund && (
+                    <p className="text-xs text-muted-foreground">
+                      Refund emails are part of Pro. You can still download the refund note as a PDF and send it yourself.{" "}
+                      <button type="button" className="underline underline-offset-2" onClick={goToPlan}>Upgrade</button>
+                    </p>
+                  )}
+                  {refund.sendEmail && (
+                    <Input type="email" aria-label="Recipient email" value={refund.recipient} placeholder="client@example.com" onChange={(event) => setRefund({ ...refund, recipient: event.target.value })} />
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setRefundOpen(false)}>Cancel</Button>
+                <Button disabled={pending || !refundValid} onClick={submitRefund}>{refund.sendEmail ? "Issue & email refund" : "Issue refund note"}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={emailTarget !== null} onOpenChange={(open) => { if (!open) setEmailTarget(null) }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Email refund note {emailTarget?.number}</DialogTitle>
+                <DialogDescription>The client gets a short refund confirmation with the refund note attached as a PDF.</DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-4 py-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="refund-email-to">To</Label>
+                  <Input id="refund-email-to" type="email" value={emailForm.recipient} placeholder="client@example.com" onChange={(event) => setEmailForm({ ...emailForm, recipient: event.target.value })} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="refund-email-message">Message (optional)</Label>
+                  <Textarea id="refund-email-message" rows={3} maxLength={2000} value={emailForm.message} onChange={(event) => setEmailForm({ ...emailForm, message: event.target.value })} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEmailTarget(null)}>Cancel</Button>
+                <Button disabled={pending || !EMAIL_PATTERN.test(emailForm.recipient.trim())} onClick={submitRefundEmail}>Send email</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Dialog open={creditOpen} onOpenChange={setCreditOpen}>
             <DialogTrigger asChild><Button variant="outline" size="sm" disabled={!canSettle}>Issue credit</Button></DialogTrigger>
             <DialogContent>
@@ -167,9 +339,10 @@ export function InvoiceSettlementPanel({ documentId, grandTotal, currency, statu
           <div className="flex gap-4 text-xs text-muted-foreground">
             <span>Payments: {money(balance.paid)}</span>
             <span>Credits: {money(balance.credited)}</span>
+            {refunded > 0 && <span>Refunds: {money(refunded)}</span>}
           </div>
         </div>
-        {(payments.length > 0 || credits.length > 0) && (
+        {(payments.length > 0 || credits.length > 0 || refunds.length > 0) && (
           <div className="flex flex-col gap-2 border-t pt-4">
             {payments.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-4 rounded-lg border p-3 text-sm">
@@ -196,6 +369,31 @@ export function InvoiceSettlementPanel({ documentId, grandTotal, currency, statu
                 <Button variant="ghost" size="sm" disabled={pending} onClick={() => {
                   if (window.confirm(`Void credit note ${item.number}? The invoice balance will go back up.`)) run(() => deleteCreditNote(item.id, documentId))
                 }}>Void</Button>
+              </div>
+            ))}
+            {refunds.map((item) => (
+              <div key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-3 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium">Refund note {item.number} · {money(Number(item.amount))}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDay(item.refunded_at)}
+                    {item.method ? ` · ${refundMethodLabel(item.method)}` : ""}
+                    {item.reference ? ` · Ref ${item.reference}` : ""}
+                    {item.emailed_at ? ` · Emailed ${formatDay(item.emailed_at)}` : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" disabled={downloadingId === item.id} onClick={() => downloadRefund(item)}>{downloadingId === item.id ? "Preparing…" : "PDF"}</Button>
+                  <Button variant="ghost" size="sm" disabled={pending} onClick={() => {
+                    if (!canEmailRefund) return showError(REFUND_EMAIL_PRO_MESSAGE, goToPlan)
+                    setEmailForm({ recipient: clientEmail || "", message: "" })
+                    setEmailTarget(item)
+                  }}>{item.emailed_at ? "Resend" : "Email"}</Button>
+                  <Button variant="ghost" size="sm" disabled={pending} onClick={() => {
+                    if (window.confirm(`Void refund note ${item.number}? It will no longer count as refunded.`)) run(() => deleteRefundNote(item.id, documentId))
+                  }}>Void</Button>
+                </div>
               </div>
             ))}
           </div>

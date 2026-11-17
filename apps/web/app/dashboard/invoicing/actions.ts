@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { and, asc, creditNotes, db, desc, documents, eq, invoicePresets, like, paymentRecords, recurringSchedules } from "@infinity/db"
+import { and, asc, creditNotes, db, desc, documents, eq, invoicePresets, like, paymentRecords, recurringSchedules, refundNotes } from "@infinity/db"
 import { requireUser } from "@/lib/auth/server"
 import { roundMoney } from "@/lib/invoice-balance"
 import { syncInvoiceSettlement } from "@/lib/invoice-settlement"
@@ -14,6 +14,7 @@ function revalidateInvoice(documentId: string) {
   revalidatePath(`/dashboard/documents/${documentId}`)
   revalidatePath("/dashboard/invoices")
   revalidatePath("/dashboard/credit-notes")
+  revalidatePath("/dashboard/refund-notes")
   revalidatePath("/dashboard")
 }
 
@@ -74,13 +75,27 @@ export async function recordPayment(input: {
   revalidateInvoice(input.documentId)
 }
 
-export async function deletePayment(paymentId: string, documentId: string) {
+export async function deletePayment(paymentId: string, documentId: string): Promise<{ error?: string }> {
   const user = await requireUser()
+  // Refunds are paid out of recorded payments: keep enough payments to cover them
+  const [[payment], { paid, refunded }] = await Promise.all([
+    db
+      .select({ amount: paymentRecords.amount })
+      .from(paymentRecords)
+      .where(and(eq(paymentRecords.id, paymentId), eq(paymentRecords.document_id, documentId), eq(paymentRecords.user_id, user.id)))
+      .limit(1),
+    refundableBalance(user.id, documentId),
+  ])
+  if (!payment) return { error: "Payment not found" }
+  if (roundMoney(paid - Number(payment.amount)) < refunded) {
+    return { error: "This payment covers a refund. Void the refund note first." }
+  }
   await db
     .delete(paymentRecords)
     .where(and(eq(paymentRecords.id, paymentId), eq(paymentRecords.document_id, documentId), eq(paymentRecords.user_id, user.id)))
   await syncInvoiceSettlement(user.id, documentId)
   revalidateInvoice(documentId)
+  return {}
 }
 
 /** Next CN number, based on the highest existing one so deleted notes never cause duplicates. */
@@ -128,6 +143,99 @@ export async function deleteCreditNote(creditNoteId: string, documentId: string)
     .where(and(eq(creditNotes.id, creditNoteId), eq(creditNotes.document_id, documentId), eq(creditNotes.user_id, user.id)))
   await syncInvoiceSettlement(user.id, documentId)
   revalidateInvoice(documentId)
+}
+
+/** Recorded payments, refunds already made, and what can still be refunded. */
+async function refundableBalance(userId: string, documentId: string) {
+  const [payments, refunds] = await Promise.all([
+    db.select({ amount: paymentRecords.amount }).from(paymentRecords).where(and(eq(paymentRecords.document_id, documentId), eq(paymentRecords.user_id, userId))),
+    db.select({ amount: refundNotes.amount }).from(refundNotes).where(and(eq(refundNotes.document_id, documentId), eq(refundNotes.user_id, userId))),
+  ])
+  const paid = roundMoney(payments.reduce((sum, row) => sum + Number(row.amount), 0))
+  const refunded = roundMoney(refunds.reduce((sum, row) => sum + Number(row.amount), 0))
+  return { paid, refunded, refundable: Math.max(0, roundMoney(paid - refunded)) }
+}
+
+/** Next RN number, based on the highest existing one so voided notes never cause duplicates. */
+async function nextRefundNoteNumber(userId: string) {
+  const [last] = await db
+    .select({ number: refundNotes.number })
+    .from(refundNotes)
+    .where(and(eq(refundNotes.user_id, userId), like(refundNotes.number, "RN-%")))
+    .orderBy(desc(refundNotes.number))
+    .limit(1)
+  const lastNumber = Number(String(last?.number || "").replace(/\D/g, "")) || 0
+  return `RN-${String(lastNumber + 1).padStart(4, "0")}`
+}
+
+const MAX_REFUND_TEXT_LENGTH = 500
+
+/**
+ * Records money returned to the client out of what they paid on an invoice. Free on every plan;
+ * emailing the refund note (/api/send-refund-note) is the Pro part.
+ * Errors are returned rather than thrown so production builds don't mask the message.
+ */
+export async function issueRefundNote(input: {
+  documentId: string
+  amount: number
+  reason: string
+  refundedAt: string
+  method?: string
+  reference?: string
+}): Promise<{ error?: string; id?: string; number?: string }> {
+  const user = await requireUser()
+  const amount = roundMoney(input.amount)
+  const reason = typeof input.reason === "string" ? input.reason.trim().slice(0, MAX_REFUND_TEXT_LENGTH) : ""
+  const method = typeof input.method === "string" ? input.method.trim().slice(0, 50) : ""
+  const reference = typeof input.reference === "string" ? input.reference.trim().slice(0, 200) : ""
+  if (!Number.isFinite(Number(input.amount)) || amount <= 0) return { error: "Enter a valid refund amount" }
+  if (!reason) return { error: "A reason is required for a refund note" }
+  const refundedAt = new Date(input.refundedAt)
+  if (Number.isNaN(refundedAt.getTime())) return { error: "Enter a valid refund date" }
+  if (refundedAt.getTime() > Date.now() + 24 * 60 * 60 * 1000) return { error: "The refund date can't be in the future" }
+
+  // Cancelled invoices can still be refunded: money may have been collected before cancelling
+  const [document] = await db
+    .select({ id: documents.id })
+    .from(documents)
+    .where(and(eq(documents.id, input.documentId), eq(documents.user_id, user.id), eq(documents.type, "invoice")))
+    .limit(1)
+  if (!document) return { error: "Invoice not found" }
+
+  const { refundable } = await refundableBalance(user.id, input.documentId)
+  if (refundable <= 0) return { error: "There are no payments left to refund on this invoice" }
+  if (amount > refundable) return { error: `A refund cannot exceed the ${refundable.toFixed(2)} paid and not yet refunded` }
+
+  const number = await nextRefundNoteNumber(user.id)
+  const [created] = await db
+    .insert(refundNotes)
+    .values({
+      user_id: user.id,
+      document_id: input.documentId,
+      number,
+      amount,
+      reason,
+      method: method || null,
+      reference: reference || null,
+      refunded_at: refundedAt.toISOString(),
+    })
+    .onConflictDoNothing()
+    .returning({ id: refundNotes.id })
+  if (!created) return { error: "Another refund note was issued at the same time. Please try again." }
+
+  await syncInvoiceSettlement(user.id, input.documentId)
+  revalidateInvoice(input.documentId)
+  return { id: created.id, number }
+}
+
+export async function deleteRefundNote(refundNoteId: string, documentId: string): Promise<{ error?: string }> {
+  const user = await requireUser()
+  await db
+    .delete(refundNotes)
+    .where(and(eq(refundNotes.id, refundNoteId), eq(refundNotes.document_id, documentId), eq(refundNotes.user_id, user.id)))
+  await syncInvoiceSettlement(user.id, documentId)
+  revalidateInvoice(documentId)
+  return {}
 }
 
 export async function configureLateFee(input: {

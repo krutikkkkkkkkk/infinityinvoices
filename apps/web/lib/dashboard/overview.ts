@@ -184,7 +184,18 @@ function buildBuckets(range: ChartRange, today: Date): Bucket[] {
   })
 }
 
-export type SeriesInvoice = { grand_total: number | string | null; status: string; issue_date: string }
+export type SeriesInvoice = {
+  grand_total: number | string | null
+  status: string
+  issue_date: string
+  /** Refunds on the invoice: they come off what was collected. */
+  refund_total?: number | string | null
+}
+
+/** What a paid invoice actually brought in, after refunds. */
+function collected(inv: SeriesInvoice): number {
+  return Math.max(0, (Number(inv.grand_total) || 0) - (Number(inv.refund_total) || 0))
+}
 export type AgingInvoice = {
   grand_total: number | string | null
   amount_paid?: number | string | null
@@ -206,7 +217,7 @@ function seriesFor(invoices: SeriesInvoice[], buckets: Bucket[]): SeriesPoint[] 
     const amount = Number(inv.grand_total) || 0
     points[index].invoiced += amount
     points[index].count += 1
-    if (inv.status === "paid") points[index].paid += amount
+    if (inv.status === "paid") points[index].paid += collected(inv)
   }
   return points
 }
@@ -227,7 +238,7 @@ function sumTotals(invoices: SeriesInvoice[]): PeriodTotals {
     totals.invoiced += amount
     totals.invoicedCount += 1
     if (inv.status === "paid") {
-      totals.paid += amount
+      totals.paid += collected(inv)
       totals.paidCount += 1
     }
   }
@@ -261,6 +272,7 @@ export function buildAging(receivables: AgingInvoice[], today = startOfToday()) 
 
 type InvoiceRow = {
   grand_total: number | string | null
+  refund_total: number | string | null
   status: string
   issue_date: string
   currency: string | null
@@ -295,6 +307,7 @@ export async function getOverviewData(
     db
       .select({
         grand_total: documents.grand_total,
+        refund_total: documents.refund_total,
         status: documents.status,
         issue_date: documents.issue_date,
         currency: documents.currency,

@@ -1,4 +1,4 @@
-import { and, asc, clients, creditNotes, db, desc, documents, eq, invoicePresets, lineItems, paymentRecords, profiles, recurringSchedules } from "@infinity/db"
+import { and, asc, clients, creditNotes, db, desc, documents, eq, invoicePresets, lineItems, paymentRecords, profiles, recurringSchedules, refundNotes } from "@infinity/db"
 import { requireUserOrRedirect } from "@/lib/auth/server"
 import { getPlanForUser } from "@/lib/plan-server"
 import { applyBranding } from "@/lib/plans"
@@ -114,7 +114,7 @@ export default async function DocumentDetailPage({
 
   // Fetch profile and invoice settlement history
   const isInvoice = document.type === "invoice"
-  const [[profile], payments, credits, [recurringSchedule]] = await Promise.all([
+  const [[profile], payments, credits, refunds, [recurringSchedule]] = await Promise.all([
     db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1),
     isInvoice
       ? db
@@ -129,6 +129,13 @@ export default async function DocumentDetailPage({
           .from(creditNotes)
           .where(and(eq(creditNotes.document_id, id), eq(creditNotes.user_id, document.user_id)))
           .orderBy(desc(creditNotes.issued_at))
+      : Promise.resolve([]),
+    isInvoice
+      ? db
+          .select({ id: refundNotes.id, number: refundNotes.number, amount: refundNotes.amount, reason: refundNotes.reason, method: refundNotes.method, reference: refundNotes.reference, refunded_at: refundNotes.refunded_at, emailed_at: refundNotes.emailed_at })
+          .from(refundNotes)
+          .where(and(eq(refundNotes.document_id, id), eq(refundNotes.user_id, document.user_id)))
+          .orderBy(desc(refundNotes.refunded_at))
       : Promise.resolve([]),
     isInvoice
       ? db
@@ -171,6 +178,9 @@ export default async function DocumentDetailPage({
             status={document.status}
             payments={payments}
             credits={credits}
+            refunds={refunds}
+            clientEmail={document.client_email}
+            canEmailRefund={plan.refundEmails}
           />
           <InvoiceAutomationPanel
             documentId={document.id}

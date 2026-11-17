@@ -97,6 +97,8 @@ export interface Document {
   amount_paid?: number
   /** Sum of credit notes issued against the invoice (maintained by the server). */
   credit_total?: number
+  /** Sum of refund notes: money returned to the client (maintained by the server). */
+  refund_total?: number
   late_fee_type?: 'fixed' | 'percentage' | null
   late_fee_value?: number | null
   parent_document_id?: string | null

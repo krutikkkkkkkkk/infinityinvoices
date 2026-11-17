@@ -272,3 +272,73 @@ export function buildReminderEmail(input: ReminderEmailInput): EmailContent {
     text,
   }
 }
+
+export interface RefundEmailInput extends BaseEmailInput {
+  /** Refund note number, e.g. RN-0001. */
+  number: string
+  invoiceNumber: string
+  amount: string
+  refundDate: string
+  method?: string | null
+  reference?: string | null
+  reason?: string | null
+  /** Personal note written by the sender (plain text). */
+  message?: string | null
+}
+
+export function buildRefundEmail(input: RefundEmailInput): EmailContent {
+  const heading = `Refund of ${input.amount} processed`
+  const intro = sentence(
+    `We've refunded <strong>${escapeHtml(input.amount)}</strong> against invoice <strong>${escapeHtml(input.invoiceNumber)}</strong> on ${escapeHtml(input.refundDate)}`
+  )
+
+  const paragraphs = [`Hi ${escapeHtml(input.clientName || "there")},`, intro]
+  if (input.reason?.trim()) paragraphs.push(`Reason: ${nl2br(input.reason.trim())}`)
+  if (input.message?.trim()) {
+    paragraphs.push(
+      `<span style="display:block;padding:12px 14px;background:#f9fafb;border-left:3px solid #d1d5db;border-radius:6px;color:#374151;">${nl2br(input.message.trim())}</span>`
+    )
+  }
+
+  const rows: [string, string][] = [
+    ["Refund note", input.number],
+    ["Invoice", input.invoiceNumber],
+    ["Refund date", input.refundDate],
+    ...(input.method ? [["Method", input.method] as [string, string]] : []),
+    ...(input.reference ? [["Reference", input.reference] as [string, string]] : []),
+  ]
+
+  const footnote = `${input.hasAttachment ? "The refund note is attached as a PDF. " : ""}Depending on your bank or payment provider, it may take a few days for the money to appear in your account.`
+
+  const html = layout({
+    preheader: `Refund of ${input.amount} for invoice ${input.invoiceNumber}`,
+    heading,
+    paragraphs,
+    summary: [
+      ...rows.map(([label, value]) => ({ label, value: escapeHtml(value) })),
+      { label: "Amount refunded", value: escapeHtml(input.amount), accent: true },
+    ],
+    footnote,
+    sender: input.sender,
+  })
+
+  const text = textLayout({
+    heading,
+    lines: [
+      `Hi ${input.clientName || "there"},`,
+      "",
+      `We've refunded ${input.amount} against invoice ${input.invoiceNumber} on ${input.refundDate}.`,
+      ...(input.reason?.trim() ? ["", `Reason: ${input.reason.trim()}`] : []),
+      ...(input.message?.trim() ? ["", input.message.trim()] : []),
+    ],
+    summary: [...rows, ["Amount refunded", input.amount]],
+    footnote,
+    sender: input.sender,
+  })
+
+  return {
+    subject: `Refund ${input.number} for invoice ${input.invoiceNumber} from ${input.sender.companyName}`,
+    html,
+    text,
+  }
+}

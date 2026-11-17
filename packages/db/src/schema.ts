@@ -169,6 +169,8 @@ export const documents = pgTable(
     share_colors: jsonb("share_colors").$type<{ primary?: string; accent?: string }>(),
     amount_paid: money("amount_paid").notNull().default(0),
     credit_total: money("credit_total").notNull().default(0),
+    /** Sum of refund notes: money returned to the client out of amount_paid. */
+    refund_total: money("refund_total").notNull().default(0),
     last_reminder_sent: timestamptz("last_reminder_sent"),
     reminder_count: integer("reminder_count").notNull().default(0),
     late_fee_type: text("late_fee_type", { enum: ["fixed", "percentage"] }),
@@ -309,6 +311,34 @@ export const creditNotes = pgTable(
   ],
 )
 
+/**
+ * Money returned to the client from what they paid on an invoice (Pro feature). A refund lowers the
+ * amount billed and the amount collected by the same sum, so it never re-opens a balance.
+ */
+export const refundNotes = pgTable(
+  "refund_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    user_id: userId(),
+    document_id: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    number: text("number").notNull(),
+    amount: money("amount").notNull(),
+    reason: text("reason").notNull(),
+    method: text("method"),
+    reference: text("reference"),
+    refunded_at: timestamptz("refunded_at").notNull().default(sql`now()`),
+    /** Last time the refund note was emailed to the client. */
+    emailed_at: timestamptz("emailed_at"),
+    created_at: createdAt(),
+  },
+  (t) => [
+    index("refund_notes_document_id_idx").on(t.document_id),
+    unique("refund_notes_user_number_key").on(t.user_id, t.number),
+  ],
+)
+
 export const invoicePresets = pgTable(
   "invoice_presets",
   {
@@ -373,6 +403,7 @@ export const documentsRelations = relations(documents, ({ one, many }) => ({
   line_items: many(lineItems),
   payment_records: many(paymentRecords),
   credit_notes: many(creditNotes),
+  refund_notes: many(refundNotes),
 }))
 
 export const lineItemsRelations = relations(lineItems, ({ one }) => ({
@@ -385,6 +416,10 @@ export const paymentRecordsRelations = relations(paymentRecords, ({ one }) => ({
 
 export const creditNotesRelations = relations(creditNotes, ({ one }) => ({
   document: one(documents, { fields: [creditNotes.document_id], references: [documents.id] }),
+}))
+
+export const refundNotesRelations = relations(refundNotes, ({ one }) => ({
+  document: one(documents, { fields: [refundNotes.document_id], references: [documents.id] }),
 }))
 
 export const recurringSchedulesRelations = relations(recurringSchedules, ({ one }) => ({
