@@ -23,9 +23,9 @@ type Props = { params: Promise<{ id: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const user = await getCurrentUser()
-  if (!user || !UUID_RE.test(id)) return { title: "Client · Infinity Invoice" }
+  if (!user || !UUID_RE.test(id)) return { title: "Client · Infinity Invoices" }
   const detail = await getClientDetail(user.id, id)
-  return { title: `${detail?.client.name ?? "Client"} · Infinity Invoice` }
+  return { title: `${detail?.client.name ?? "Client"} · Infinity Invoices` }
 }
 
 export default async function ClientPage({ params }: Props) {

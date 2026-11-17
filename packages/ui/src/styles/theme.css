@@ -1,4 +1,4 @@
-/* Shared Infinity Invoice design tokens. Import after `@import "tailwindcss"`. */
+/* Shared Infinity Invoices design tokens. Import after `@import "tailwindcss"`. */
 
 @custom-variant dark (&:is(.dark *));
 

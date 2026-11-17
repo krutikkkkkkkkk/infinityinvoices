@@ -22,7 +22,7 @@ import { FREE_PLAN, LIFETIME, PRO_PLAN, formatUsd } from "@/lib/plans"
 import { formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-export const metadata = { title: "Plan & usage · Infinity Invoice" }
+export const metadata = { title: "Plan & usage · Infinity Invoices" }
 
 const PLAN_NAMES: Record<PlanId, string> = { free: "Free", pro: "Pro", lifetime: "Lifetime" }
 

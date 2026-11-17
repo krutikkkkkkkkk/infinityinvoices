@@ -21,7 +21,7 @@ export async function SiteHeader() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold">
           <img src="/logo.svg" alt="" className="h-7 w-7 rounded-lg" />
-          Infinity Invoice
+          Infinity Invoices
         </Link>
 
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">

@@ -3,15 +3,15 @@ import { LegalPage } from "@/components/landing/legal-page"
 import { SUPPORT_EMAIL } from "@/lib/config"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - Infinity Invoice",
-  description: "What Infinity Invoice collects, why, who it is shared with, and the choices you have.",
+  title: "Privacy Policy - Infinity Invoices",
+  description: "What Infinity Invoices collects, why, who it is shared with, and the choices you have.",
 }
 
 export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      intro="This policy explains what information Infinity Invoice collects when you use the service, how it is used, who it is shared with, and the choices you have. It is written to be read, not skimmed, so it is short and specific."
+      intro="This policy explains what information Infinity Invoices collects when you use the service, how it is used, who it is shared with, and the choices you have. It is written to be read, not skimmed, so it is short and specific."
       sections={[
         {
           id: "who-we-are",
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
           body: (
             <>
               <p>
-                Infinity Invoice (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an invoicing and quotation service for freelancers and small
+                Infinity Invoices (&ldquo;we&rdquo;, &ldquo;us&rdquo;) is an invoicing and quotation service for freelancers and small
                 businesses, available at infinityinvoices.com. We are the controller of the personal data described in this policy.
               </p>
               <p>
@@ -126,7 +126,7 @@ export default function PrivacyPage() {
         {
           id: "children",
           title: "Children",
-          body: <p>Infinity Invoice is a business tool and is not directed at anyone under 18. We do not knowingly collect data from children.</p>,
+          body: <p>Infinity Invoices is a business tool and is not directed at anyone under 18. We do not knowingly collect data from children.</p>,
         },
         {
           id: "changes",

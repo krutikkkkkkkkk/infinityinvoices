@@ -17,7 +17,7 @@ import { SITE_URL } from "@/lib/config"
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Infinity Invoice",
+  name: "Infinity Invoices",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: SITE_URL,

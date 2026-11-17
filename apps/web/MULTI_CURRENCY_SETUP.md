@@ -1,7 +1,7 @@
 # Multi-Currency Dashboard Configuration
 
 ## Overview
-The Infinity Invoice app now supports multi-currency configuration at the dashboard level. Users can set their preferred default currency in the settings, which will auto-populate when creating new invoices.
+The Infinity Invoices app now supports multi-currency configuration at the dashboard level. Users can set their preferred default currency in the settings, which will auto-populate when creating new invoices.
 
 ## What's Been Configured
 

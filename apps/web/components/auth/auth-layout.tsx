@@ -11,7 +11,7 @@ const HIGHLIGHTS = [
 function BrandLink({ className = "" }: { className?: string }) {
   return (
     <Link href="/" className={`flex items-center gap-2 sm:gap-2.5 ${className}`}>
-      <img src="/brand-logo.svg" alt="Infinity Invoice" className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg" />
+      <img src="/brand-logo.svg" alt="Infinity Invoices" className="h-8 sm:h-10 w-8 sm:w-10 rounded-lg" />
       <span className="text-base sm:text-xl font-bold">InfinityInvoice</span>
     </Link>
   )

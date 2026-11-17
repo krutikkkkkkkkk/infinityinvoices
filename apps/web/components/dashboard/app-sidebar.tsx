@@ -95,11 +95,11 @@ export function AppSidebar({ user, profile }: { user: AuthUser; profile?: any })
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="Infinity Invoice">
+            <SidebarMenuButton size="lg" asChild tooltip="Infinity Invoices">
               <Link href="/dashboard">
-                <img src="/brand-logo.svg" alt="Infinity Invoice" className="size-8 shrink-0 rounded-lg" />
+                <img src="/brand-logo.svg" alt="Infinity Invoices" className="size-8 shrink-0 rounded-lg" />
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Infinity Invoice</span>
+                  <span className="font-semibold">Infinity Invoices</span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <span>{currencySymbol}</span>
                     <span>{defaultCurrency}</span>

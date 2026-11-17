@@ -1,6 +1,6 @@
 # IMGBB Logo Upload Setup
 
-This guide explains how to set up IMGBB API for company logo uploads in Infinity Invoice.
+This guide explains how to set up IMGBB API for company logo uploads in Infinity Invoices.
 
 ## Getting Your IMGBB API Key
 

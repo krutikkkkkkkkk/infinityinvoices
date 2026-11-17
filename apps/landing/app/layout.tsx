@@ -10,7 +10,7 @@ import "./globals.css"
 const instrumentSansHeading = Instrument_Sans({ subsets: ["latin"], variable: "--font-heading" })
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" })
 
-const TITLE = "Infinity Invoice - Simple, open source invoicing for freelancers"
+const TITLE = "Infinity Invoices - Simple, open source invoicing for freelancers"
 const DESCRIPTION =
   "Make a clean invoice in 30 seconds, email it to your client, get paid. Free for 5 invoices a month, or $29 once for lifetime Pro. Open source."
 
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: "/" },
-  openGraph: { type: "website", url: "/", siteName: "Infinity Invoice", title: TITLE, description: DESCRIPTION },
+  openGraph: { type: "website", url: "/", siteName: "Infinity Invoices", title: TITLE, description: DESCRIPTION },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
   manifest: "/manifest.json",
   icons: {

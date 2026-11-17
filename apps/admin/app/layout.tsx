@@ -9,7 +9,7 @@ const instrumentSansHeading = Instrument_Sans({ subsets: ["latin"], variable: "-
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
-  title: "Infinity Invoice Admin",
+  title: "Infinity Invoices Admin",
   robots: { index: false, follow: false },
   icons: {
     icon: [

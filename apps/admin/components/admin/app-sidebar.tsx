@@ -42,11 +42,11 @@ export function AppSidebar({ email, role, appUrl }: { email: string; role: strin
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="Infinity Invoice Admin">
+            <SidebarMenuButton size="lg" asChild tooltip="Infinity Invoices Admin">
               <Link href="/">
                 <img src="/brand-logo.svg" alt="" className="size-8 shrink-0 rounded-lg" />
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Infinity Invoice</span>
+                  <span className="font-semibold">Infinity Invoices</span>
                   <span className="text-xs text-muted-foreground">Admin console</span>
                 </div>
               </Link>

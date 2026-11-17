@@ -52,8 +52,8 @@ export function DashboardHeader({ user }: { user: AuthUser }) {
         {/* Left: Logo */}
         <div className="flex items-center">
           <Link href="/dashboard" className="flex items-center gap-2.5 font-semibold text-lg">
-            <img src="/brand-logo.svg" alt="Infinity Invoice" className="h-8 w-8 rounded-lg" />
-            <span className="hidden sm:inline-block">Infinity Invoice</span>
+            <img src="/brand-logo.svg" alt="Infinity Invoices" className="h-8 w-8 rounded-lg" />
+            <span className="hidden sm:inline-block">Infinity Invoices</span>
           </Link>
         </div>
           

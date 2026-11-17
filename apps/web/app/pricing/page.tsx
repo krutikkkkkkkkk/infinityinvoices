@@ -4,7 +4,7 @@ import Link from "next/link"
 import { LIFETIME, PLANS, PRO_PLAN, formatUsd, type Plan } from "@/lib/plans"
 
 export const metadata = {
-  title: "Pricing - Infinity Invoice",
+  title: "Pricing - Infinity Invoices",
   description: "Simple, transparent pricing for your invoicing needs",
 }
 

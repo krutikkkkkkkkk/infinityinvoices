@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og"
 
-export const alt = "Infinity Invoice: invoicing for people who send four invoices a month, not forty."
+export const alt = "Infinity Invoices: invoicing for people who send four invoices a month, not forty."
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -20,7 +20,7 @@ export default function OpengraphImage() {
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 28, fontWeight: 700, color: "#18181b" }}>
             <div style={{ display: "flex", width: 44, height: 44, borderRadius: 12, background: PRIMARY }} />
-            Infinity Invoice
+            Infinity Invoices
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ fontSize: 60, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2, color: "#18181b" }}>

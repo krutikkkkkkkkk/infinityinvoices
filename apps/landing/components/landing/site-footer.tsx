@@ -36,7 +36,7 @@ export function SiteFooter() {
           <div>
             <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold">
               <img src="/logo.svg" alt="" className="h-7 w-7" />
-              Infinity Invoice
+              Infinity Invoices
             </Link>
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               Invoicing for people who send four invoices a month, not forty. Open source and MIT licensed.
@@ -69,7 +69,7 @@ export function SiteFooter() {
 
         <div className="border-t border-border/60">
           <p className="px-5 py-5 text-center text-xs text-muted-foreground sm:px-10">
-            © {new Date().getFullYear()} Infinity Invoice. All rights reserved.
+            © {new Date().getFullYear()} Infinity Invoices. All rights reserved.
           </p>
         </div>
       </div>

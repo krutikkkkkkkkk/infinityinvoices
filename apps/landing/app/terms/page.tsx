@@ -4,22 +4,22 @@ import { LegalPage } from "@/components/landing/legal-page"
 import { SUPPORT_EMAIL } from "@/lib/config"
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions - Infinity Invoice",
-  description: "The terms that apply when you use Infinity Invoice.",
+  title: "Terms & Conditions - Infinity Invoices",
+  description: "The terms that apply when you use Infinity Invoices.",
 }
 
 export default function TermsPage() {
   return (
     <LegalPage
       title="Terms & Conditions"
-      intro="These terms are the agreement between you and Infinity Invoice when you create an account or use the service. By using Infinity Invoice you agree to them. If you are using it on behalf of a business, you confirm you can agree on its behalf."
+      intro="These terms are the agreement between you and Infinity Invoices when you create an account or use the service. By using Infinity Invoices you agree to them. If you are using it on behalf of a business, you confirm you can agree on its behalf."
       sections={[
         {
           id: "the-service",
           title: "The service",
           body: (
             <p>
-              Infinity Invoice lets you create invoices, quotations and related documents, send them to your clients, track
+              Infinity Invoices lets you create invoices, quotations and related documents, send them to your clients, track
               their status, and schedule recurring invoices. We may add,
               change or remove features over time. We will give reasonable notice before removing anything you rely on.
             </p>
@@ -48,7 +48,7 @@ export default function TermsPage() {
               <p>
                 You are responsible for what your documents say. That includes the accuracy of amounts, taxes such as GST,
                 payment details and UPI IDs, legal numbering and record-keeping requirements, and having the right to use any
-                logo or client information you upload. Infinity Invoice calculates totals from what you enter but does not
+                logo or client information you upload. Infinity Invoices calculates totals from what you enter but does not
                 check whether your invoices comply with the law that applies to you.
               </p>
             </>
@@ -59,7 +59,7 @@ export default function TermsPage() {
           title: "Acceptable use",
           body: (
             <>
-              <p>You agree not to use Infinity Invoice to:</p>
+              <p>You agree not to use Infinity Invoices to:</p>
               <ul>
                 <li>Create fake, misleading or fraudulent invoices or quotations, or impersonate another business.</li>
                 <li>Send email to people who have not done business with you or asked to hear from you. Invoice and reminder emails must go to genuine clients.</li>
@@ -106,7 +106,7 @@ export default function TermsPage() {
           body: (
             <>
               <p>
-                Emails you send through Infinity Invoice go out in your name, from our sending domain, to the addresses you
+                Emails you send through Infinity Invoices go out in your name, from our sending domain, to the addresses you
                 provide. We may limit or pause sending if it causes delivery problems or complaints.
               </p>
             </>
@@ -138,7 +138,7 @@ export default function TermsPage() {
           title: "Ending the agreement",
           body: (
             <>
-              <p>You can stop using Infinity Invoice and ask us to delete your account at any time.</p>
+              <p>You can stop using Infinity Invoices and ask us to delete your account at any time.</p>
               <p>
                 We may suspend or close your account if you break these terms, if your use creates legal or security risk, or if
                 a paid plan goes unpaid. Where reasonable, we will warn you first and give you a chance to export your documents.
@@ -152,7 +152,7 @@ export default function TermsPage() {
           body: (
             <>
               <p>
-                Infinity Invoice is provided &ldquo;as is&rdquo;. It is not accounting, tax or legal advice, and we do not
+                Infinity Invoices is provided &ldquo;as is&rdquo;. It is not accounting, tax or legal advice, and we do not
                 guarantee that documents produced with it meet the requirements of any tax authority.
               </p>
               <p>

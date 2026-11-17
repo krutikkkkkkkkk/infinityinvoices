@@ -13,7 +13,7 @@ import { getCurrentUser, getOverviewData, getProfile, getRecentDocuments } from 
 import { resolveDashboardPeriod, type DashboardPeriod } from "@/lib/date-range"
 import type { Profile } from "@/lib/types"
 
-export const metadata = { title: "Dashboard · Infinity Invoice" }
+export const metadata = { title: "Dashboard · Infinity Invoices" }
 
 export default async function DashboardPage({
   searchParams,

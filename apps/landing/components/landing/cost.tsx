@@ -14,8 +14,8 @@ function rows(years: number) {
   const months = years * 12
   return [
     { label: "A typical invoicing app", detail: `$19/mo × ${months} months`, total: 19 * months, ours: false },
-    { label: "Infinity Invoice Pro", detail: `$5/mo × ${months} months`, total: 5 * months, ours: false },
-    { label: "Infinity Invoice Lifetime", detail: `${LIFETIME_PRICE} once`, total: LIFETIME, ours: true },
+    { label: "Infinity Invoices Pro", detail: `$5/mo × ${months} months`, total: 5 * months, ours: false },
+    { label: "Infinity Invoices Lifetime", detail: `${LIFETIME_PRICE} once`, total: LIFETIME, ours: true },
   ]
 }
 

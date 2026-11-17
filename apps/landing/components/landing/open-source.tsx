@@ -17,7 +17,7 @@ export function OpenSource() {
             Read the code. Run it yourself.
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground">
-            Infinity Invoice is MIT licensed and on GitHub. Self-host it on Vercel and Neon for free, or pay us so you never
+            Infinity Invoices is MIT licensed and on GitHub. Self-host it on Vercel and Neon for free, or pay us so you never
             have to think about it. Either way, the code is public.
           </p>
           <a href={GITHUB_URL} className={cn(button.outline, buttonSize.lg, "mt-8")}>

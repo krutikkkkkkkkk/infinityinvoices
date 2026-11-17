@@ -17,7 +17,7 @@ export default async function LoginPage({
       <div className="w-full max-w-sm space-y-6">
         <div className="flex items-center justify-center gap-2">
           <img src="/brand-logo.svg" alt="" className="size-8 rounded-lg" />
-          <span className="text-lg font-semibold">Infinity Invoice Admin</span>
+          <span className="text-lg font-semibold">Infinity Invoices Admin</span>
         </div>
         {/* Unknown codes come from a failed Google/GitHub sign-in */}
         <LoginForm initialError={error ? ERROR_MESSAGES[error] ?? ERROR_MESSAGES.auth : null} />

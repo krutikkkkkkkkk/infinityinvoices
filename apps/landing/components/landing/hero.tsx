@@ -140,7 +140,7 @@ export function Hero() {
           <span className="block text-white/60">Skip the accounting software.</span>
         </h1>
         <p className="animate-in fade-in-0 slide-in-from-bottom-3 mt-6 max-w-md text-pretty text-white/70 delay-100 duration-700 fill-mode-both sm:text-[17px]">
-          Infinity Invoice does one thing well: clean invoices you can send in 30 seconds and get paid from. Free for
+          Infinity Invoices does one thing well: clean invoices you can send in 30 seconds and get paid from. Free for
           5 a month.
         </p>
         <div className="animate-in fade-in-0 slide-in-from-bottom-3 mt-9 flex flex-col gap-3 delay-200 duration-700 fill-mode-both sm:flex-row">
